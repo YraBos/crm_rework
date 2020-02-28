@@ -70,6 +70,7 @@ WHEN CHANGED(inventoryNumber(FixedAssets fa)) OR CHANGED(inputDoc(fa)) OR CHANGE
      OR CHANGED(provider(fa)) OR CHANGED(primaryBalanceValue(fa)) OR CHANGED(currentBalanceValue(fa))
      OR CHANGED(primaryBalanceUsd(fa)) OR CHANGED(UOM(fa)) OR CHANGED(quantity(fa)) 
      OR CHANGED(factoryNumer(fa)) OR CHANGED(image(fa)) OR CHANGED(note(fa)) OR CHANGED(other(fa)) 
+     OR CHANGED(passport(fa)) 
    DO {
    IF NOT flagImport(fa) THEN { 
         changeName(fa) <- OVERRIDE shortName(currentUser()), login(currentUser());
@@ -121,7 +122,7 @@ FORM viewFixedAssets 'Журнал основных средств'
     
     OBJECTS fa = FixedAssets       // GRID журнал ОС  
     GRID PROPERTIES(fa) READONLY 
-        inventoryNumber,inputDoc,inputDate,name,fullName,fmol,docOfDisposal,dateOfDisposal,dateFactDisposal,
+        inventoryNumber,passport,inputDoc,inputDate,name,fullName,fmol,docOfDisposal,dateOfDisposal,dateFactDisposal,
         classifier,storage,provider,primaryBalanceValue,currentBalanceValue,primaryBalanceUsd,
         UOM,quantity,factoryNumer,userName,userDate,changeName,changeDate 
     ORDER name(fa)    
