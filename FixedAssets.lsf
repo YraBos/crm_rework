@@ -25,7 +25,7 @@ depreciationEndDate 'Самортизировано'                   = DATA DA
 note                'Примечание'                        = DATA TEXT             (FixedAssets); // Grid
 other               'Прочее'                            = DATA TEXT             (FixedAssets); // Grid
 image               'Фото'                              = DATA IMAGEFILE        (FixedAssets);
-fmol                '* ФИО_МОЛ'                         = DATA STRING[50]       (FixedAssets); // потом удалить 
+fmol                '* ФИО_МОЛ'                         = DATA STRING[100]      (FixedAssets); // потом удалить 
 // логирование
 userName            'Кто создал'                        = DATA BPSTRING[100]    (FixedAssets);                  
 userDate            'Дата создания'                     = DATA DATE             (FixedAssets); 
@@ -103,7 +103,6 @@ delFoto 'X Фото' (FixedAssets fa) {
         APPLY; 
     } 
 }
-
 
 // ----- ФИЛЬТРЫ -----
 filterEmployee = DATA LOCAL Employee();
@@ -283,8 +282,20 @@ copyRec '+ Копия' (FixedAssets m) {
     } 
 } TOOLBAR; 
 
+// открепить МОЛ
+unPin 'Открепить' (FixedAssets fa) {
+    IF fullName(fa) THEN {
+        ASK 'Вы хотите открепить МОЛ?' DO {
+            fmol(fa) <- fullName(fa);
+            listFullName(fa) <- NULL;
+            APPLY; 
+        }
+    } ELSE MESSAGE 'МОЛ не определено';     
+} TOOLBAR; 
+
+
 EXTEND FORM viewFixedAssets
-    PROPERTIES(fa) copyRec; 
+    PROPERTIES(fa) copyRec, unPin;
 
 NAVIGATOR {
     NEW FOLDER FixedAssetsFolder 'ОС' WINDOW toolbar AFTER EVATFolder {
