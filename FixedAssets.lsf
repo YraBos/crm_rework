@@ -6,12 +6,12 @@ CLASS FixedAssets 'Основные средства';
 TABLE fixedAssets(FixedAssets);
 
 inventoryNumber     'Инвентарный номер'                 = DATA STRING[10]       (FixedAssets); // Grid 1
-passport            'Паспорт объекта'                   = DATA STRING[10]       (FixedAssets);  
+passport            'Признак сверки'                    = DATA STRING[10]       (FixedAssets);  
 factoryNumer        'Заводской номер'                   = DATA STRING[20]       (FixedAssets);
 releaseDate         'Дата выпуска'                      = DATA DATE             (FixedAssets);
 inputDate           'Дата ввода в эксп.'                = DATA DATE             (FixedAssets); // Grid 3
 inputDoc            'Документ ввода в эксп.'            = DATA STRING[20]       (FixedAssets); // Grid 2
-dateOfDisposal      'Дата выбытия'                      = DATA DATE             (FixedAssets); // Grid 7
+dateOfDisposal      'Дата бух.выбытия'                  = DATA DATE             (FixedAssets); // Grid 7
 docOfDisposal       'Документ выбытия'                  = DATA STRING[20]       (FixedAssets); // Grid 6
 dateFactDisposal    'Дата ф/выбытия'                    = DATA DATE             (FixedAssets); // Grid 8
 provider            'Поставщик'                         = DATA STRING[40]       (FixedAssets); // Grid 
@@ -23,7 +23,7 @@ currentBalanceValue 'Текущая б/стоимость'               = DATA 
 sumWear             'Сумма износа'                      = DATA NUMERIC[15,2]    (FixedAssets);
 depreciationEndDate 'Самортизировано'                   = DATA DATE             (FixedAssets);
 note                'Примечание'                        = DATA TEXT             (FixedAssets); // Grid
-other               'Прочее'                            = DATA TEXT             (FixedAssets); // Grid
+other               'Информация'                        = DATA TEXT             (FixedAssets); // Grid
 image               'Фото'                              = DATA IMAGEFILE        (FixedAssets);
 fmol                '* ФИО_МОЛ'                         = DATA STRING[100]      (FixedAssets); // потом удалить 
 // логирование
@@ -159,9 +159,8 @@ DESIGN viewFixedAssets {
         }
         MOVE BOX(ft1) {
             type = CONTAINERV;
-            height = 140; 
-            MOVE PROPERTY(note(ft1)) {height=27;}; 
-            MOVE PROPERTY(other(ft1)) {height=105;}; 
+            MOVE PROPERTY(other(ft1)) {background=#F4FFF4;}; 
+            MOVE PROPERTY(note(ft1)) {background=#EEF7F7;fontSize=9;};
         }
         NEW cnt1 {
             type = CONTAINERH ; 
@@ -300,11 +299,11 @@ EXTEND FORM viewFixedAssets
 
 NAVIGATOR {
     NEW FOLDER FixedAssetsFolder 'ОС' WINDOW toolbar AFTER EVATFolder {
-        NEW viewFixedAssets; 
+        NEW viewFixedAssets;
+        NEW listDirStorage;
         NEW FOLDER DirsFolder 'Доп. справочники' {
             NEW listDirUOM;
             NEW listDirClassifier;
-            NEW listDirStorage;
             NEW listDirTypeObjects;       
         } 
     }
