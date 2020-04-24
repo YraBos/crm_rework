@@ -237,13 +237,12 @@ DESIGN editFixedAssets {
             }
         }
         NEW cntB {
-            type = CONTAINERV; 
+            type = CONTAINERV;
             caption = 'Примечания';
             fill = 1;
-            height = 200;
-            MOVE PROPERTY(note(fa)) {height=40;};           
-            MOVE PROPERTY(other(fa)) {height=150;};           
-        }
+            MOVE PROPERTY(other(fa)) {background=#F4FFF4;}; 
+            MOVE PROPERTY(note(fa)) {background=#EEF7F7;fontSize=9;};
+   }
         NEW cntC {
             type = CONTAINERH; 
             NEW cnt3 {
@@ -300,8 +299,8 @@ EXTEND FORM viewFixedAssets
 NAVIGATOR {
     NEW FOLDER FixedAssetsFolder 'ОС' WINDOW toolbar AFTER EVATFolder {
         NEW viewFixedAssets;
-        NEW listDirStorage;
         NEW FOLDER DirsFolder 'Доп. справочники' {
+            NEW listDirStorage;
             NEW listDirUOM;
             NEW listDirClassifier;
             NEW listDirTypeObjects;       
