@@ -1,0 +1,35 @@
+MODULE CustomerDashboardNew;
+
+REQUIRE CustomerDashboard;
+
+inSData 'Созданы с:' = DATA LOCAL DATE ();
+inEData 'по:' = DATA LOCAL DATE();
+
+onSetDateFilter '+' () {inSData() <- firstDayOfMonth(currentDate());}
+onClsDateFilter 'x' () {inSData() <- NULL;}
+
+EXTEND FORM dashboardCustomer
+    EVENTS ON INIT {onSetDateFilter();}
+    EVENTS ON INIT {inEData() <- currentDate();}
+    PROPERTIES() inSData,inEData,onSetDateFilter,onClsDateFilter  
+    FILTERS IF inSData() AND inEData() THEN 
+        toDate(dateTimeCreated(is)) >= inSData() AND toDate(dateTimeCreated(is)) <= inEData() ELSE TRUE
+;
+
+DESIGN dashboardCustomer {
+    MOVE PROPERTY(dateTo(is)) {caption='Окончена';charWidth=8;} 
+    MOVE PROPERTY(dateTimeCreated(is)) {pattern = 'dd.MM.yy';caption='Создана';charWidth=8;}
+    MOVE PROPERTY(dateTimeUpdated(is)) {pattern = 'dd.MM.yy';caption='Обновлена';charWidth=10;} 
+    MOVE PROPERTY(dateFrom(is)) {caption='Начата';charWidth=8;} 
+    issues {
+        MOVE BOX (is) {
+            NEW dateFilter FIRST {
+                type = CONTAINERH; 
+                MOVE PROPERTY(inSData()); 
+                MOVE PROPERTY(inEData());
+                MOVE PROPERTY(onSetDateFilter()); 
+                MOVE PROPERTY(onClsDateFilter()); 
+            }            
+        }
+    }
+}
