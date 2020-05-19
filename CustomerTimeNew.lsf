@@ -1,0 +1,130 @@
+MODULE CustomerTimeNew;
+
+REQUIRE CustomerTime, TimeEntryCustomer;
+NAMESPACE Project;
+
+discountHours 'Скидка' = DATA NUMERIC[7,2] (TimeEntry);
+
+// вытягиваем поля на форму, name, number, hours, namePoject исключаем, они уже есть
+//numberIssue2            '* НЗ *'                (TimeEntry t) = number(issue(t)); // отладка
+descriptionStringIssue  'Описание'              (TimeEntry t) = descriptionString(issue(t));
+dateToIssue             'Завершена'             (TimeEntry t) = dateTo(issue(t));
+dateTimeCreatedIssue    'Создана'               (TimeEntry t) =  toDate(dateTimeCreated(issue(t)));
+dateTimeUpdatedIssue    'Обновлена'             (TimeEntry t) = toDate(dateTimeUpdated(issue(t)));
+dateFromIssue           'Начата'                (TimeEntry t) = dateFrom(issue(t)); 
+doneRatioIssue          'Готовность'            (TimeEntry t) = doneRatio(issue(t)); 
+estimatedHoursIssue     'Оценка трудозатрат'    (TimeEntry t) = estimatedHours(issue(t)); 
+nameAuthorIssue         'Автор'                 (TimeEntry t) = nameAuthor(issue(t));
+nameAssignedToIssue     'Назначена'             (TimeEntry t) = nameAssignedTo(issue(t)); 
+nameTrackerIssue        'Трекер'                (TimeEntry t) = nameTracker(issue(t)); 
+numberAgreementIssue    'Номер соглашения'      (TimeEntry t) = numberAgreement(issue(t)); 
+nameAgreementIssue      'Соглашение'            (TimeEntry t) = nameAgreement(issue(t));
+numberContractIssue     'Номер договора'        (TimeEntry t) = numberContract(issue(t));
+nameContractIssue       'Договор'               (TimeEntry t) = nameContract(issue(t));
+
+inReport '' = DATA LOCAL BOOLEAN (TimeEntry);
+in 'Отм.' = DATA LOCAL BOOLEAN (TimeEntry) CHARWIDTH 5;
+bySeparateAgreement 'По отд. договору' = DATA LOCAL BOOLEAN ();
+filterTracker  = DATA LOCAL Tracker();
+nameFilterTracker 'Трекер' () = name(filterTracker()); 
+filterNameActivity = DATA LOCAL Activity();
+nameFilterNameActivity 'Деятельность' () = name(filterNameActivity());
+filterNameEmployee = DATA LOCAL Employee();
+nameFilterNameEmployee 'Сотрудник' () = name(filterNameEmployee());
+
+hoursResult '' (TimeEntry t) = hours(t) - IF discountHours(t) THEN discountHours(t) ELSE 0.00;
+
+// !!! Копипастим из TimeEntryCustomer, иначе ни как
+hoursFilterProjectExt 'Трудозатраты' (Customer c, DATE  df, DATE dt) = 
+//    GROUP SUM (hours(TimeEntry t) - IF discountHours(t) THEN discountHours(t) ELSE 0.00) 
+      GROUP SUM hoursResult(TimeEntry t)
+        IF date(t) >= df AND date(t) <= dt 
+        AND (customer(t) == c OR customer(project(t)) == c OR customer(issue(t)) == c)
+        AND (project(t) == filterProject(c) OR project(issue(t)) == filterProject(c) OR NOT filterProject(c)) 
+        AND (agreement(issue(t)) == filterAgreement() OR NOT filterAgreement()) 
+        AND (contract(issue(t)) == filterContract() OR NOT filterContract())
+        AND ((withoutAgreements() AND NOT agreement(issue(t))) OR NOT withoutAgreements() OR filterAgreement() OR filterContract())
+    // --- новые условия
+        AND (nameTrackerIssue(t) = nameFilterTracker() OR NOT nameFilterTracker())
+        AND (nameActivity(t) = nameFilterNameActivity() OR NOT nameFilterNameActivity())
+        AND (nameEmployee(t) = nameFilterNameEmployee() OR NOT nameFilterNameEmployee())
+        AND inReport(t)
+;
+    
+// !!! Копипастим из TimeEntryCustomer, иначе ни как
+FORM customerReportExt 'Расширенный отчёт для клиента'
+    OBJECTS cd = (c = Customer, df = DATE, dt = DATE) PANEL SUBREPORT 
+    PROPERTIES 'Клиент' = name(c) SELECTOR, 'Дата с' = VALUE (df), 'Дата по' =  VALUE (dt), hoursFilterProjectExt(c, df, dt), withoutAgreements(), 
+                nameFilterProject(c), nameFilterAgreement(), nameFilterContract()
+    
+    OBJECTS i = Issue
+    PROPERTIES (i) READONLY number, dateTimeCreated, estimatedHours, nameAuthor, nameAssignedTo, nameTracker, nameStatus, name
+    PROPERTIES hours(i, df, dt) AFTER estimatedHours(i)
+    ORDER number(i)
+    FILTERS customer(i) == c, timeEntries(i, df, dt),
+            (withoutAgreements() AND NOT agreement(i)) OR NOT withoutAgreements() OR filterAgreement() OR filterContract(),
+            project(i) == filterProject(c) OR NOT filterProject(c),
+            agreement(i) == filterAgreement() OR NOT filterAgreement(),
+            contract(i) == filterContract() OR NOT filterContract()
+    
+    OBJECTS t = TimeEntry
+    PROPERTIES (t) READONLY nameEmployee, date, hours, nameActivity, commentsString, hoursResult
+    ORDER date(t)
+    FILTERS issue(t) == i, date(t) >= df AND date(t) <= dt
+    
+    OBJECTS te = TimeEntry
+    PROPERTIES (te) READONLY nameEmployee, date, hours, nameActivity, commentsString
+    ORDER date(te)
+    FILTERS (customer(te) == c OR customer(project(te)) == c) AND NOT issue(te), date(te) >= df AND date(te) <= dt, 
+            project(te) == filterProject(c) OR NOT filterProject(c), te IS TimeEntry AND NOT filterAgreement() AND NOT filterContract()
+    // --- новые фильтры
+    FILTERS IF nameFilterTracker()      THEN nameTrackerIssue(t) = nameFilterTracker()  ELSE TRUE 
+    FILTERS IF nameFilterNameActivity() THEN nameActivity(t) = nameFilterNameActivity() ELSE TRUE
+    FILTERS IF nameFilterNameEmployee() THEN nameEmployee(t) = nameFilterNameEmployee() ELSE TRUE
+    FILTERS inReport(t)
+;
+
+printCustomerReportExt 'Печать' (Customer c, DATE df, DATE dt) {
+    filterAgreement()       <- NULL;
+    filterContract()        <- NULL;
+    inReport(TimeEntry t)   <- NULL;
+    FOR [FILTER customerTimeDashboard.t](TimeEntry t2) DO inReport(t2) <- TRUE;
+    IF NOT hoursFilterProjectExt(c,df,dt) THEN {
+        MESSAGE 'Нет данных для отображения\n' + 'Попробуйте изменить условие фильта';
+        RETURN;
+    }
+//    MESSAGE hoursFilterProjectExt(c,df,dt); // итог для отладки
+    PRINT customerReportExt OBJECTS c = c, df = df, dt = dt XLS;
+}
+
+
+EXTEND FORM customerTimeDashboard
+//    PROPERTIES(t) inReport BEFORE id(t) // отладка, см. выше
+    PROPERTIES(t) in BEFORE id(t)
+    PROPERTIES(t) discountHours AFTER hours(t)
+    PROPERTIES(t) READONLY descriptionStringIssue, dateToIssue, dateTimeCreatedIssue, dateTimeUpdatedIssue, dateFromIssue,  
+                  doneRatioIssue, estimatedHoursIssue, nameAuthorIssue, nameAssignedToIssue, nameTrackerIssue,  
+                  numberAgreementIssue, nameAgreementIssue, numberContractIssue, nameContractIssue
+    PROPERTIES    printCustomerReportExt(c, df, dt),  // отчет 
+//                  bySeparateAgreement(), // временно, пока решается вопрос с рэдмайном
+                  nameFilterTracker(), nameFilterNameActivity(), nameFilterNameEmployee()              
+;
+
+DESIGN customerTimeDashboard {
+    timeEntries {
+        NEW report2 AFTER report {
+            caption = 'Расширенный отчет';
+            type = CONTAINERH; 
+//            type = COLUMNS;  // если не будет входить линейка фильтров, то переходим на COLUMNS вместо CONTAINERH
+//            columns = 8;
+            MOVE PROPERTY (printCustomerReportExt(c, df, dt));
+//            MOVE PROPERTY (bySeparateAgreement()); // временно, пока решается вопрос с рэдмайном
+            MOVE PROPERTY (nameFilterTracker());
+            MOVE PROPERTY (nameFilterNameActivity());
+            MOVE PROPERTY (nameFilterNameEmployee());
+        }
+        GRID(t) {
+            MOVE PROPERTY (in(t)) {marginLeft=20;marginRight=20;} 
+        } 
+    }
+}
