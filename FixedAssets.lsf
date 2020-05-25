@@ -118,14 +118,14 @@ nameFilterStorage 'Место хранения' () = name(filterStorage()) CHARW
 FORM viewFixedAssets 'Журнал основных средств'  
     OBJECTS dc = DirClassifier       // GRID классификатор
     PROPERTIES(dc) READONLY name 
-    ORDER name(dc)
+    ORDERS name(dc)
     
     OBJECTS fa = FixedAssets       // GRID журнал ОС  
     GRID PROPERTIES(fa) READONLY 
         inventoryNumber,passport,inputDoc,inputDate,name,fullName,fmol,docOfDisposal,dateOfDisposal,dateFactDisposal,
         classifier,storage,provider,primaryBalanceValue,currentBalanceValue,primaryBalanceUsd,
         UOM,quantity,factoryNumer,userName,userDate,changeName,changeDate 
-    ORDER name(fa)    
+    ORDERS name(fa)    
     PROPERTIES(fa) NEWSESSION NEW, EDIT, DELETE
     PROPERTIES(fa) viewFoto SHOWIF image(fa) 
     PROPERTIES(fa) loadFoto
