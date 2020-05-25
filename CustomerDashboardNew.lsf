@@ -5,12 +5,18 @@ REQUIRE CustomerDashboard;
 inSData 'Созданы с:' = DATA LOCAL DATE ();
 inEData 'по:' = DATA LOCAL DATE();
 
-onSetDateFilter '+' () {inSData() <- firstDayOfMonth(currentDate());}
+onSetDateFilter '+' () {
+    inSData() <- firstDayOfMonth(currentDate());
+    inEData() <- currentDate();
+}
 onClsDateFilter 'x' () {inSData() <- NULL;}
 
 EXTEND FORM dashboardCustomer
-    EVENTS ON INIT {onSetDateFilter();}
-    EVENTS ON INIT {inEData() <- currentDate();}
+    EVENTS ON INIT {
+        inSData() <- NULL;
+        inEData() <- currentDate();
+    }
+//    EVENTS ON INIT {inEData() <- currentDate();}
     PROPERTIES() inSData,inEData,onSetDateFilter,onClsDateFilter  
     FILTERS IF inSData() AND inEData() THEN 
         toDate(dateTimeCreated(is)) >= inSData() AND toDate(dateTimeCreated(is)) <= inEData() ELSE TRUE

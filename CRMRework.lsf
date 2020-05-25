@@ -1,0 +1,7 @@
+MODULE CRMRework;
+
+REQUIRE FixedAssets, //FixedAssetsImport,
+        EquipmentDashboardNew,
+        CustomerDashboardNew, 
+        CustomerTimeNew;
+

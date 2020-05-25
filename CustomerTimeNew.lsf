@@ -1,6 +1,6 @@
 MODULE CustomerTimeNew;
 
-REQUIRE CustomerTime, TimeEntryCustomer;
+REQUIRE CustomerTime, TimeEntryCustomer, Utils;
 NAMESPACE Project;
 
 discountHours 'Скидка' = DATA NUMERIC[7,2] (TimeEntry);
@@ -8,6 +8,7 @@ discountHours 'Скидка' = DATA NUMERIC[7,2] (TimeEntry);
 // вытягиваем поля на форму, name, number, hours, namePoject исключаем, они уже есть
 //numberIssue2            '* НЗ *'                (TimeEntry t) = number(issue(t)); // отладка
 descriptionStringIssue  'Описание'              (TimeEntry t) = descriptionString(issue(t));
+commentStringIssue      'Комментарий'           (TimeEntry t) = commentsString(t) CHARWIDTH 100;
 dateToIssue             'Завершена'             (TimeEntry t) = dateTo(issue(t));
 dateTimeCreatedIssue    'Создана'               (TimeEntry t) =  toDate(dateTimeCreated(issue(t)));
 dateTimeUpdatedIssue    'Обновлена'             (TimeEntry t) = toDate(dateTimeUpdated(issue(t)));
@@ -24,19 +25,17 @@ nameContractIssue       'Договор'               (TimeEntry t) = nameContr
 
 inReport '' = DATA LOCAL BOOLEAN (TimeEntry);
 in 'Отм.' = DATA LOCAL BOOLEAN (TimeEntry) CHARWIDTH 5;
+
+noError 'Без ошибок' = DATA LOCAL BOOLEAN ();
 bySeparateAgreement 'По отд. договору' = DATA LOCAL BOOLEAN ();
 filterTracker  = DATA LOCAL Tracker();
 nameFilterTracker 'Трекер' () = name(filterTracker()); 
-filterNameActivity = DATA LOCAL Activity();
-nameFilterNameActivity 'Деятельность' () = name(filterNameActivity());
-filterNameEmployee = DATA LOCAL Employee();
-nameFilterNameEmployee 'Сотрудник' () = name(filterNameEmployee());
 
+// сокращаем формулы в расчетах, отчетах, дизайне
 hoursResult '' (TimeEntry t) = hours(t) - IF discountHours(t) THEN discountHours(t) ELSE 0.00;
 
 // !!! Копипастим из TimeEntryCustomer, иначе ни как
 hoursFilterProjectExt 'Трудозатраты' (Customer c, DATE  df, DATE dt) = 
-//    GROUP SUM (hours(TimeEntry t) - IF discountHours(t) THEN discountHours(t) ELSE 0.00) 
       GROUP SUM hoursResult(TimeEntry t)
         IF date(t) >= df AND date(t) <= dt 
         AND (customer(t) == c OR customer(project(t)) == c OR customer(issue(t)) == c)
@@ -46,8 +45,7 @@ hoursFilterProjectExt 'Трудозатраты' (Customer c, DATE  df, DATE dt)
         AND ((withoutAgreements() AND NOT agreement(issue(t))) OR NOT withoutAgreements() OR filterAgreement() OR filterContract())
     // --- новые условия
         AND (nameTrackerIssue(t) = nameFilterTracker() OR NOT nameFilterTracker())
-        AND (nameActivity(t) = nameFilterNameActivity() OR NOT nameFilterNameActivity())
-        AND (nameEmployee(t) = nameFilterNameEmployee() OR NOT nameFilterNameEmployee())
+        AND (IF noError() THEN NOT nameTrackerIssue(t) = 'Ошибка' ELSE TRUE)  
         AND inReport(t)
 ;
     
@@ -60,7 +58,7 @@ FORM customerReportExt 'Расширенный отчёт для клиента'
     OBJECTS i = Issue
     PROPERTIES (i) READONLY number, dateTimeCreated, estimatedHours, nameAuthor, nameAssignedTo, nameTracker, nameStatus, name
     PROPERTIES hours(i, df, dt) AFTER estimatedHours(i)
-    ORDER number(i)
+    ORDERS number(i)
     FILTERS customer(i) == c, timeEntries(i, df, dt),
             (withoutAgreements() AND NOT agreement(i)) OR NOT withoutAgreements() OR filterAgreement() OR filterContract(),
             project(i) == filterProject(c) OR NOT filterProject(c),
@@ -69,22 +67,21 @@ FORM customerReportExt 'Расширенный отчёт для клиента'
     
     OBJECTS t = TimeEntry
     PROPERTIES (t) READONLY nameEmployee, date, hours, nameActivity, commentsString, hoursResult
-    ORDER date(t)
+    ORDERS date(t)
     FILTERS issue(t) == i, date(t) >= df AND date(t) <= dt
     
     OBJECTS te = TimeEntry
     PROPERTIES (te) READONLY nameEmployee, date, hours, nameActivity, commentsString
-    ORDER date(te)
+    ORDERS date(te)
     FILTERS (customer(te) == c OR customer(project(te)) == c) AND NOT issue(te), date(te) >= df AND date(te) <= dt, 
             project(te) == filterProject(c) OR NOT filterProject(c), te IS TimeEntry AND NOT filterAgreement() AND NOT filterContract()
     // --- новые фильтры
-    FILTERS IF nameFilterTracker()      THEN nameTrackerIssue(t) = nameFilterTracker()  ELSE TRUE 
-    FILTERS IF nameFilterNameActivity() THEN nameActivity(t) = nameFilterNameActivity() ELSE TRUE
-    FILTERS IF nameFilterNameEmployee() THEN nameEmployee(t) = nameFilterNameEmployee() ELSE TRUE
+    FILTERS IF nameFilterTracker() THEN nameTrackerIssue(t) = nameFilterTracker() ELSE TRUE 
+    FILTERS IF noError() THEN NOT nameTrackerIssue(t) = 'Ошибка' ELSE TRUE 
     FILTERS inReport(t)
 ;
 
-printCustomerReportExt 'Печать' (Customer c, DATE df, DATE dt) {
+printCustomerReportExt 'Расш. отчет' (Customer c, DATE df, DATE dt) {
     filterAgreement()       <- NULL;
     filterContract()        <- NULL;
     inReport(TimeEntry t)   <- NULL;
@@ -93,10 +90,13 @@ printCustomerReportExt 'Печать' (Customer c, DATE df, DATE dt) {
         MESSAGE 'Нет данных для отображения\n' + 'Попробуйте изменить условие фильта';
         RETURN;
     }
-//    MESSAGE hoursFilterProjectExt(c,df,dt); // итог для отладки
+//    MESSAGE hoursFilterProjectExt(c,df,dt); // итог для отладки, чтобы не формировать отчет
     PRINT customerReportExt OBJECTS c = c, df = df, dt = dt XLS;
 }
 
+openRM 'Показать' (Issue is) {
+    open(is);
+} 
 
 EXTEND FORM customerTimeDashboard
 //    PROPERTIES(t) inReport BEFORE id(t) // отладка, см. выше
@@ -107,24 +107,37 @@ EXTEND FORM customerTimeDashboard
                   numberAgreementIssue, nameAgreementIssue, numberContractIssue, nameContractIssue
     PROPERTIES    printCustomerReportExt(c, df, dt),  // отчет 
 //                  bySeparateAgreement(), // временно, пока решается вопрос с рэдмайном
-                  nameFilterTracker(), nameFilterNameActivity(), nameFilterNameEmployee()              
+                  nameFilterTracker(), noError(), openRM(is)
+
+    PROPERTIES(t) PANEL commentStringIssue
+    EVENTS ON INIT {noError() <- TRUE;}                       
 ;
 
 DESIGN customerTimeDashboard {
     timeEntries {
+        report {
+            PROPERTY(printCustomerReport(c, df, dt)) {caption = 'Отчет';};
+        }
         NEW report2 AFTER report {
-            caption = 'Расширенный отчет';
+            caption = 'Дополнительные параметры';
             type = CONTAINERH; 
 //            type = COLUMNS;  // если не будет входить линейка фильтров, то переходим на COLUMNS вместо CONTAINERH
 //            columns = 8;
             MOVE PROPERTY (printCustomerReportExt(c, df, dt));
 //            MOVE PROPERTY (bySeparateAgreement()); // временно, пока решается вопрос с рэдмайном
             MOVE PROPERTY (nameFilterTracker());
-            MOVE PROPERTY (nameFilterNameActivity());
-            MOVE PROPERTY (nameFilterNameEmployee());
+            MOVE PROPERTY (noError());
+        }
+        NEW cntTablo AFTER report2 {
+            type = CONTAINERV;
+            MOVE PROPERTY (commentStringIssue(t)) {background=#EEF7F7;};
         }
         GRID(t) {
-            MOVE PROPERTY (in(t)) {marginLeft=20;marginRight=20;} 
+            MOVE PROPERTY (in(t)) {marginLeft = 20;marginRight = 20;}
+            PROPERTY (numberIssue(t)) ;
+        } 
+        TOOLBARBOX(t) {
+            MOVE PROPERTY (openRM(is));
         } 
     }
 }
