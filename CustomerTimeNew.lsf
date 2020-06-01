@@ -1,6 +1,6 @@
 MODULE CustomerTimeNew;
 
-REQUIRE CustomerTime, TimeEntryCustomer, Utils;
+REQUIRE CustomerTime, TimeEntryCustomer, Utils, IssueNew;
 NAMESPACE Project;
 
 discountHours 'Скидка' = DATA NUMERIC[7,2] (TimeEntry);
@@ -22,12 +22,15 @@ numberAgreementIssue    'Номер соглашения'      (TimeEntry t) = n
 nameAgreementIssue      'Соглашение'            (TimeEntry t) = nameAgreement(issue(t));
 numberContractIssue     'Номер договора'        (TimeEntry t) = numberContract(issue(t));
 nameContractIssue       'Договор'               (TimeEntry t) = nameContract(issue(t));
+nameStatusIssue         'Статус'                (TimeEntry t) = nameStatus(issue(t));
+priorityNameIssue       'Приоритет'             (TimeEntry t) = priorityName(issue(t));
+separateContractIssue   'ОД'                    (TimeEntry t) = separateContract(issue(t)) CHARWIDTH 4; 
 
 inReport '' = DATA LOCAL BOOLEAN (TimeEntry);
 in 'Отм.' = DATA LOCAL BOOLEAN (TimeEntry) CHARWIDTH 5;
 
 noError 'Без ошибок' = DATA LOCAL BOOLEAN ();
-bySeparateAgreement 'По отд. договору' = DATA LOCAL BOOLEAN ();
+noSeparateContract 'Без отд. договора' = DATA LOCAL BOOLEAN ();
 filterTracker  = DATA LOCAL Tracker();
 nameFilterTracker 'Трекер' () = name(filterTracker()); 
 
@@ -46,6 +49,7 @@ hoursFilterProjectExt 'Трудозатраты' (Customer c, DATE  df, DATE dt)
     // --- новые условия
         AND (nameTrackerIssue(t) = nameFilterTracker() OR NOT nameFilterTracker())
         AND (IF noError() THEN NOT nameTrackerIssue(t) = 'Ошибка' ELSE TRUE)  
+        AND (IF noSeparateContract() THEN NOT separateContractIssue(t) ELSE TRUE)
         AND inReport(t)
 ;
     
@@ -78,6 +82,7 @@ FORM customerReportExt 'Расширенный отчёт для клиента'
     // --- новые фильтры
     FILTERS IF nameFilterTracker() THEN nameTrackerIssue(t) = nameFilterTracker() ELSE TRUE 
     FILTERS IF noError() THEN NOT nameTrackerIssue(t) = 'Ошибка' ELSE TRUE 
+    FILTERS IF noSeparateContract() THEN NOT separateContractIssue(t) ELSE TRUE
     FILTERS inReport(t)
 ;
 
@@ -94,23 +99,25 @@ printCustomerReportExt 'Расш. отчет' (Customer c, DATE df, DATE dt) {
     PRINT customerReportExt OBJECTS c = c, df = df, dt = dt XLS;
 }
 
-openRM 'Показать' (Issue is) {
-    open(is);
-} 
+// кнопка показать в рэдмайне
+openRM 'Показать' (Issue is) {open(is);}
 
 EXTEND FORM customerTimeDashboard
 //    PROPERTIES(t) inReport BEFORE id(t) // отладка, см. выше
-    PROPERTIES(t) in BEFORE id(t)
-    PROPERTIES(t) discountHours AFTER hours(t)
-    PROPERTIES(t) READONLY descriptionStringIssue, dateToIssue, dateTimeCreatedIssue, dateTimeUpdatedIssue, dateFromIssue,  
-                  doneRatioIssue, estimatedHoursIssue, nameAuthorIssue, nameAssignedToIssue, nameTrackerIssue,  
-                  numberAgreementIssue, nameAgreementIssue, numberContractIssue, nameContractIssue
-    PROPERTIES    printCustomerReportExt(c, df, dt),  // отчет 
-//                  bySeparateAgreement(), // временно, пока решается вопрос с рэдмайном
-                  nameFilterTracker(), noError(), openRM(is)
+    PROPERTIES(t)   in BEFORE id(t)
+    PROPERTIES(t)   discountHours AFTER hours(t)
+    PROPERTIES(t)   READONLY nameStatusIssue, descriptionStringIssue, dateToIssue, dateTimeCreatedIssue, dateTimeUpdatedIssue, dateFromIssue,  
+                    doneRatioIssue, estimatedHoursIssue, nameAuthorIssue, nameAssignedToIssue, nameTrackerIssue,  
+                    numberAgreementIssue, nameAgreementIssue, numberContractIssue, nameContractIssue,
+                    priorityNameIssue, separateContractIssue
+    PROPERTIES      printCustomerReportExt(c, df, dt),  // отчет 
+                    nameFilterTracker(), noError(), noSeparateContract(), openRM(is)
 
-    PROPERTIES(t) PANEL commentStringIssue
-    EVENTS ON INIT {noError() <- TRUE;}                       
+    PROPERTIES(t)   PANEL commentStringIssue
+    EVENTS ON INIT {
+        noError() <- TRUE; 
+        noSeparateContract() <- TRUE;
+    }                       
 ;
 
 DESIGN customerTimeDashboard {
@@ -124,9 +131,9 @@ DESIGN customerTimeDashboard {
 //            type = COLUMNS;  // если не будет входить линейка фильтров, то переходим на COLUMNS вместо CONTAINERH
 //            columns = 8;
             MOVE PROPERTY (printCustomerReportExt(c, df, dt));
-//            MOVE PROPERTY (bySeparateAgreement()); // временно, пока решается вопрос с рэдмайном
             MOVE PROPERTY (nameFilterTracker());
             MOVE PROPERTY (noError());
+            MOVE PROPERTY (noSeparateContract()); 
         }
         NEW cntTablo AFTER report2 {
             type = CONTAINERV;

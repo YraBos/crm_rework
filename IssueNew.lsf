@@ -1,0 +1,8 @@
+MODULE IssueNew;
+
+REQUIRE Issue;
+NAMESPACE Project;
+
+priorityName 'Приоритет' = DATA STRING[15] (Issue);
+separateContract 'Отд. договор' = DATA BOOLEAN (Issue);
+
