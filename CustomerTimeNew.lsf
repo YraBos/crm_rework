@@ -26,8 +26,8 @@ nameStatusIssue         'Статус'                (TimeEntry t) = nameStatus
 priorityNameIssue       'Приоритет'             (TimeEntry t) = priorityName(issue(t));
 separateContractIssue   'ОД'                    (TimeEntry t) = separateContract(issue(t)) CHARWIDTH 4; 
 
-inReport '' = DATA LOCAL BOOLEAN (TimeEntry);
-in 'Отм.' = DATA LOCAL BOOLEAN (TimeEntry) CHARWIDTH 5;
+inReport    ''      = DATA LOCAL BOOLEAN (TimeEntry);
+in          'Отм.'  = DATA LOCAL BOOLEAN (TimeEntry) CHARWIDTH 5;
 
 noError 'Без ошибок' = DATA LOCAL BOOLEAN ();
 noSeparateContract 'Без отд. договора' = DATA LOCAL BOOLEAN ();
@@ -72,18 +72,20 @@ FORM customerReportExt 'Расширенный отчёт для клиента'
     OBJECTS t = TimeEntry
     PROPERTIES (t) READONLY nameEmployee, date, hours, nameActivity, commentsString, hoursResult
     ORDERS date(t)
-    FILTERS issue(t) == i, date(t) >= df AND date(t) <= dt
+    FILTERS issue(t) == i, date(t) >= df AND date(t) <= dt AND inReport(t)
+    FILTERS IF nameFilterTracker() THEN nameTrackerIssue(t) = nameFilterTracker() ELSE TRUE 
+    FILTERS IF noError() THEN NOT nameTrackerIssue(t) = 'Ошибка' ELSE TRUE 
+    FILTERS IF noSeparateContract() THEN NOT separateContractIssue(t) ELSE TRUE
     
     OBJECTS te = TimeEntry
     PROPERTIES (te) READONLY nameEmployee, date, hours, nameActivity, commentsString
     ORDERS date(te)
     FILTERS (customer(te) == c OR customer(project(te)) == c) AND NOT issue(te), date(te) >= df AND date(te) <= dt, 
             project(te) == filterProject(c) OR NOT filterProject(c), te IS TimeEntry AND NOT filterAgreement() AND NOT filterContract()
-    // --- новые фильтры
-    FILTERS IF nameFilterTracker() THEN nameTrackerIssue(t) = nameFilterTracker() ELSE TRUE 
-    FILTERS IF noError() THEN NOT nameTrackerIssue(t) = 'Ошибка' ELSE TRUE 
-    FILTERS IF noSeparateContract() THEN NOT separateContractIssue(t) ELSE TRUE
-    FILTERS inReport(t)
+            AND inReport(te)
+    FILTERS IF nameFilterTracker() THEN nameTrackerIssue(te) = nameFilterTracker() ELSE TRUE 
+    FILTERS IF noError() THEN NOT nameTrackerIssue(te) = 'Ошибка' ELSE TRUE 
+    FILTERS IF noSeparateContract() THEN NOT separateContractIssue(te) ELSE TRUE
 ;
 
 printCustomerReportExt 'Расш. отчет' (Customer c, DATE df, DATE dt) {
@@ -92,19 +94,19 @@ printCustomerReportExt 'Расш. отчет' (Customer c, DATE df, DATE dt) {
     inReport(TimeEntry t)   <- NULL;
     FOR [FILTER customerTimeDashboard.t](TimeEntry t2) DO inReport(t2) <- TRUE;
     IF NOT hoursFilterProjectExt(c,df,dt) THEN {
-        MESSAGE 'Нет данных для отображения\n' + 'Попробуйте изменить условие фильта';
+        MESSAGE 'Нет данных для отображения\n' + 'Попробуйте изменить условие фильра';
         RETURN;
     }
 //    MESSAGE hoursFilterProjectExt(c,df,dt); // итог для отладки, чтобы не формировать отчет
-    PRINT customerReportExt OBJECTS c = c, df = df, dt = dt XLS;
+    PRINT customerReportExt OBJECTS c = c, df = df, dt = dt XLS; //XLS;
 }
 
 // кнопка показать в рэдмайне
 openRM 'Показать' (Issue is) {open(is);}
 
 EXTEND FORM customerTimeDashboard
-//    PROPERTIES(t) inReport BEFORE id(t) // отладка, см. выше
     PROPERTIES(t)   in BEFORE id(t)
+//    PROPERTIES(t)   inReport BEFORE in(t) // отладка, см. выше
     PROPERTIES(t)   discountHours AFTER hours(t)
     PROPERTIES(t)   READONLY nameStatusIssue, descriptionStringIssue, dateToIssue, dateTimeCreatedIssue, dateTimeUpdatedIssue, dateFromIssue,  
                     doneRatioIssue, estimatedHoursIssue, nameAuthorIssue, nameAssignedToIssue, nameTrackerIssue,  
