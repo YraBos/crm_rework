@@ -1,0 +1,36 @@
+MODULE GridColOrderFunction;
+
+REQUIRE Reflection, Utils;
+
+NAMESPACE Reflection;
+
+// см. Администрирование - Метаданные - Формы
+// раздел определяет запись состояний табличного процессора
+
+// Проблема: EXTEND FORM добавляет колонки, но изменить их порядок нельзя, 
+// и в большей степени те, которые были определены ранее.
+// При этом предполагается, что порядок следования должен задаваться настройками GRID, что возможно, невсегда удобно
+// Предлагаемые функции рассчитаны на очистку и создание состояния грида по умолчанию для всех пользователей
+// Порядок использования: onGridColOrderCls, onGrisColOrderSet .. onGrisColOrderSet, APPLY   
+
+// Здесь:
+// имя объекта, это имя получаемое в формах, как OBJECTS имя_объекта = Сущность
+// имя формы, это имя формы, полученное как, Имя_модуля.имя_формы (см. Администрирование - Метаданные - Формы)
+// имя свойства, это свойства, описываемого на форме, как PROPERTIES
+// индекс - порядковый номер следования колонки в GRID, нумерация начинается с 0
+
+// Очищает предыдущие установки состояния: имя формы, имя объекта
+// например, onGridColOrderCls('Customer.customerTimeDashboard','t');
+onGridColOrderCls '' (fName,oName) {
+    hasUserPreferences(GroupObject g) <- NULL WHERE sid(g) = oName AND canonicalName(form(g)) = fName; 
+    columnOrder(PropertyDraw p) <- NULL WHERE isSubstring(sid(p),'(' + oName + ')')  AND canonicalName(form(p)) = fName;
+    show(PropertyDraw p) <- NULL WHERE isSubstring(sid(p),'(' + oName + ')') AND canonicalName(form(p)) = fName;
+} 
+
+// Устанавливает ORDER для колонки: индекс, имя формы, имя свойства, имя объекта
+// например, onGrisColOrderSet(0,'Customer.customerTimeDashboard','in','t');
+onGridColOrderSet '' (ind,fName,pName,oName) {
+    columnOrder(PropertyDraw p) <- ind WHERE sid(p) = pName + '(' + oName + ')' AND canonicalName(form(p)) = fName;
+    show(PropertyDraw p) <- PropertyDrawShowStatus.Show WHERE sid(p) = pName + '(' + oName + ')' AND canonicalName(form(p)) = fName;
+    hasUserPreferences(GroupObject g) <- TRUE WHERE sid(g) = oName AND canonicalName(form(g)) = fName; 
+}

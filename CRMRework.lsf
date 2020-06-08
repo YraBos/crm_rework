@@ -1,9 +1,12 @@
 MODULE CRMRework;
 
-REQUIRE FixedAssets, //FixedAssetsImport,
-        EquipmentDashboardNew,
-        CustomerDashboardNew, 
-        CustomerTimeNew,
-        ProjectRedmineNew
+REQUIRE FixedAssets,            // Журнал учета основных средств (FixedAssetsImport - импорт из ст. картотеки)
+        EquipmentDashboardNew,  // Отображение лицензий на оборудование
+        CustomerDashboardNew,   // Рабочий стол - Выставление счетов - Отмеченное время
+        CustomerTimeNew,        // Рабочий стол - Работа с клиентами - [Проекты [Задачи]]
+        GridColOrderFunction,   // Функции управления дефолтовым состоянием GRID
+        GridColOrderAction,     // Форма вызова переустановки дефолтового состояния GRID
+        ImportRmExt,            // Дополнительный импорт из RedMine
+        ProjectRedmineNew       // Форма для вызова импорта из RedMine в ручную из кнопки     
 ;
 

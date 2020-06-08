@@ -42,6 +42,7 @@ edit(DirUOM ob) + {
     SHOW editDirUOM OBJECTS ob=ob FLOAT;
 }    
 };
+
 @newDirClass(DirClassifier, dirclassifier, 'Классификатор','Классификатор'){
 CLASS DirClassifier 'Классификатор';
 TABLE dirclassifier(DirClassifier);

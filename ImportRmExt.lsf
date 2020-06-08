@@ -1,0 +1,34 @@
+MODULE ImportRmExt;
+// импорт дополнительных полей из RedMine
+
+REQUIRE ProjectRedmine, IssueNew;
+NAMESPACE Project;
+
+importRmExt 'Импорт отд. полей' (External e) {
+    NEWSESSION {
+        LOCAL id        = INTEGER(INTEGER);             // номер задачи в РМ
+        LOCAL fid       = INTEGER(INTEGER);             // id от custom_fields
+        LOCAL fvalue    = STRING[1](INTEGER);           // значение = '1' если отдельный договор
+        LOCAL pvalue    = STRING[15](INTEGER);          // название приоритета
+
+        LOCAL file = FILE ();
+        EXTERNAL SQL path(e) EXEC 
+                    'SELECT issues.id, f.id AS fid,v.value AS fvalue, e.name AS pvalue ' +
+                    'FROM issues ' + 
+                    'LEFT JOIN custom_values v ON v.customized_type = \'Issue\' AND v.customized_id = issues.id ' + 
+                    'LEFT JOIN custom_fields f ON v.custom_field_id = f.id ' +				
+                    'LEFT JOIN enumerations e ON issues.priority_id = e.id AND e.type = \'IssuePriority\' '  
+            TO file;
+
+        IMPORT TABLE FROM file() TO id, fid, fvalue, pvalue;
+        
+        FOR Issue s = issue(STRING[15](id(INTEGER i)), e) AND id(i) DO {
+            IF fid(i) THEN IF fid(i) == 3 THEN {
+                separateContract(s) <- NULL; 
+                IF fvalue(i) == '1' THEN separateContract(s) <- TRUE;    
+            }
+            priorityName(s) <- pvalue(i);
+        }     
+        APPLY;        
+    }
+}

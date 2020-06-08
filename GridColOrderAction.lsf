@@ -1,0 +1,38 @@
+MODULE GridColOrderAction;
+
+REQUIRE GridColOrderFunction, FixedAssets;
+
+FORM setDefaultGridColSet 'Управление состоянием GRID';
+
+vAsk '' = DATA LOCAL BOOLEAN ();
+
+onCheck '' () {
+//    vAsk() <- NULL;
+//    ASK 'Вы действительно хотите создать новое состояние\nтабличного процессора для всех?' DO vAsk() <- TRUE;
+//    IF NOT vAsk() THEN MESSAGE 'Операция отменена';
+}
+
+onCustomerTimeNew 'Выставление счетов - Отмеченное время' () {
+//    onCheck(); IF NOT vAsk() THEN RETURN; 
+//    onGridColOrderCls('Customer.customerTimeDashboard','t');                                // очищаем все предыдущие установки
+//    onGridColOrderSet(0,'Customer.customerTimeDashboard','in','t');                         // отметка
+//    onGridColOrderSet(1,'Customer.customerTimeDashboard','numberIssue','t');                // номер задачи
+//    onGridColOrderSet(2,'Customer.customerTimeDashboard','nameIssue','t');                  // задача
+//    onGridColOrderSet(3,'Customer.customerTimeDashboard','hours','t');                      // часы
+//    onGridColOrderSet(4,'Customer.customerTimeDashboard','discountHours','t');              // скидка
+//    onGridColOrderSet(5,'Customer.customerTimeDashboard','date','t');                       // дата
+//    onGridColOrderSet(6,'Customer.customerTimeDashboard','nameTrackerIssue','t');           // трекер
+//    onGridColOrderSet(7,'Customer.customerTimeDashboard','priorityNameIssue','t');          // приоритет
+//    onGridColOrderSet(8,'Customer.customerTimeDashboard','separateContractIssue','t');      // по отдельному договору
+//    onGridColOrderSet(9,'Customer.customerTimeDashboard','nameEmployee','t');               // сотрудник
+//    APPLY;                                                                                  // применяем изменения
+//    MESSAGE 'Выполнено'; 
+}
+
+EXTEND FORM setDefaultGridColSet PROPERTIES onCustomerTimeNew();
+
+NAVIGATOR {
+    FixedAssetsFolder {
+        NEW FORM setDefaultGridColSet;
+    }
+}
