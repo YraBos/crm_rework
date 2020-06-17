@@ -9,6 +9,7 @@ onSetDateFilter '+' () {
     inSData() <- firstDayOfMonth(currentDate());
     inEData() <- currentDate();
 }
+
 onClsDateFilter 'x' () {inSData() <- NULL;}
 
 EXTEND FORM dashboardCustomer
@@ -16,7 +17,6 @@ EXTEND FORM dashboardCustomer
         inSData() <- NULL;
         inEData() <- currentDate();
     }
-//    EVENTS ON INIT {inEData() <- currentDate();}
     PROPERTIES() inSData,inEData,onSetDateFilter,onClsDateFilter  
     FILTERS IF inSData() AND inEData() THEN 
         toDate(dateTimeCreated(is)) >= inSData() AND toDate(dateTimeCreated(is)) <= inEData() ELSE TRUE
