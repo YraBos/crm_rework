@@ -7,6 +7,7 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         GridColOrderFunction,   // Функции управления дефолтовым состоянием GRID
         GridColOrderAction,     // Форма вызова переустановки дефолтового состояния GRID
         ImportRmExt,            // Дополнительный импорт из RedMine
-        ProjectRedmineNew       // Форма для вызова импорта из RedMine в ручную из кнопки     
+        ProjectRedmineNew,      // Форма для вызова импорта из RedMine в ручную из кнопки 
+        CustomerNew    
 ;
 

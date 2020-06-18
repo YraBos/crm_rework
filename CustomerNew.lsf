@@ -1,0 +1,42 @@
+MODULE CustomerNew;
+
+REQUIRE Customer, Utils;
+
+calcInfo 'Данные сверки' = DATA LOCAL TEXT (Customer);
+delimiter 'Разделитель' = DATA LOCAL STRING[10] () CHARWIDTH 10; 
+
+onCalc 'Обновить' () {
+    calcInfo(Customer c) <- '';
+    FOR (Customer o IS Customer) AND isSubstring(info(o),delimiter()) DO {
+        FOR iterate(INTEGER i, 2, wordCount(info(o),delimiter())) DO {
+            calcInfo(o) <- calcInfo(o) + getWord(getWord(info(o),delimiter(),i),'\n',1) + ';      ';
+        }  
+    }
+}
+
+
+EXTEND FORM customers
+    PROPERTIES onCalc(), delimiter() 
+    PROPERTIES(o) PANEL READONLY calcInfo
+    EVENTS ON INIT {
+        delimiter() <- '###';
+    }  
+;
+
+DESIGN customers {
+    PANEL {
+        NEW cntInfo {
+            type = CONTAINERV; 
+            fill = 1;
+            NEW cnt1 {
+                fill = 1;
+                MOVE PROPERTY (calcInfo(o));
+            }
+            NEW cnt2 {
+                type = CONTAINERH ;
+                MOVE PROPERTY (delimiter()) {charHeight = 1;};
+                MOVE PROPERTY (onCalc());
+            }
+        }
+    }
+}
