@@ -190,11 +190,15 @@ onPrintIssueExt 'Печать' (Customer c, DATE df, DATE dt, IssueStatus st) {
     PRINT printIssueRepExt OBJECTS c = c, df = df, dt = dt, st = st XLS;
 }
 
+openER 'Redmine' (TimeEntry t) {
+    open(issue(t));   
+};
+
 EXTEND FORM customerTimeDashboard
     PROPERTIES(is) READONLY discountHours, nameStatus, priorityName, separateContract, calcHours
     PROPERTIES(is) READONLY PANEL descriptionStringTablo
     PROPERTIES  noErrorIssue(), noSeparateContractIssue(), noAgreement(), addDescription(), lenDescription() 
-    PROPERTIES  onPrintIssueExt(c, df, dt, st)
+    PROPERTIES  onPrintIssueExt(c, df, dt, st), openER(t)
     EVENTS ON INIT {
         noErrorIssue() <- TRUE; 
         noSeparateContractIssue() <- TRUE;
@@ -230,7 +234,10 @@ DESIGN customerTimeDashboard {
         MOVE PROPERTY (dateTimeUpdated(is)) {caption = 'Обновлена'; pattern = 'dd.MM.yy'; charWidth = 10; pattern = 'dd.MM.yy';}
         MOVE PROPERTY (dateFrom(is)) {caption = 'Начата'; charWidth = 8;}
     }
-    TOOLBARRIGHT {
+    TOOLBARRIGHT(is) {
         MOVE PROPERTY (open(is)) {caption = 'RedMine';}; 
     }
+    TOOLBARRIGHT(t) {
+        MOVE PROPERTY (openER(t));
+    } 
 }
