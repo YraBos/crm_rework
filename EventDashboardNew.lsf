@@ -1,0 +1,10 @@
+MODULE EventDashboardNew;
+
+REQUIRE EventDashboard;
+
+DESIGN eventDashboard {
+    BOX(o) {
+        fill = 1;
+    }
+} 
+
