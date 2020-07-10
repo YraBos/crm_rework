@@ -235,7 +235,7 @@ DESIGN customerTimeDashboard {
         MOVE PROPERTY (dateFrom(is)) {caption = 'Начата'; charWidth = 8;}
     }
     TOOLBARRIGHT(is) {
-        MOVE PROPERTY (open(is)) {caption = 'RedMine';}; 
+        MOVE PROPERTY (open(is)) {caption = 'Redmine';}; 
     }
     TOOLBARRIGHT(t) {
         MOVE PROPERTY (openER(t));

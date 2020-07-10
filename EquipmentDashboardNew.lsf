@@ -7,13 +7,28 @@ quantitySerialSubject 'По клиенту' (SubjectType st) =
         IF Customer cst = filterCustomer()  AND name(type(cs)) = name(st)
             AND ( ( customer(Contract cnt) = cst AND contract(cs) = cnt ) 
                 OR ( customer(Agreement agr) = cst AND agreement(cs) = agr ) )
-//            AND (NOT filterContract(st) OR number(cnt) = number(filterContract(st)))    
 ;     
 
+//inReport '' = DATA LOCAL BOOLEAN (EquipmentSerial);
 
+//FORM pRepQSerial 'Печатная форма'
+//    PROPERTIES nameCustomer = nameFilterCustomer(), isCustomer = IF nameFilterCustomer() THEN 1 ELSE 0 PANEL 
+//    OBJECTS es = EquipmentSerial
+//    PROPERTIES(es) nameSubjectTypeEquipment, nameLegalEntityContractEquipment, nameContractEquipment, number
+//    FILTERS inReport(es)
+//    ORDERS nameSubjectTypeEquipment(es), nameLegalEntityContractEquipment(es), nameContractEquipment(es)
+//;
+//
+//onRepQSerial 'Отчет' () {
+//    inReport(EquipmentSerial e) <- NULL;
+//    FOR [FILTER equipmentDashboard.es](EquipmentSerial es) DO inReport(es) <- TRUE; 
+//    PRINT pRepQSerial XLS;   
+//}
 
 EXTEND FORM equipmentDashboard
+//    PROPERTIES(es) inReport BEFORE noteEquipment(es)
     PROPERTIES quantitySerialSubject(t)
+//    PROPERTIES DRAW es TOOLBAR onRepQSerial()
 ;
 
 DESIGN equipmentDashboard {

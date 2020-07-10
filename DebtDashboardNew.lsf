@@ -1,0 +1,67 @@
+MODULE DebtDashboardNew;
+
+REQUIRE DebtDashboard, Utils, Time;
+
+filterSumDebt 'Значение задолженности' = DATA LOCAL INTEGER ();
+
+sumContract 'Сумма договора' (Debt d) = round(sum(contract(d)),2);
+sumAgreement 'Сумма соглашения' (Debt d)  = round(sum(agreement(d)),2);
+dateContract 'Дата договора' (Debt d) = date(contract(d));
+dateAgreement 'Дата соглашения' (Debt d) = date(agreement(d));
+balance 'Остаток' (Debt d) = round(sum(d) - IF paid(d) THEN paid(d) ELSE 0.00, 2);
+numberAct 'Номер акта' (Debt d) = number(act(d));
+dateAct 'Дата акта' (Debt d) = date(act(d));
+nameAct 'Название акта' (Debt d) = name(act(d));
+sumAct 'Сумма акта' (Debt d) = sum(act(d));
+
+dateContractISO '' (Debt d) = toDateISO(dateContract(d));
+
+agrFlag '' (Debt d) = IF agreement(d) THEN 1 ELSE 0;
+actFlag '' (Debt d) = IF act(d) THEN 1 ELSE 0;
+
+//legalEntity 'CID' (Debt d) = legalEntity(contract(d));
+//name2 'О2' (Debt d) = name(legalEntity(d));
+//sumEDebt 'ЗО' (LegalEntity le, DATE d) = GROUP SUM sum(Debt dd) (-) paid(dd, d) IF date(dd) <= d BY legalEntity(dd);
+
+FORM reportDebs 'Печать'
+    OBJECTS dd = DATE PANEL
+    PROPERTIES VALUE (dd)
+    OBJECTS c  = Customer PROPERTIES(c) name PANEL
+    OBJECTS t  = ContractType PROPERTIES(t) name PANEL
+    OBJECTS db = Debt
+    PROPERTIES(db) date, nameLegalEntity, sum, paid, balance,  
+                   numberContract, dateContract, nameContract, sumContract, dateContractISO,
+                   numberAgreement, dateAgreement, nameAgreement, sumAgreement,
+                   numberAct, dateAct, nameAct, sumAct,
+                   agrFlag, actFlag 
+    PROPERTIES sumDebt(c,dd)
+    FILTERS customer(db) == c, date(db) <= dd, type(contract(db)) == t
+    FILTERS abs(balance(db)) > 0
+//    FILTERS NOT sum(db) (-) paid(db, dd) == 0
+    FILTERS sumDebt(c, dd)
+    FILTERS IF filterCustomerContractType() THEN t == filterCustomerContractType() ELSE TRUE 
+    FILTERS IF filterSumDebt() THEN abs(sumDebt(c,t,dd)) > filterSumDebt() ELSE TRUE  
+    ORDERS nameLegalEntity(db),dateContractISO(db),numberContract(db),date(db)
+;
+
+onReport 'Отчет' (Customer c, DATE dd) {
+    PRINT reportDebs OBJECTS c = c, dd = dd XLS; // XLS
+}
+
+EXTEND FORM debtDashboard
+    OBJECTS le = LegalEntity
+    PROPERTIES filterSumDebt(), onReport(c, dd)
+    EVENTS ON INIT {
+        filterSumDebt() <- 100;
+    }
+    FILTERS customer(le) = c
+    FILTERS IF filterSumDebt() THEN abs(sumDebt(c,t,dd)) > filterSumDebt() ELSE TRUE  
+;
+
+DESIGN debtDashboard {
+    BOX (dd) {
+        caption = 'Фильтры и отчеты';
+        MOVE PROPERTY (filterSumDebt());
+        MOVE PROPERTY (onReport(c, dd));
+    }
+}
