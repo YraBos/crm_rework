@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.12.2.final using JasperReports Library version 6.12.2-75c5e90a222ab406e416cbf590a5397028a52de3  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="DebtDashboardNew.reportDebs" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="2cc48c02-9a98-451c-8a92-3004d36e0e61">
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="DebtDashboardNew.reportDebs" pageWidth="1024" pageHeight="595" orientation="Landscape" columnWidth="984" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="2cc48c02-9a98-451c-8a92-3004d36e0e61">
 	<property name="net.sf.jasperreports.export.xls.print.page.width" value="842"/>
 	<property name="net.sf.jasperreports.export.xls.print.page.height" value="595"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
 	<style name="DefaultStyle" isDefault="true" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
 		<box>
 			<pen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
@@ -68,11 +77,27 @@
 	<field name="actFlag(db)" class="java.lang.Integer"/>
 	<field name="agrFlag(db)" class="java.lang.Integer"/>
 	<field name="dateContractISO(db)" class="java.lang.String"/>
+	<field name="inCurrency(db)" class="java.lang.Integer"/>
+	<field name="sumCurrency(db)" class="java.math.BigDecimal"/>
+	<field name="balanceCurrency(db)" class="java.math.BigDecimal"/>
+	<field name="paidCurrency(db)" class="java.math.BigDecimal"/>
 	<sortField name="nameLegalEntity(db)"/>
 	<sortField name="dateContractISO(db)"/>
 	<sortField name="numberContract(db)"/>
 	<variable name="sumEDebt" class="java.math.BigDecimal" resetType="Group" resetGroup="designGroup30923" calculation="Sum">
-		<variableExpression><![CDATA[$F{balance(db)}]]></variableExpression>
+		<variableExpression><![CDATA[(( $F{inCurrency(db)} == 0) ? $F{balance(db)} : 0.00)]]></variableExpression>
+		<initialValueExpression><![CDATA[0.00]]></initialValueExpression>
+	</variable>
+	<variable name="sumEDebtCurrency" class="java.math.BigDecimal" resetType="Group" resetGroup="designGroup30923" calculation="Sum">
+		<variableExpression><![CDATA[(( $F{inCurrency(db)} == 1) ? $F{balanceCurrency(db)} : 0.00)]]></variableExpression>
+		<initialValueExpression><![CDATA[0.00]]></initialValueExpression>
+	</variable>
+	<variable name="sumADebt" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[(( $F{inCurrency(db)} == 0) ? $F{balance(db)} : 0.00)]]></variableExpression>
+		<initialValueExpression><![CDATA[0.00]]></initialValueExpression>
+	</variable>
+	<variable name="sumADebtCurrency" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[(( $F{inCurrency(db)} == 1) ? $F{balanceCurrency(db)}  : 0.00  )]]></variableExpression>
 		<initialValueExpression><![CDATA[0.00]]></initialValueExpression>
 	</variable>
 	<group name="designGroup30923">
@@ -81,7 +106,7 @@
 			<band height="18" splitType="Prevent">
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<textField>
-					<reportElement mode="Opaque" x="0" y="0" width="790" height="18" backcolor="#C3FAC9" uuid="9107b390-852a-4be6-9dda-9c4993202c20">
+					<reportElement mode="Opaque" x="0" y="0" width="970" height="18" backcolor="#C3FAC9" uuid="9107b390-852a-4be6-9dda-9c4993202c20">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 						<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					</reportElement>
@@ -90,7 +115,7 @@
 			</band>
 		</groupHeader>
 		<groupFooter>
-			<band height="18">
+			<band height="36">
 				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<textField evaluationTime="Group" evaluationGroup="designGroup30923" pattern="0.00">
 					<reportElement mode="Opaque" x="730" y="0" width="60" height="18" backcolor="#C3FAC9" uuid="31409645-7634-4780-98aa-fe656bf322b1">
@@ -104,11 +129,47 @@
 					<textFieldExpression><![CDATA[$V{sumEDebt}]]></textFieldExpression>
 				</textField>
 				<staticText>
-					<reportElement mode="Opaque" x="610" y="0" width="120" height="18" backcolor="#C3FAC9" uuid="04468ddb-6f04-4366-9e26-9e07d9298177">
+					<reportElement mode="Transparent" x="610" y="0" width="120" height="36" backcolor="#C3FAC9" uuid="04468ddb-6f04-4366-9e26-9e07d9298177">
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					</reportElement>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[Итого по организации:]]></text>
+				</staticText>
+				<textField evaluationTime="Group" evaluationGroup="designGroup30923" pattern="0.00">
+					<reportElement mode="Opaque" x="730" y="18" width="60" height="18" backcolor="#FFFFCC" uuid="0606013e-69b9-4e09-bd0a-f022ba0b73e3">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					</reportElement>
-					<text><![CDATA[итого по организации:]]></text>
+					<textElement textAlignment="Right">
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$V{sumEDebtCurrency}]]></textFieldExpression>
+				</textField>
+				<staticText>
+					<reportElement mode="Opaque" x="790" y="0" width="180" height="18" backcolor="#C3FAC9" uuid="0771f9f4-d03d-419c-bc51-f713ed9ee856">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					</reportElement>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[в рублях]]></text>
+				</staticText>
+				<staticText>
+					<reportElement mode="Opaque" x="790" y="18" width="180" height="18" backcolor="#FFFFCC" uuid="a19f0b1b-faf6-4221-9ee3-bdf51e35b7ef">
+						<property name="com.jaspersoft.studio.unit.height" value="px"/>
+						<property name="com.jaspersoft.studio.unit.y" value="px"/>
+						<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					</reportElement>
+					<textElement>
+						<font isBold="true"/>
+					</textElement>
+					<text><![CDATA[в долларах США]]></text>
 				</staticText>
 			</band>
 		</groupFooter>
@@ -137,7 +198,7 @@
 					<textFieldExpression><![CDATA[$F{dateContract(db)}]]></textFieldExpression>
 				</textField>
 				<textField textAdjust="StretchHeight">
-					<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="100" y="0" width="690" height="18" backcolor="#CCFFFF" uuid="242f33ad-f3bb-4418-bd89-62f945c3f4bd">
+					<reportElement stretchType="RelativeToBandHeight" mode="Opaque" x="100" y="0" width="870" height="18" backcolor="#CCFFFF" uuid="242f33ad-f3bb-4418-bd89-62f945c3f4bd">
 						<property name="com.jaspersoft.studio.unit.height" value="px"/>
 						<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					</reportElement>
@@ -218,7 +279,7 @@
 		<band height="80">
 			<property name="com.jaspersoft.studio.unit.height" value="px"/>
 			<staticText>
-				<reportElement mode="Opaque" x="0" y="0" width="790" height="16" backcolor="#C3FAC9" uuid="b6e23343-ca9d-4c9b-8864-903b298cb6ba">
+				<reportElement mode="Opaque" x="0" y="0" width="970" height="16" backcolor="#C3FAC9" uuid="b6e23343-ca9d-4c9b-8864-903b298cb6ba">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
@@ -227,7 +288,7 @@
 				<text><![CDATA[Наименование организации клиента]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="100" y="16" width="690" height="16" backcolor="#CCFFFF" uuid="b528494c-0b69-49cd-b649-79e259d372fa">
+				<reportElement mode="Opaque" x="100" y="16" width="870" height="16" backcolor="#CCFFFF" uuid="b528494c-0b69-49cd-b649-79e259d372fa">
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
@@ -272,25 +333,31 @@
 				<text><![CDATA[Дата появления задолжен.]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Transparent" x="610" y="32" width="60" height="48" backcolor="#FFFFFF" uuid="7300f636-e2fb-41a2-8a6b-98c68814c593">
+				<reportElement mode="Transparent" x="610" y="48" width="60" height="32" backcolor="#FFFFFF" uuid="7300f636-e2fb-41a2-8a6b-98c68814c593">
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center"/>
-				<text><![CDATA[Сумма задолжен.]]></text>
+				<text><![CDATA[Долг]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Transparent" x="670" y="32" width="60" height="48" backcolor="#FFFFFF" uuid="b5a623ae-11a8-460b-98a2-1657fed82751">
+				<reportElement mode="Transparent" x="670" y="48" width="60" height="32" backcolor="#FFFFFF" uuid="b5a623ae-11a8-460b-98a2-1657fed82751">
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center"/>
 				<text><![CDATA[Оплачено]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Transparent" x="730" y="32" width="60" height="48" backcolor="#FFFFFF" uuid="fe3abb54-729c-4d0d-b81b-015a47188f06">
+				<reportElement mode="Transparent" x="730" y="48" width="60" height="32" backcolor="#FFFFFF" uuid="fe3abb54-729c-4d0d-b81b-015a47188f06">
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center"/>
 				<text><![CDATA[Остаток]]></text>
@@ -341,6 +408,51 @@
 				<textElement textAlignment="Center"/>
 				<text><![CDATA[№ акта]]></text>
 			</staticText>
+			<staticText>
+				<reportElement x="610" y="32" width="180" height="16" uuid="8eb7ff0e-e2df-4afb-8c58-33d3adcf88a6">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Суммы в рублях]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="790" y="32" width="180" height="16" uuid="797b386c-1003-4335-8ff2-a3775df797db">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Суммы в долларах]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="790" y="48" width="60" height="32" backcolor="#FFFFFF" uuid="7d7b25e6-9637-4e74-91e4-660759ebaa29">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Долг]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="910" y="48" width="60" height="32" backcolor="#FFFFFF" uuid="de93668f-0288-4e60-aa76-8ae7007ebdba">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Остаток]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Transparent" x="850" y="48" width="60" height="32" backcolor="#FFFFFF" uuid="e0c6573e-fa30-4b24-8bb7-f87de252015f">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[Оплачено]]></text>
+			</staticText>
 		</band>
 	</pageHeader>
 	<detail>
@@ -389,7 +501,7 @@
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[$F{sum(db)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[(( $F{inCurrency(db)} == 0) ? $F{sum(db)} : "")]]></textFieldExpression>
 			</textField>
 			<textField textAdjust="StretchHeight" pattern="0.00">
 				<reportElement stretchType="RelativeToBandHeight" x="670" y="0" width="60" height="18" uuid="ccf62813-edff-44ce-8956-3e2d5269128e">
@@ -398,7 +510,7 @@
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[(($F{paid(db)} == null) ? "" : $F{paid(db)})]]></textFieldExpression>
+				<textFieldExpression><![CDATA[(( $F{inCurrency(db)} == 0) ? (($F{paid(db)} == null) ? "" : $F{paid(db)}) : "")]]></textFieldExpression>
 			</textField>
 			<textField textAdjust="StretchHeight" pattern="0.00">
 				<reportElement stretchType="RelativeToBandHeight" x="730" y="0" width="60" height="18" uuid="5b52e37c-3df6-49a2-8746-b7ae11205791">
@@ -407,7 +519,7 @@
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[$F{balance(db)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[(( $F{inCurrency(db)} == 0) ? $F{balance(db)} : "")]]></textFieldExpression>
 			</textField>
 			<textField textAdjust="StretchHeight" isBlankWhenNull="false">
 				<reportElement stretchType="ContainerHeight" x="279" y="0" width="40" height="18" uuid="474de775-8394-4366-9186-ce3844fdac3a">
@@ -436,19 +548,49 @@
 				</reportElement>
 				<textFieldExpression><![CDATA[(($F{actFlag(db)}==1) ? $F{nameAct(db)} : "")]]></textFieldExpression>
 			</textField>
+			<textField textAdjust="StretchHeight" pattern="0.00">
+				<reportElement stretchType="RelativeToBandHeight" x="790" y="0" width="60" height="18" uuid="2f8bb153-817b-439a-9dff-696f0452291e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[(( $F{inCurrency(db)} == 1) ? $F{sumCurrency(db)} : "")]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" pattern="0.00">
+				<reportElement stretchType="RelativeToBandHeight" x="850" y="0" width="60" height="18" uuid="2936629d-f429-41dc-811f-8c0be66d4dfc">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[(( $F{inCurrency(db)} == 1) ? (($F{paidCurrency(db)} == null) ? "" : $F{paidCurrency(db)}) : "")]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" pattern="0.00">
+				<reportElement stretchType="RelativeToBandHeight" x="910" y="0" width="60" height="18" uuid="250df542-d528-49aa-8d1a-4f7eaba87422">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[(( $F{inCurrency(db)} == 1) ? $F{balanceCurrency(db)} : "")]]></textFieldExpression>
+			</textField>
 		</band>
 	</detail>
 	<summary>
 		<band height="60">
 			<staticText>
-				<reportElement x="610" y="0" width="120" height="18" uuid="212182de-2d4b-457c-a5c4-b6df653069b1">
+				<reportElement x="610" y="6" width="120" height="36" uuid="212182de-2d4b-457c-a5c4-b6df653069b1">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 				</reportElement>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
 				<text><![CDATA[Итого по отчету:]]></text>
 			</staticText>
 			<textField pattern="0.00">
-				<reportElement x="730" y="0" width="60" height="18" uuid="90717006-9b70-4ab7-8d2a-ddc026c81c39">
+				<reportElement mode="Opaque" x="730" y="6" width="60" height="18" backcolor="#C3FAC9" uuid="90717006-9b70-4ab7-8d2a-ddc026c81c39">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
@@ -456,8 +598,39 @@
 				<textElement textAlignment="Right">
 					<font isBold="true"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{sumDebt(c,dd)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$V{sumADebt}]]></textFieldExpression>
 			</textField>
+			<textField pattern="0.00">
+				<reportElement mode="Opaque" x="730" y="24" width="60" height="18" backcolor="#FFFFCC" uuid="d7a327d5-a357-4561-a582-48744883cf5e">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$V{sumADebtCurrency}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement mode="Opaque" x="790" y="6" width="180" height="18" backcolor="#C3FAC9" uuid="6b6aaaf3-dc78-44a0-a7da-2e82eb03ffaf">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[в рублях]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="790" y="24" width="180" height="18" backcolor="#FFFFCC" uuid="d4fc0ee7-5234-4389-9adc-351977e3fe29">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement>
+					<font isBold="true"/>
+				</textElement>
+				<text><![CDATA[в долларах США]]></text>
+			</staticText>
 		</band>
 	</summary>
 </jasperReport>

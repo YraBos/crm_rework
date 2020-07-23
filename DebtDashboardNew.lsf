@@ -15,9 +15,59 @@ nameAct 'Название акта' (Debt d) = name(act(d));
 sumAct 'Сумма акта' (Debt d) = sum(act(d));
 
 dateContractISO '' (Debt d) = toDateISO(dateContract(d));
-
 agrFlag '' (Debt d) = IF agreement(d) THEN 1 ELSE 0;
 actFlag '' (Debt d) = IF act(d) THEN 1 ELSE 0;
+
+// связано с валютными договорами
+inCurrency 'USD' (Debt d) = IF inCurrency(contract(d)) THEN 1 ELSE 0;
+sumContractCurrency 'Сумма договора USD' (Debt d) = round(sumCurrency(contract(d)),2);
+sumAgreementCurrency 'Сумма соглашения USD' (Debt d) = round(sumCurrency(agreement(d)),2);
+
+// расчет оплат(payment) USD относительно соглашений(agreement) и договоров(contract) 
+paidPaymentCurrency 'Оплачено USD' (Agreement a) = GROUP SUM sumCurrency(Payment p) BY agreement(p) MATERIALIZED;
+paidPaymentCurrency 'Оплачено' (Agreement a, DATE d) = GROUP SUM sumCurrency(Payment p) IF date(p) <= d BY agreement(p);
+
+paidNotPaymentAgreementCurrency (Contract c) = paidCurrency(c) (-) [GROUP SUM paidPaymentCurrency(Agreement a) BY contract(a)](c);
+paidContractCurrency 'Оплачено USD' (Agreement a) = PARTITION UNGROUP paidNotPaymentAgreementCurrency
+                                                      LIMIT STRICT sumCurrency(a) (-) paidPaymentCurrency(a)
+                                                      ORDER date(a),a 
+                                                      BY contract(a) MATERIALIZED; 
+
+paidCurrency 'Оплачено USD' (Agreement a) = paidContractCurrency(a) (+) paidPaymentCurrency(a);
+
+// связываем расчеты оплат с задолженностями (debt)
+paidAgreementCurrency 'Оплачено USD по соглашениям' (Debt d) = PARTITION UNGROUP paidPaymentCurrency
+                                                      LIMIT STRICT sumCurrency(d)
+                                                      ORDER date(d),d 
+                                                      BY agreement(d) MATERIALIZED; 
+
+paidNotDebtCurrency (Contract c) = paid(c) (-) [GROUP SUM paidAgreementCurrency(Debt d) BY contract(d)](c);
+
+paidContractCurrency 'Оплачено USD по контракту без соглашений' (Debt d) = PARTITION UNGROUP paidNotDebtCurrency
+                                                      LIMIT STRICT (sumCurrency(d) (-) paidAgreementCurrency(d)) IF NOT agreement(d)
+                                                      ORDER date(d),d 
+                                                      BY contract(d) MATERIALIZED; 
+
+paidCurrency 'Оплачено USD' (Debt d) = paidAgreementCurrency(d) (+) paidContractCurrency(d);
+
+paidAgreementCurrency 'Оплачено' (Debt d, DATE dt) = PARTITION UNGROUP paidPaymentCurrency
+                                                                   LIMIT STRICT sumCurrency(d)
+                                                                   ORDER date(d),d 
+                                                                   BY agreement(d), dt;
+
+paidCurrency 'Оплачено USD' (Contract c, DATE dt) = GROUP SUM sum(Payment p) IF date(p) <= dt BY contract(p);
+paidNotDebtCurrency (Contract c, DATE dt) = paidCurrency(c, dt) (-) [GROUP SUM paidAgreementCurrency(Debt d, dt) BY contract(d)](c);
+
+paidContractCurrency 'Оплачено USD' (Debt d, DATE dt) = PARTITION UNGROUP paidNotDebtCurrency
+                                                      LIMIT STRICT (sumCurrency(d) (-) paidAgreementCurrency(d, dt)) IF NOT agreement(d)
+                                                      ORDER date(d),d 
+                                                      BY contract(d), dt; 
+
+paidCurrency 'Оплачено USD' (Debt d, DATE dt) = paidAgreementCurrency(d, dt) (+) paidContractCurrency(d, dt);
+
+balanceCurrency 'Остаток USD' (Debt d) = round(sumCurrency(d) - IF paidCurrency(d) THEN paidCurrency(d) ELSE 0.00, 2);
+
+
 
 //legalEntity 'CID' (Debt d) = legalEntity(contract(d));
 //name2 'О2' (Debt d) = name(legalEntity(d));
@@ -29,15 +79,16 @@ FORM reportDebs 'Печать'
     OBJECTS c  = Customer PROPERTIES(c) name PANEL
     OBJECTS t  = ContractType PROPERTIES(t) name PANEL
     OBJECTS db = Debt
-    PROPERTIES(db) date, nameLegalEntity, sum, paid, balance,  
+    PROPERTIES(db) date, nameLegalEntity, 
+                   sum, paid, balance,                              // рублевый
+                   sumCurrency, paidCurrency, balanceCurrency,      // валютный  
                    numberContract, dateContract, nameContract, sumContract, dateContractISO,
                    numberAgreement, dateAgreement, nameAgreement, sumAgreement,
                    numberAct, dateAct, nameAct, sumAct,
-                   agrFlag, actFlag 
+                   agrFlag, actFlag, inCurrency 
     PROPERTIES sumDebt(c,dd)
     FILTERS customer(db) == c, date(db) <= dd, type(contract(db)) == t
-    FILTERS abs(balance(db)) > 0
-//    FILTERS NOT sum(db) (-) paid(db, dd) == 0
+    FILTERS IF inCurrency(db) = 0 THEN abs(balance(db)) > 0 ELSE abs(balanceCurrency(db)) > 0
     FILTERS sumDebt(c, dd)
     FILTERS IF filterCustomerContractType() THEN t == filterCustomerContractType() ELSE TRUE 
     FILTERS IF filterSumDebt() THEN abs(sumDebt(c,t,dd)) > filterSumDebt() ELSE TRUE  
@@ -51,6 +102,7 @@ onReport 'Отчет' (Customer c, DATE dd) {
 EXTEND FORM debtDashboard
     OBJECTS le = LegalEntity
     PROPERTIES filterSumDebt(), onReport(c, dd)
+    PROPERTIES(db) paidCurrency,balanceCurrency
     EVENTS ON INIT {
         filterSumDebt() <- 100;
     }
