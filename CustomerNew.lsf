@@ -4,6 +4,7 @@ REQUIRE Customer, Utils;
 
 calcInfo 'Данные сверки' = DATA LOCAL TEXT (Customer);
 delimiter 'Разделитель' = DATA LOCAL STRING[10] () CHARWIDTH 10; 
+clientType 'Тип клиента' = DATA STRING[20] (Customer); 
 
 onCalc 'Обновить' () {
     calcInfo(Customer c) <- '';
@@ -14,13 +15,21 @@ onCalc 'Обновить' () {
     }
 }
 
-
 EXTEND FORM customers
     PROPERTIES onCalc(), delimiter() 
+    PROPERTIES(o) READONLY clientType AFTER nameGroup(o)
     PROPERTIES(o) PANEL READONLY calcInfo
     EVENTS ON INIT {
         delimiter() <- '###';
     }  
+;
+
+EXTEND FORM customer
+    PROPERTIES(o) clientType 
+;
+
+EXTEND FORM dialogCustomers
+    PROPERTIES(o) READONLY clientType AFTER nameGroup(o)
 ;
 
 DESIGN customers {
