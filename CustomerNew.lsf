@@ -9,7 +9,7 @@ clientType 'Тип клиента' = DATA STRING[20] (Customer);
 onCalc 'Обновить' () {
     calcInfo(Customer c) <- '';
     FOR (Customer o IS Customer) AND isSubstring(info(o),delimiter()) DO {
-        FOR iterate(INTEGER i, 2, wordCount(info(o),delimiter())) DO {
+        FOR iterate(INTEGER i, 2, wordCount(info(o),delimiter())) ORDER i DO {
             calcInfo(o) <- calcInfo(o) + getWord(getWord(info(o),delimiter(),i),'\n',1) + ';      ';
         }  
     }
