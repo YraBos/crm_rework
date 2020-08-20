@@ -4,7 +4,7 @@ REQUIRE Customer, Utils;
 
 calcInfo 'Данные сверки' = DATA LOCAL TEXT (Customer);
 delimiter 'Разделитель' = DATA LOCAL STRING[10] () CHARWIDTH 10; 
-clientType 'Тип клиента' = DATA STRING[20] (Customer); 
+clientType 'Тип клиента' = DATA STRING[50] (Customer); 
 
 onCalc 'Обновить' () {
     calcInfo(Customer c) <- '';
