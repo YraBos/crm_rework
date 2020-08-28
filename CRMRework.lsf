@@ -10,6 +10,7 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         ProjectRedmineNew,      // Форма для вызова импорта из RedMine в ручную из кнопки 
         CustomerNew,            // Форма спр. клиентов. Доб. информационное табло выборок по полю Customer.info  
         DebtDashboardNew,       // Форма задолженностей. Доб. фильтры и отчеты (RM 12230)
-        EventDashboardNew       // Рабочий стол - Обработка события, Форма (RM 12438)   
+        EventDashboardNew,      // Рабочий стол - Обработка события, Форма (RM 12438)   
+        RateService             // Отчет - проценты за обслуживание
 ;
 
