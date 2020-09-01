@@ -1,6 +1,6 @@
 MODULE DebtDashboardNew;
 
-REQUIRE DebtDashboard, Payment, Utils, Time;
+REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew;
 
 filterSumDebt 'Значение задолженности' = DATA LOCAL INTEGER ();
 
@@ -20,6 +20,8 @@ actFlag '' (Debt d) = IF act(d) THEN 1 ELSE 0;
 
 // связано с валютными договорами
 inCurrency 'USD' (Debt d) = IF inCurrency(contract(d)) THEN 1 ELSE 0;
+
+clientTypeDebt 'Тип клиента' (Debt d) = clientType(customer(d));
 
 FORM reportDebs 'Печать'
     OBJECTS dd = DATE PANEL
@@ -47,6 +49,8 @@ onReport 'Отчет' (Customer c, DATE dd) {
 }
 
 EXTEND FORM debtDashboard
+    PROPERTIES(d) READONLY clientTypeDebt AFTER nameCustomer(d)
+    PROPERTIES READONLY clientType(c) AFTER name(c)
     OBJECTS le = LegalEntity
     PROPERTIES filterSumDebt(), onReport(c, dd)
     EVENTS ON INIT {
