@@ -1,0 +1,11 @@
+MODULE AgreementIssueNew;
+
+REQUIRE AgreementIssue, CustomerTime;
+
+EXTEND FORM agreement
+    PROPERTIES(i) hours 
+;
+
+DESIGN agreement {
+    MOVE PROPERTY (hours(i)) {caption = 'Часы';} 
+}
