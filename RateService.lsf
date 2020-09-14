@@ -79,9 +79,9 @@ onRepProcent 'Отчет %' (Customer c) {
     title1() <- 'Расчет процентов за обслуживание';
     title2() <- 'за период с ' + toDateDDMMYY(dateStart()) + ' по '  + toDateDDMMYY(dateEnd()) + 'г.';
     title3() <- 'клиент: ' + trim(name(c));
-    PRINT repProcService OBJECTS c = c ;//XLS TO frep; // засылаем стрим в свойство
-    //WRITE frep() TO fname();                        // пишем стрим в файл
-    //open(fname() + '.xls');                         // открываем файл
+    PRINT repProcService OBJECTS c = c XLS TO frep; // засылаем стрим в свойство
+    WRITE frep() TO fname();                        // пишем стрим в файл
+    open(fname() + '.xls');                         // открываем файл
 }; 
 
 
@@ -98,8 +98,8 @@ EXTEND FORM customers
     EVENTS ON INIT {
         dateStart() <- currentDate();
         dateEnd() <- currentDate();
-        dateStart() <- 2020_02_01;            // отладка
-        dateEnd() <- 2020_02_29;
+//        dateStart() <- 2020_02_01;            // отладка
+//        dateEnd() <- 2020_02_29;
     }
    OBJECTS ce = CustomerExtensions
    PROPERTIES(ce) READONLY date, rate, tags 
