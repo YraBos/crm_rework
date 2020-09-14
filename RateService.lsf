@@ -72,10 +72,11 @@ FORM repProcService 'Отчет процент за обслуживание'
     ORDERS date(a)
 ;
 
+dateToStr = FORMULA STRING[8] 'to_char(($1),\'DD-MM-YYYY\')';
 onRepProcent 'Отчет %' (Customer c) {
     LOCAL frep = FILE();
     LOCAL fname = STRING[100] ();
-    fname() <- trim(name(c)) + '_' + toDateDDMMYY(dateStart()) + '_' + toDateDDMMYY(dateEnd());
+    fname() <- trim(name(c)) + '_' + dateToStr(dateStart()) + '_' + dateToStr(dateEnd());
     title1() <- 'Расчет процентов за обслуживание';
     title2() <- 'за период с ' + toDateDDMMYY(dateStart()) + ' по '  + toDateDDMMYY(dateEnd()) + 'г.';
     title3() <- 'клиент: ' + trim(name(c));
