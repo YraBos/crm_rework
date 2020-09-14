@@ -106,7 +106,7 @@ EXTEND FORM customers
    PROPERTIES(ce) NEWSESSION NEW, DELETE, EDIT 
    ORDERS date(ce)
    FILTERS customer(ce) = o 
-   FILTERS toInteger(id(o)) > 1700            // Отладка, Санта  
+//   FILTERS toInteger(id(o)) > 1700            // Отладка, Санта  
 ;
 
 DESIGN customers {
