@@ -1,16 +1,16 @@
 MODULE RateService;
 
-REQUIRE  CustomerNew, Act, Currency, Utils, Time;
+REQUIRE  CustomerNew, Act, Currency, Utils, Time, ContractSubject;
 
 CLASS CustomerExtensions 'Расширение клиента';
 TABLE customerExtensions(CustomerExtensions);
 
 customer    'Клиент'        = DATA Customer         (CustomerExtensions) AUTOSET;
 date        'Дата действия' = DATA DATE             (CustomerExtensions) NONULL;
-tags        'Признаки'      = DATA STRING[50]       (CustomerExtensions) ;
 rate        'Коэффициент'   = DATA NUMERIC[14,4]    (CustomerExtensions) NONULL;
 
-rateCureency 'Коэф. USD' (Act a) = NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(a)),date(a)),4)); 
+rateCureency 'Коэф. USD' (Act a) = 
+    NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(a)),date(a)),4)); 
 
 dateStart 'Период с'      = DATA LOCAL DATE ();
 dateEnd   'по'            = DATA LOCAL DATE ();
@@ -20,50 +20,56 @@ extReport 'Расшир. отчет' = DATA LOCAL BOOLEAN ();
 permRule(Act a) = GROUP MAX CustomerExtensions e IF date(e) <= date(a) AND customer(e)=customer(a);
 // расчет % за обслуживания с учетом правил permRule 
 rateService 'Проц. обслуживания' (Act a) = OVERRIDE rate(permRule(a)), 0.0125;
-// отслеживание актов с учетом правил permRule 
-isNameType (Act a) = IF tags(permRule(a)) THEN isWordInCSV(nameType(a),tags(permRule(a))) ELSE isWordInCSV(nameType(a),'АКТ,АКЛ');   
+
+// типы актов, которые могут участвовать в формировании отчета
+chkNameType (Act a) = 
+    IF isWordInCSV('SP', clientType(customer(a))) THEN isWordInCSV(nameType(a),'АКТ,АКЛ') ELSE
+    IF isWordInCSV('SL', clientType(customer(a))) THEN nameType(a) = 'АКЛ'; 
 
 sumRate 'Сумма за обсл.' (Act a) = NUMERIC[14,2](round2( sum(a) * rateService(a) ));
 sumRateCurrency 'Сумма за обсл. USD' (Act a) = NUMERIC[14,2](round2( sumRate(a) / rateCureency(a) ));
 sumAct 'Сумма акта' (Act a) = NUMERIC[14,2](round2(sum(a)));
 sumActCurrency 'Сумма акта, USD' (Act a) = NUMERIC[14,2](round2( sumAct(a) / rateCureency(a) ));
 
-// основное условие включения данных в отчет
+// основное условие включения данных в отчет 
 exprAct '' (Act a) = 
-    IF  isNameType(a) AND 
-        ( nameType(contract(a)) = 'Лицензия' OR nameType(contract(a)) = 'Лицензия ТСД' OR nameType(contract(a)) = 'Сопровождение' ) 
+    IF chkNameType(a) AND   
+    ( nameType(contract(a)) = 'Лицензия' OR nameType(contract(a)) = 'Лицензия ТСД' OR nameType(contract(a)) = 'Сопровождение' ) 
     THEN TRUE;
 
-// Расчет сальдо на начало, рубли
-s11 '' (LegalEntity l) = GROUP SUM sum(Act a) IF date(a) < dateStart() AND exprAct(a) BY legalEntity(a);
-sb 'BYN' (LegalEntity l) = NUMERIC[14,2](round2( s11(l) ));
-s12 '' (LegalEntity l) = GROUP SUM sum(Act a) * rateService(a) IF date(a) < dateStart() AND exprAct(a) BY legalEntity(a);
-sbr 'BYN(%)' (LegalEntity l) = NUMERIC[14,2](round2( s12(l) ));  // добавить остаток
+rateCureency2 'Коэф. USD' (ContractSubject s) = 
+    NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(s)),date(s)),4)); 
 
-// Расчет сальдо на начало, USD
-s21 '' (LegalEntity l) = GROUP SUM sum(Act a) / rateCureency(a) IF date(a) < dateStart() AND exprAct(a) BY legalEntity(a);
-sbc 'USD' (LegalEntity l) = NUMERIC[14,2](round2( s21(l) ));
-s22 '' (LegalEntity l) = GROUP SUM round4(sum(Act a)  / rateCureency(a)) * rateService(a) IF date(a) < dateStart() AND exprAct(a) BY legalEntity(a);
-sbcr 'USD(%)' (LegalEntity l) = NUMERIC[14,2](round2( s22(l) ));
+    
+// количество - это сумма (quantity), сумма - сумма (sum) % обслуживания, price - это % обслуживания (не нужен) 
+// в рублях сальдо на начало
+s11 '' (LegalEntity l) = 
+    GROUP SUM (quantity(ContractSubject s) * IF inCurrency(contract(s)) THEN rateCureency2(s) ELSE 1) 
+    IF nameType(contract(s)) = 'Сопровождение' AND date(s)=dateStart() BY legalEntity(contract(s)); 
+s12 '' (LegalEntity l) = 
+    GROUP SUM (sum(ContractSubject s)  * IF inCurrency(contract(s)) THEN rateCureency2(s) ELSE 1)
+    IF nameType(contract(s)) = 'Сопровождение' AND date(s)=dateStart() BY legalEntity(contract(s)); 
+// в USD сальдо на начало
+s21 '' (LegalEntity l) = 
+    GROUP SUM (quantity(ContractSubject s) / IF inCurrency(contract(s)) THEN 1 ELSE rateCureency2(s)) 
+    IF nameType(contract(s)) = 'Сопровождение' AND date(s)=dateStart() BY legalEntity(contract(s)); 
+s22 '' (LegalEntity l) = 
+    GROUP SUM (sum(ContractSubject s)  / IF inCurrency(contract(s)) THEN 1 ELSE rateCureency2(s))
+    IF nameType(contract(s)) = 'Сопровождение' AND date(s)=dateStart() BY legalEntity(contract(s)); 
 
-// Расчет сальдо на конец, рубли
-s14 '' (LegalEntity l) = GROUP SUM sum(Act a) IF date(a) <= dateEnd() AND exprAct(a) BY legalEntity(a);
-isb 'BYN' (LegalEntity l) = NUMERIC[14,2](round2( s14(l) ));
-s15 '' (LegalEntity l) = GROUP SUM sum(Act a) * rateService(a) IF date(a) <= dateEnd() AND exprAct(a) BY legalEntity(a);
-isbr 'BYN(%)' (LegalEntity l) = NUMERIC[14,2](round2( s15(l) ));  // добавить остаток
+sb      'BYN'       (LegalEntity l) = NUMERIC[14,2](round2( IF s11(l) THEN s11(l) ELSE 0.00 ));
+sbr     'BYN(%)'    (LegalEntity l) = NUMERIC[14,2](round2( IF s12(l) THEN s12(l) ELSE 0.00 ));
+sc      'USD'       (LegalEntity l) = NUMERIC[14,2](round2( IF s21(l) THEN s21(l) ELSE 0.00 ));
+scr     'USD(%)'    (LegalEntity l) = NUMERIC[14,2](round2( IF s22(l) THEN s22(l) ELSE 0.00));
 
-// Расчет сальдо на конец, USD
-s24 '' (LegalEntity l) = GROUP SUM sum(Act a) / rateCureency(a) IF date(a) <= dateEnd() AND exprAct(a) BY legalEntity(a);
-isbc 'USD' (LegalEntity l) = NUMERIC[14,2](round2( s24(l) ));
-s25 '' (LegalEntity l) = GROUP SUM round4(sum(Act a)  / rateCureency(a)) * rateService(a) IF date(a) <= dateEnd() AND exprAct(a) BY legalEntity(a);
-isbcr 'USD(%)' (LegalEntity l) = NUMERIC[14,2](round2( s25(l) ));
+// расчет итогов на конец, через JR
 
 // заголовки для отчета 
 title1 '' = DATA LOCAL TEXT ();  title2 '' = DATA LOCAL TEXT (); title3 '' = DATA LOCAL TEXT ();
 
 FORM repProcService 'Отчет процент за обслуживание'
     OBJECTS c = Customer PROPERTIES title1(), title2(), title3() PANEL
-    OBJECTS l = LegalEntity PROPERTIES(l) name, sb, sbr, sbc, sbcr, isb, isbr, isbc, isbcr PANEL
+    OBJECTS l = LegalEntity PROPERTIES(l) name, sb, sbr, sc, scr PANEL
     OBJECTS d = Contract PROPERTIES(d) numberContract, dateContract, name  PANEL
     OBJECTS a = Act PROPERTIES(a) number, date, name, nameType, sumAct, rateService, sumRate, rateCureency, sumActCurrency, sumRateCurrency
     FILTERS customer(l) = c, legalEntity(d) = l, contract(a) = d
@@ -80,15 +86,15 @@ onRepProcent 'Отчет %' (Customer c) {
     title1() <- 'Расчет процентов за обслуживание';
     title2() <- 'за период с ' + toDateDDMMYY(dateStart()) + ' по '  + toDateDDMMYY(dateEnd()) + 'г.';
     title3() <- 'клиент: ' + trim(name(c));
-    PRINT repProcService OBJECTS c = c XLS TO frep; // засылаем стрим в свойство
-    WRITE frep() TO fname();                        // пишем стрим в файл
-    open(fname() + '.xls');                         // открываем файл
+    PRINT repProcService OBJECTS c = c XLS TO frep; 
+    open(frep(), fname() + '.xls');                         
+//    PRINT repProcService OBJECTS c = c; // отладка 
 }; 
 
 
 FORM editCustomerExtensions
     OBJECTS ce = CustomerExtensions PANEL
-    PROPERTIES(ce) date, rate, tags
+    PROPERTIES(ce) date, rate
     EDIT CustomerExtensions OBJECT ce
 ;
 
@@ -103,11 +109,11 @@ EXTEND FORM customers
 //        dateEnd() <- 2020_02_29;
     }
    OBJECTS ce = CustomerExtensions
-   PROPERTIES(ce) READONLY date, rate, tags 
+   PROPERTIES(ce) READONLY date, rate
    PROPERTIES(ce) NEWSESSION NEW, DELETE, EDIT 
    ORDERS date(ce)
    FILTERS customer(ce) = o 
-//   FILTERS toInteger(id(o)) > 1700            // Отладка, Санта  
+//   FILTERS name(o) = 'Санта' OR name(o) = 'Соседи'             // Отладка, Санта  
 ;
 
 DESIGN customers {

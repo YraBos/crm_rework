@@ -11,7 +11,7 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         CustomerNew,            // Форма спр. клиентов. Доб. информационное табло выборок по полю Customer.info  
         DebtDashboardNew,       // Форма задолженностей. Доб. фильтры и отчеты (RM 12230)
         EventDashboardNew,      // Рабочий стол - Обработка события, Форма (RM 12438)   
-        RateService,            // Отчет - проценты за обслуживание
+        RateService,            // Отчет - проценты за обслуживание (RateService_repProcService.jrxml)
         AgreementIssueNew       // RM 13065, добавить колонку кол-во часов
 ;
 
