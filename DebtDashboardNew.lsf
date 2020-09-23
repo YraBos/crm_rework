@@ -2,7 +2,7 @@ MODULE DebtDashboardNew;
 
 REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew;
 
-filterSumDebt 'Значение задолженности' = DATA LOCAL INTEGER ();
+filterSumDebt 'Размер задолженности' = DATA LOCAL INTEGER ();
 
 sumContract 'Сумма договора' (Debt d) = round(sum(contract(d)),2);
 sumAgreement 'Сумма соглашения' (Debt d)  = round(sum(agreement(d)),2);
@@ -40,12 +40,13 @@ FORM reportDebs 'Печать'
     FILTERS abs(balance(db)) > 0
     FILTERS sumDebt(c, dd)
     FILTERS IF filterCustomerContractType() THEN t == filterCustomerContractType() ELSE TRUE 
-    FILTERS IF filterSumDebt() THEN abs(sumDebt(c,t,dd)) > filterSumDebt() ELSE TRUE  
+//    FILTERS IF filterSumDebt() THEN abs(sumDebt(c,t,dd)) > filterSumDebt() ELSE TRUE
+    FILTERS IF filterSumDebt() THEN abs(sum(db) (-) paid(db)) > filterSumDebt() ELSE TRUE  
     ORDERS nameLegalEntity(db),dateContractISO(db),numberContract(db),date(db)
 ;
 
 onReport 'Отчет' (Customer c, DATE dd) {
-    PRINT reportDebs OBJECTS c = c, dd = dd XLS; // XLS
+    PRINT reportDebs OBJECTS c = c, dd = dd XLS; // без XLS - отладка
 }
 
 EXTEND FORM debtDashboard
@@ -57,13 +58,13 @@ EXTEND FORM debtDashboard
         filterSumDebt() <- 100;
     }
     FILTERS customer(le) = c
-    FILTERS IF filterSumDebt() THEN abs(sumDebt(c,t,dd)) > filterSumDebt() ELSE TRUE  
+//    FILTERS IF filterSumDebt() THEN abs(sumDebt(c,t,dd)) > filterSumDebt() ELSE TRUE  
 ;
 
 DESIGN debtDashboard {
     BOX (dd) {
         caption = 'Фильтры и отчеты';
-        MOVE PROPERTY (filterSumDebt());
+        MOVE PROPERTY (filterSumDebt()) {marginLeft = 10;};
         MOVE PROPERTY (onReport(c, dd));
     }
 }

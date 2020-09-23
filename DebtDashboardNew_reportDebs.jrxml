@@ -71,6 +71,10 @@
 	<sortField name="nameLegalEntity(db)"/>
 	<sortField name="dateContractISO(db)"/>
 	<sortField name="numberContract(db)"/>
+	<variable name="sumEDebtAll" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{balance(db)}]]></variableExpression>
+		<initialValueExpression><![CDATA[0.00]]></initialValueExpression>
+	</variable>
 	<variable name="sumEDebt" class="java.math.BigDecimal" resetType="Group" resetGroup="designGroup30923" calculation="Sum">
 		<variableExpression><![CDATA[$F{balance(db)}]]></variableExpression>
 		<initialValueExpression><![CDATA[0.00]]></initialValueExpression>
@@ -448,15 +452,16 @@
 				<text><![CDATA[Итого по отчету:]]></text>
 			</staticText>
 			<textField pattern="0.00">
-				<reportElement x="730" y="0" width="60" height="18" uuid="90717006-9b70-4ab7-8d2a-ddc026c81c39">
+				<reportElement x="730" y="0" width="60" height="18" uuid="f92345ae-15ec-4c72-83f0-f45afcdc941f">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Right">
 					<font isBold="true"/>
 				</textElement>
-				<textFieldExpression><![CDATA[$F{sumDebt(c,dd)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$V{sumEDebtAll}]]></textFieldExpression>
 			</textField>
 		</band>
 	</summary>
