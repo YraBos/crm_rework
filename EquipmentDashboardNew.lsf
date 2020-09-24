@@ -9,26 +9,9 @@ quantitySerialSubject 'По клиенту' (SubjectType st) =
                 OR ( customer(Agreement agr) = cst AND agreement(cs) = agr ) )
 ;     
 
-//inReport '' = DATA LOCAL BOOLEAN (EquipmentSerial);
-
-//FORM pRepQSerial 'Печатная форма'
-//    PROPERTIES nameCustomer = nameFilterCustomer(), isCustomer = IF nameFilterCustomer() THEN 1 ELSE 0 PANEL 
-//    OBJECTS es = EquipmentSerial
-//    PROPERTIES(es) nameSubjectTypeEquipment, nameLegalEntityContractEquipment, nameContractEquipment, number
-//    FILTERS inReport(es)
-//    ORDERS nameSubjectTypeEquipment(es), nameLegalEntityContractEquipment(es), nameContractEquipment(es)
-//;
-//
-//onRepQSerial 'Отчет' () {
-//    inReport(EquipmentSerial e) <- NULL;
-//    FOR [FILTER equipmentDashboard.es](EquipmentSerial es) DO inReport(es) <- TRUE; 
-//    PRINT pRepQSerial XLS;   
-//}
 
 EXTEND FORM equipmentDashboard
-//    PROPERTIES(es) inReport BEFORE noteEquipment(es)
     PROPERTIES quantitySerialSubject(t)
-//    PROPERTIES DRAW es TOOLBAR onRepQSerial()
 ;
 
 DESIGN equipmentDashboard {
@@ -42,3 +25,39 @@ DESIGN equipmentDashboard {
     }
 }
 
+// --- задач - 13003
+numberChange 'Замена номера' = DATA ISTRING[250] (EquipmentSerial) CHARWIDTH 15;
+note 'Примечание' = DATA STRING[200] (EquipmentSerial);
+
+FORM editNumberChange 'Редактирование замен'
+    OBJECTS n = EquipmentSerial PANEL  
+    PROPERTIES(n) READONLY number
+    PROPERTIES(n) numberChange, note 
+    EDIT EquipmentSerial OBJECT n
+; 
+
+createdDate 'Дата' (EquipmentSerial s) = createdDate(equipment(s)); // дата создания ключа
+ 
+FORM repOutSerials 'Данные'
+    OBJECTS c = Customer PROPERTIES name(c), currentDate() PANEL
+    OBJECTS l = LegalEntity PROPERTIES(l) name PANEL
+    OBJECTS s = EquipmentSerial PROPERTIES(s) createdDate, number, numberChange, note
+    FILTERS customer(l) = c, legalEntity(contract(equipment(s))) = l
+    ORDERS name(l), createdDate(s) 
+;
+
+onRepOutSerials 'Данные' (Equipment e) {
+    PRINT repOutSerials OBJECTS c=customer(e); // XLS - отладка
+}
+
+EXTEND FORM equipmentDashboard
+    PROPERTIES(n) READONLY numberChange, note
+    PROPERTIES(n) NEWSESSION EDIT
+    PROPERTIES(e) onRepOutSerials 
+;
+
+DESIGN equipmentDashboard {
+    head {
+        MOVE PROPERTY (onRepOutSerials(e));
+    }
+}

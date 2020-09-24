@@ -1,7 +1,7 @@
 MODULE CRMRework;
 
 REQUIRE FixedAssets,            // Журнал учета основных средств (FixedAssetsImport - импорт из ст. картотеки)
-        EquipmentDashboardNew,  // Отображение лицензий на оборудование
+        EquipmentDashboardNew,  // Отображение лицензий на оборудование. RM 13003 - отчет выданных ключей
         CustomerDashboardNew,   // Рабочий стол - Выставление счетов - Отмеченное время (RM 12065, 12067)
         CustomerTimeNew,        // Рабочий стол - Работа с клиентами - [Проекты [Задачи]]
         GridColOrderFunction,   // Функции управления дефолтовым состоянием GRID

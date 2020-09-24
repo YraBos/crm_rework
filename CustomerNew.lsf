@@ -41,11 +41,15 @@ DESIGN customers {
                 fill = 1;
                 MOVE PROPERTY (calcInfo(o));
             }
-            NEW cnt2 {
-                type = CONTAINERH ;
-                MOVE PROPERTY (delimiter()) {charHeight = 1;};
-                MOVE PROPERTY (onCalc());
-            }
+            NEW cnt10 {
+                type = COLUMNS ; 
+                NEW cnt2 {
+                    caption = 'параметры сверки';
+                    type = CONTAINERH ;
+                    MOVE PROPERTY (delimiter()) {charHeight = 1;};
+                    MOVE PROPERTY (onCalc());
+                }
+           }     
         }
     }
 }

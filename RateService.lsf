@@ -120,10 +120,11 @@ DESIGN customers {
     BOX(ce) {
         flex = 0.1;
     }
-    cnt2 {
+    cnt10 {
         NEW cnt3 {
-            type = CONTAINERH;
             marginLeft = 10;
+            caption = '% обслуживания'; 
+            type = CONTAINERH ;
             MOVE PROPERTY (dateStart());
             MOVE PROPERTY (dateEnd());
             MOVE PROPERTY (extReport());
