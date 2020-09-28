@@ -9,9 +9,8 @@ quantitySerialSubject 'По клиенту' (SubjectType st) =
                 OR ( customer(Agreement agr) = cst AND agreement(cs) = agr ) )
 ;     
 
-
 EXTEND FORM equipmentDashboard
-    PROPERTIES quantitySerialSubject(t)
+    PROPERTIES(t) quantitySerialSubject
 ;
 
 DESIGN equipmentDashboard {
@@ -47,17 +46,30 @@ FORM repOutSerials 'Данные'
 ;
 
 onRepOutSerials 'Данные' (Equipment e) {
-    PRINT repOutSerials OBJECTS c=customer(e); // XLS - отладка
+    PRINT repOutSerials OBJECTS c=customer(e) XLS; // XLS - отладка
 }
+
+fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[15] () CHARWIDTH 15; 
+// вычисление ID equipment от значения ключа оборудования
+exprEquipment '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF number(n1) = num;
+// сброс выражения фильтра
+clsExprEquipment 'X' () {fltNumber() <- NULL;}
 
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY numberChange, note
     PROPERTIES(n) NEWSESSION EDIT
-    PROPERTIES(e) onRepOutSerials 
+    PROPERTIES(e) onRepOutSerials
+    PROPERTIES fltNumber(), clsExprEquipment()
+    FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
+    FILTERS IF fltNumber() THEN number(n) = fltNumber() ELSE TRUE
 ;
 
 DESIGN equipmentDashboard {
     head {
         MOVE PROPERTY (onRepOutSerials(e));
     }
+    TOOLBARRIGHT(e) {
+        MOVE PROPERTY (fltNumber()) {marginLeft = 10;};
+        MOVE PROPERTY (clsExprEquipment());
+    } 
 }
