@@ -39,14 +39,16 @@ createdDate 'Дата' (EquipmentSerial s) = createdDate(equipment(s)); // да�
  
 FORM repOutSerials 'Данные'
     OBJECTS c = Customer PROPERTIES name(c), currentDate() PANEL
+    OBJECTS t = SubjectType PROPERTIES name(t) PANEL
     OBJECTS l = LegalEntity PROPERTIES(l) name PANEL
     OBJECTS s = EquipmentSerial PROPERTIES(s) createdDate, number, numberChange, note
     FILTERS customer(l) = c, legalEntity(contract(equipment(s))) = l
+    FILTERS subjectType(equipment(s)) = t
     ORDERS name(l), createdDate(s) 
 ;
 
-onRepOutSerials 'Данные' (Equipment e) {
-    PRINT repOutSerials OBJECTS c=customer(e) XLS; // XLS - отладка
+onRepOutSerials 'Данные' (Equipment e,SubjectType t) {
+    PRINT repOutSerials OBJECTS c = customer(e),t = t XLS; // XLS - отладка
 }
 
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[15] () CHARWIDTH 15; 
@@ -58,7 +60,7 @@ clsExprEquipment 'X' () {fltNumber() <- NULL;}
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY numberChange, note
     PROPERTIES(n) NEWSESSION EDIT
-    PROPERTIES(e) onRepOutSerials
+    PROPERTIES onRepOutSerials(e,t)
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
     FILTERS IF fltNumber() THEN number(n) = fltNumber() ELSE TRUE
@@ -66,7 +68,7 @@ EXTEND FORM equipmentDashboard
 
 DESIGN equipmentDashboard {
     head {
-        MOVE PROPERTY (onRepOutSerials(e));
+        MOVE PROPERTY (onRepOutSerials(e,t));
     }
     TOOLBARRIGHT(e) {
         MOVE PROPERTY (fltNumber()) {marginLeft = 10;};
