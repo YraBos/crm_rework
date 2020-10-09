@@ -1,30 +1,8 @@
 MODULE EquipmentDashboardNew;
 
-REQUIRE EquipmentDashboard, ContractSubject;
+REQUIRE EquipmentDashboard, ContractSubject, CustomerAttachment;
 
-quantitySerialSubject 'По клиенту' (SubjectType st) = 
-    GROUP SUM quantity(Subject cs) 
-        IF Customer cst = filterCustomer()  AND name(type(cs)) = name(st)
-            AND ( ( customer(Contract cnt) = cst AND contract(cs) = cnt ) 
-                OR ( customer(Agreement agr) = cst AND agreement(cs) = agr ) )
-;     
-
-EXTEND FORM equipmentDashboard
-    PROPERTIES(t) quantitySerialSubject
-;
-
-DESIGN equipmentDashboard {
-    head {
-        MOVE PROPERTY (quantitySerial(t)) {
-            caption = 'Сер. номеров, выдано:';
-        }
-        MOVE PROPERTY(quantitySerialSubject(t)) {
-            caption = 'Сер. номеров, всего:';
-        }
-    }
-}
-
-// --- задач - 13003
+// --- задач - 13003, 12704
 numberChange 'Замена номера' = DATA ISTRING[250] (EquipmentSerial) CHARWIDTH 15;
 note 'Примечание' = DATA STRING[200] (EquipmentSerial);
 
@@ -46,7 +24,7 @@ FORM repOutSerials 'Данные'
     OBJECTS t = SubjectType PROPERTIES name(t) PANEL
     OBJECTS l = LegalEntity PROPERTIES name(l), sumLegalEntity(l, t), sumCustomer(c, t) PANEL
     OBJECTS s = EquipmentSerial PROPERTIES(s) createdDate, number, numberChange, note
-    FILTERS customer(l) = c, legalEntity(contract(equipment(s))) = l
+    FILTERS customer(l) = c, legalEntity(contract(equipment(s))) = l 
     FILTERS subjectType(equipment(s)) = t
     ORDERS name(l), createdDate(s) 
 ;
@@ -56,7 +34,25 @@ onRepOutSerials 'Данные' (Equipment e,SubjectType t) {
         MESSAGE 'Определите клиента';
         RETURN ;
     } 
-    PRINT repOutSerials OBJECTS c = customer(e),t = t XLS; // XLS - отладка
+    IF NOT name(t) = 'LST ТСД' THEN {
+    // просто отобразим отчет и выйдем
+        PRINT repOutSerials OBJECTS c = customer(e),t = t XLS;
+        RETURN; 
+    }
+    // формируем отчет и пишим в документы по клиенту
+    LOCAL frep = FILE();
+    PRINT repOutSerials OBJECTS c = customer(e),t = t XLS TO frep; 
+    LOCAL ot = Attachment();
+    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND name(type(a)) = 'Список ключей LS Trade ТСД';
+    IF NOT ot() THEN NEW a = Attachment {
+        ot() <- a;
+        customer(a) <- customer(e);
+        type(a) <- GROUP MAX AttachmentType at IF name(at) = 'Список ключей LS Trade ТСД';
+    }
+    date(ot()) <- currentDate();
+    file(ot()) <- frep();
+    open(file(ot()));
+    APPLY;
 }
 
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[15] () CHARWIDTH 15; 
@@ -83,5 +79,3 @@ DESIGN equipmentDashboard {
         MOVE PROPERTY (clsExprEquipment());
     } 
 }
-
-// --- задач - 12671
