@@ -17,8 +17,8 @@ onCalc 'Обновить' () {
 
 // статический справочник отчетов
 CLASS EnumNameReports 'Отчеты по сверке' {
-    p1 ' 1. Сверка по клиенту, тип SV', p2 ' 2. Cверка по ТО, тип S1', p3 ' 3. Cверка по ТСД, тип S2',
-    p4 ' 4. Сверка по ТО с СП, тип S3', p5 ' 5. Ежемесячная сверка, тип S1', p6 ' 6. Сверка по месяцу, тип S1'
+    p1 ' 1. Сверка по клиенту - тип SV', p2 ' 2. Cверка по ТО - тип S1', p3 ' 3. Cверка по ТСД - тип S2',
+    p4 ' 4. Сверка по ТО с СП - тип S3', p5 ' 5. Ежемесячная сверка - тип S1M', p6 ' 6. Сверка по месяцу N - тип S1N'
 }
 
 FORM listEnumNameReports ''
@@ -81,7 +81,7 @@ onRevise '' (STRING cTitle,cRepName1,cRepName2,cFilter,cDelimiter) {
         } 
     }  
     date() <- currentDate(); title() <- cTitle;
-    PRINT repTempCustomerReports; // XLS;
+    PRINT repTempCustomerReports XLS;
 }
 
 // Обработка формы: меню с отчетамми

@@ -4,29 +4,29 @@ REQUIRE EquipmentDashboard, ContractSubject, CustomerAttachment;
 
 // --- задач - 13003, 12704
 numberChange 'Замена номера' = DATA ISTRING[250] (EquipmentSerial) CHARWIDTH 15;
+dateChange 'Дата замены' = DATA DATE (EquipmentSerial);
 note 'Примечание' = DATA STRING[200] (EquipmentSerial);
 
 FORM editNumberChange 'Редактирование замен'
     OBJECTS n = EquipmentSerial PANEL  
     PROPERTIES(n) READONLY number
-    PROPERTIES(n) numberChange, note 
+    PROPERTIES(n) dateChange, numberChange, note 
     EDIT EquipmentSerial OBJECT n
+    EVENTS ON INIT {
+        dateChange(n) <- currentDate(); 
+    }
 ; 
 
 createdDate 'Дата' (EquipmentSerial s) = createdDate(equipment(s)); // дата создания ключа
-
-legalEntity 'Организация' (EquipmentSerial s) = legalEntity(contract(equipment(s)));
-sumLegalEntity 'Итого по организации' (LegalEntity l, SubjectType t) = GROUP SUM 1 IF subjectType(equipment(EquipmentSerial s)) = t BY legalEntity(s); 
+nameLegalEntity 'Название организации' (EquipmentSerial s) = OVERRIDE ' ' + name(legalEntity(contract(equipment(s)))), '* Не связанные с договором';
 sumCustomer 'Итого по клиенту' (Customer c, SubjectType t) = GROUP SUM 1 IF subjectType(equipment(EquipmentSerial s)) = t BY customer(equipment(s));  
  
 FORM repOutSerials 'Данные'
-    OBJECTS c = Customer PROPERTIES name(c), currentDate() PANEL
-    OBJECTS t = SubjectType PROPERTIES name(t) PANEL
-    OBJECTS l = LegalEntity PROPERTIES name(l), sumLegalEntity(l, t), sumCustomer(c, t) PANEL
-    OBJECTS s = EquipmentSerial PROPERTIES(s) createdDate, number, numberChange, note
-    FILTERS customer(l) = c, legalEntity(contract(equipment(s))) = l 
-    FILTERS subjectType(equipment(s)) = t
-    ORDERS name(l), createdDate(s) 
+    OBJECTS c = Customer PROPERTIES name(c) PANEL
+    OBJECTS t = SubjectType PROPERTIES name(t), sumCustomer(c, t) PANEL
+    OBJECTS s = EquipmentSerial PROPERTIES(s) nameLegalEntity, createdDate, number, dateChange, numberChange, note
+    FILTERS customer(equipment(s)) = c, subjectType(equipment(s)) = t
+    ORDERS nameLegalEntity(s),createdDate(s) 
 ;
 
 onRepOutSerials 'Данные' (Equipment e,SubjectType t) {
@@ -36,8 +36,8 @@ onRepOutSerials 'Данные' (Equipment e,SubjectType t) {
     } 
     IF NOT name(t) = 'LST ТСД' THEN {
     // просто отобразим отчет и выйдем
-        PRINT repOutSerials OBJECTS c = customer(e),t = t XLS;
-        RETURN; 
+        PRINT repOutSerials OBJECTS c = customer(e),t = t XLS; // XLS;
+        RETURN;
     }
     // формируем отчет и пишим в документы по клиенту
     LOCAL frep = FILE();
@@ -62,7 +62,7 @@ exprEquipment '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF
 clsExprEquipment 'X' () {fltNumber() <- NULL;}
 
 EXTEND FORM equipmentDashboard
-    PROPERTIES(n) READONLY numberChange, note
+    PROPERTIES(n) READONLY dateChange, numberChange, note
     PROPERTIES(n) NEWSESSION EDIT
     PROPERTIES onRepOutSerials(e,t)
     PROPERTIES fltNumber(), clsExprEquipment()
