@@ -9,13 +9,25 @@ note 'Примечание' = DATA STRING[200] (EquipmentSerial);
 
 FORM editNumberChange 'Редактирование замен'
     OBJECTS n = EquipmentSerial PANEL  
-    PROPERTIES(n) READONLY number
-    PROPERTIES(n) dateChange, numberChange, note 
+    PROPERTIES(n) number, numberChange, dateChange, note 
     EDIT EquipmentSerial OBJECT n
     EVENTS ON INIT {
+        IF NOT numberChange(n) THEN {
+            numberChange(n) <- number(n);
+            number(n) <- NULL; 
+        }
         dateChange(n) <- currentDate(); 
     }
 ; 
+
+DESIGN editNumberChange {
+   BOX(n) {
+        MOVE PROPERTY (number(n)) {caption = 'Новый номер';} 
+        MOVE PROPERTY (dateChange(n));
+        MOVE PROPERTY (numberChange(n)) {caption = 'Старый номер';}
+        MOVE PROPERTY (note(n)); 
+   } 
+}
 
 createdDate 'Дата' (EquipmentSerial s) = createdDate(equipment(s)); // дата создания ключа
 nameLegalEntity 'Название организации' (EquipmentSerial s) = OVERRIDE ' ' + name(legalEntity(contract(equipment(s)))), '* Не связанные с договором';
