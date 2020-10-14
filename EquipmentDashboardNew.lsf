@@ -32,11 +32,13 @@ DESIGN editNumberChange {
 createdDate 'Дата' (EquipmentSerial s) = createdDate(equipment(s)); // дата создания ключа
 nameLegalEntity 'Название организации' (EquipmentSerial s) = OVERRIDE ' ' + name(legalEntity(contract(equipment(s)))), '* Не связанные с договором';
 sumCustomer 'Итого по клиенту' (Customer c, SubjectType t) = GROUP SUM 1 IF subjectType(equipment(EquipmentSerial s)) = t BY customer(equipment(s));  
+nameAgrContract 'Название соглашения или контракта' (EquipmentSerial s) =
+            OVERRIDE description(agreement(equipment(s))), description(contract(equipment(s))), '';
  
 FORM repOutSerials 'Данные'
     OBJECTS c = Customer PROPERTIES name(c) PANEL
     OBJECTS t = SubjectType PROPERTIES name(t), sumCustomer(c, t) PANEL
-    OBJECTS s = EquipmentSerial PROPERTIES(s) nameLegalEntity, createdDate, number, dateChange, numberChange, note
+    OBJECTS s = EquipmentSerial PROPERTIES(s) nameLegalEntity, createdDate, number, dateChange, numberChange, note, nameAgrContract
     FILTERS customer(equipment(s)) = c, subjectType(equipment(s)) = t
     ORDERS nameLegalEntity(s),createdDate(s) 
 ;
