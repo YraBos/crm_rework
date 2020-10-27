@@ -16,7 +16,11 @@
 		<paragraph leftIndent="2" rightIndent="2"/>
 		<conditionalStyle>
 			<conditionExpression><![CDATA[( $F{pi(o1)} == 0 )]]></conditionExpression>
-			<style mode="Opaque" backcolor="#CCFFFF" hTextAlign="Center" isBold="true"/>
+			<style mode="Opaque" backcolor="#CCCCCC" hTextAlign="Center" isBold="true"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[( $F{ps(o1)} == 1 )]]></conditionExpression>
+			<style mode="Opaque" backcolor="#CCFFFF"/>
 		</conditionalStyle>
 	</style>
 	<style name="GroupCellStyle0" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
@@ -26,12 +30,17 @@
 		<paragraph leftIndent="2" rightIndent="2"/>
 		<conditionalStyle>
 			<conditionExpression><![CDATA[( $F{pi(o1)} == 0 )]]></conditionExpression>
-			<style mode="Opaque" backcolor="#CCFFFF" hTextAlign="Center" isBold="true"/>
+			<style mode="Opaque" backcolor="#CCCCCC" hTextAlign="Center" isBold="true"/>
+		</conditionalStyle>
+		<conditionalStyle>
+			<conditionExpression><![CDATA[( $F{ps(o1)} == 1 )]]></conditionExpression>
+			<style mode="Opaque" backcolor="#CCFFFF"/>
 		</conditionalStyle>
 	</style>
 	<field name="date()" class="java.util.Date"/>
 	<field name="title()" class="java.lang.String"/>
 	<field name="o1.object" class="java.lang.Long"/>
+	<field name="ps(o1)" class="java.lang.Integer"/>
 	<field name="pi(o1)" class="java.lang.Integer"/>
 	<field name="p1(o1)" class="java.lang.String"/>
 	<field name="p2(o1)" class="java.lang.String"/>
