@@ -4,7 +4,8 @@ REQUIRE Customer, CustomerAttachment, Utils, Time;
 
 calcInfo 'Данные сверки' = DATA LOCAL TEXT (Customer);
 delimiter 'Разделитель' = DATA LOCAL STRING[10] () CHARWIDTH 10; 
-clientType 'Тип клиента' = DATA STRING[50] (Customer); 
+clientType 'Тип клиента' = DATA STRING[50] (Customer) CHARWIDTH 50; 
+inReport 'Отм.' = DATA LOCAL BOOLEAN (Customer);
 
 onCalc 'Обновить' () {
     calcInfo(Customer c) <- '';
@@ -17,8 +18,10 @@ onCalc 'Обновить' () {
 
 // статический справочник отчетов
 CLASS EnumNameReports 'Отчеты по сверке' {
-    p1 ' 1. Сверка по клиенту - тип SV', p2 ' 2. Cверка по ТО - тип S1', p3 ' 3. Cверка по ТСД - тип S2',
-    p4 ' 4. Сверка по ТО с СП - тип S3', p5 ' 5. Ежемесячная сверка - тип S1M', p6 ' 6. Сверка по месяцу N - тип S1N'
+//    p1 ' 1. Сверка по клиенту - тип SV', p2 ' 2. Cверка по ТО - тип S1', p3 ' 3. Cверка по ТСД - тип S2',
+//    p4 ' 4. Сверка по ТО с СП - тип S3', p5 ' 5. Ежемесячная сверка - тип S1M', p6 ' 6. Сверка по месяцу N - тип S1N'
+    p1 ' 1. Cверка по ТСД - тип S2', 
+    p2 ' 2. Cверка по ТО - тип S1', p3 ' 3. Ежемесячная сверка - тип S1M', p4 ' 4. Сверка по месяцу N - тип S1N'
 }
 
 FORM listEnumNameReports ''
@@ -50,67 +53,133 @@ newTempCustomerReports '' (INTEGER ind, TEXT c1,c2,c3,c4,c5,c6) {
     DELETE TempCustomerReports o1 WHERE o1 IS TempCustomerReports;
     NEW o2 = TempCustomerReports {
         pi(o2) <- ind; 
-        p1(o2) <- c1; p2(o2) <- c2; p3(o2) <- c3;
-        p4(o2) <- c4; p5(o2) <- c5; p6(o2) <- c6;
+        p1(o2) <- c1;                   // клиента 
+        p2(o2) <- c2; p3(o2) <- c3;     // дата, кол-во
+        p4(o2) <- c4; p5(o2) <- c5;     // дата, кол-во
+        p6(o2) <- c6;                   // примечание
     }
 }
 
-// универсальный метод сверки
-onRevise '' (STRING cTitle,cRepName1,cRepName2,cFilter,cDelimiter) {
-    LOCAL frep = FILE();
-    LOCAL cmsg,c1 = TEXT (); 
+// 2. Cверка по ТО - тип S1  по отдельному клиенту
+onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, Attachment ox1, Attachment ox2, STRING cFDelimiter) {
+    LOCAL frep = FILE(); 
+    LOCAL ks1,ks2,iks1,iks2,nv = INTEGER ();
+    LOCAL nob = INTEGER(); nob() <- 0;  
+    LOCAL colA1,colB1,colC1,colD1,colB2,colD2,colG2 = BPSTRING[50] (INTEGER);
+    LOCAL ctxt, c1 = TEXT();
+    IMPORT XLS NOHEADER FROM file(ox1) AS FILE TO colA1=A,colB1=B,colC1=C,colD1=D;  // организация, унп, магазины, склады
+    IMPORT XLS NOHEADER FROM file(ox2) AS FILE TO colB2=B,colD2=D,colG2=G;          // адрес, унп, продажи
+    iks1() <- 0; iks2() <- 0;
+    FOR imported(INTEGER i1) AND i1 > 0 ORDER i1 DO {
+        colA1(i1) <- OVERRIDE colA1(i1),''; colB1(i1) <- OVERRIDE colB1(i1),''; colC1(i1) <- OVERRIDE colC1(i1),''; colD1(i1) <- OVERRIDE colD1(i1),''; 
+        IF NOT (length(colA1(i1)) > 0 AND length(colB1(i1)) > 0) THEN BREAK;
+        ks1() <- toInteger(colC1(i1)) + toInteger(colD1(i1)); iks1() <- iks1() + ks1();
+        ctxt() <- '';
+        IF cFDelimiter THEN {
+            FOR iterate(INTEGER i, 2, wordCount(info(c),cFDelimiter)) ORDER i DO {
+                c1() <- OVERRIDE getWord(getWord(info(c),cFDelimiter,i),'\n',1), '';
+                c1() <- OVERRIDE getWord(c1(),'///',2), '';
+                IF length(c1()) > 0 THEN p6(oRep) <- trim(c1());
+            }    
+        }
+        NEW ob = TempCustomerReports {
+            pi(ob) <- ind; p1(ob) <- '   ' + colA1(i1); ks2()  <- 0;                 // организация клиента 
+            FOR imported(INTEGER i2) AND i2 > 0 ORDER i2 DO {
+                ctxt() <- ctxt() + OVERRIDE colB2(i2),'' + '\n';   
+                IF colB1(i1) = colD2(i2) THEN {
+                    IF toInteger(OVERRIDE colG2(i2),'') > 0 THEN ks2() <- ks2() + 1;
+                }
+            }
+            iks2() <- iks2() + ks2();
+            p3(ob) <- toChar(ks1(),'9999'); p5(ob) <- toChar(ks2(),'9999');
+        }   
+    }
+    p3(oRep) <- toChar(iks1(),'9999'); p5(oRep) <- toChar(iks2(),'9999');
+}
+
+
+// 3. сверка по ТСД, тип S2 по отдельному клиенту
+onRevise3 '' (INTEGER ind, TempCustomerReports oRep, Customer c, Attachment ox1, Attachment ox2, STRING cFDelimiter) {
+    LOCAL frep = FILE(); LOCAL c1 = TEXT();
     LOCAL value1,value2 = BPSTRING[50] (INTEGER);
+    IMPORT XLS NOHEADER FROM file(ox1) AS FILE TO value1 = A;
+    IMPORT XLS NOHEADER FROM file(ox2) AS FILE TO value2 = A;
+    p3(oRep) <- value1(0); p5(oRep) <- value2(0);
+    IF cFDelimiter THEN {
+        FOR iterate(INTEGER i, 2, wordCount(info(c),cFDelimiter)) ORDER i DO {
+            c1() <- OVERRIDE getWord(getWord(info(c),cFDelimiter,i),'\n',1), '';
+            c1() <- OVERRIDE getWord(c1(),'///',2), '';
+            IF length(c1()) > 0 THEN p6(oRep) <- trim(c1());
+        }    
+    }
+}
+
+
+// универсальный метод сверки
+// тип отчета, заголовок отчета, док1, док2, значение атрибута в тип клиента, доп. разделитель
+onRevise '' (INTEGER ntype, STRING cTitle,cRepName1,cRepName2,cFilter,cDelimiter) {
+    LOCAL cmsg,c1 = TEXT (); 
     LOCAL ot1, ot2  = Attachment();
-    newTempCustomerReports(0,'название клиента','дата','количество лицензий','дата','количество ключей ТСД','примечание');
-    FOR (Customer c IS Customer) AND isSubstring(clientType(c),cFilter) NEW ob = TempCustomerReports DO {
-        pi(ob) <- 1; p1(ob) <- name(c);
+    LOCAL ind = INTEGER (); ind() <- 0;
+    inReport(Customer c) <- NULL;
+    FOR [FILTER customers.o](Customer c) DO inReport(c) <- TRUE; 
+    FOR (Customer c IS Customer) AND isSubstring(clientType(c),cFilter) AND inReport(c) ORDER name(c) NEW ob = TempCustomerReports DO {
+        p1(ob) <- name(c); ind() <- ind() + 1; pi(ob) <- ind();  
         ot1()  <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName1;
         ot2()  <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2;
+        IF ot1() THEN p2(ob) <- toDateDDMMYY(date(ot1()));
+        IF ot2() THEN p4(ob) <- toDateDDMMYY(date(ot2()));
         IF ot1() AND ot2() THEN {
-            IMPORT XLS NOHEADER FROM file(ot1()) AS FILE TO value1 = A;
-            IMPORT XLS NOHEADER FROM file(ot2()) AS FILE TO value2 = A;
-            p2(ob) <- toDateDDMMYY(date(ot1())); p3(ob) <- value1(0);
-            p4(ob) <- toDateDDMMYY(date(ot1())); p5(ob) <- value2(0);
-            IF cDelimiter THEN {
-                FOR iterate(INTEGER i, 2, wordCount(info(c),cDelimiter)) ORDER i DO {
-                    c1() <- OVERRIDE getWord(getWord(info(c),cDelimiter,i),'\n',1), '';
-                    IF cFilter = 'S2' THEN c1() <- OVERRIDE getWord(c1(),'///',2), '';
-                    IF length(c1()) > 0 THEN p6(ob) <- trim(c1());
-                }
-            }      
-        } 
+            IF ntype = 1 THEN ;
+            ELSE IF ntype = 2 THEN onRevise2(ind(),ob,c,ot1(),ot2(),cDelimiter);
+            ELSE IF ntype = 3 THEN onRevise3(ind(),ob,c,ot1(),ot2(),cDelimiter);
+//            ELSE IF ntype = 4 THEN onRevise2(ind(),ob,c,ot1(),ot2(),cDelimiter);
+        } ELSE {
+            p6(ob) <- '* Отсутствуют данные для сверки';
+        }
     }  
     date() <- currentDate(); title() <- cTitle;
-    PRINT repTempCustomerReports XLS;
+    PRINT repTempCustomerReports XLS; //XLS;
 }
+
+FORM  input 'Ввод значения'
+    OBJECTS o = (qmes = INTEGER) PANEL 
+    PROPERTIES 'Введите номер месяца' = VALUE(qmes)
+; 
 
 // Обработка формы: меню с отчетамми
 onCustomerReports 'Отчеты' (Customer c) {
     LOCAL enum  = EnumNameReports();
     LOCAL ps    = STRING[3] ();
-    DIALOG listEnumNameReports OBJECTS ob INPUT DO {
-        enum() <- ob;
-    }
+    DIALOG listEnumNameReports OBJECTS ob INPUT DO { enum() <- ob; }
     IF NOT enum() THEN RETURN;
     ps() <- substr(staticCaption(enum()),1,3);  
-    IF      ps() = ' 1.' THEN
-        MESSAGE 'Обработка не подключена';
-    ELSE IF ps() = ' 2.' THEN
-        MESSAGE 'Обработка не подключена';
-    ELSE IF ps() = ' 3.' THEN 
-        onRevise('Отчет по сверке выданных лицензий ТСД','Список лицензий ТСД','Список ключей LS Trade ТСД','S2','*#*'); 
-    ELSE IF ps() = ' 4.' THEN
-        MESSAGE 'Обработка не подключена';
-    ELSE IF ps() = ' 5.' THEN
-        MESSAGE 'Обработка не подключена';
-    ELSE IF ps() = ' 6.' THEN
-        MESSAGE 'Обработка не подключена';
+    IF ps() = ' 1.' THEN {
+            newTempCustomerReports(0,'название клиента','дата','количество лицензий','дата','количество ключей ТСД','примечание');
+            onRevise(3,'Отчет по сверке выданных лицензий ТСД','Список лицензий ТСД','Список ключей LS Trade ТСД','S2','*#*');
+    } 
+    ELSE IF ps() = ' 2.' THEN {
+            newTempCustomerReports(0,'название клиента\nорганизации','дата','количество лицензий','дата','количество объектов','примечание');
+            onRevise(2,'Отчет по сверке торговых объектов','Список лицензий','Список объектов','S1','###');
+    }
+    ELSE IF ps() = ' 3.' THEN {
+            newTempCustomerReports(0,'название клиента\nорганизации','дата','количество лицензий','дата','количество объектов','примечание');
+            onRevise(2,'Ежемесячный отчет по сверке торговых объектов','Список лицензий','Список объектов','S1M','###');
+    }    
+    ELSE IF ps() = ' 4.' THEN {
+            LOCAL nmes = INTEGER (); nmes() <- extractMonthNumber(currentDate()); 
+            DIALOG input OBJECTS qmes = nmes() INPUT DO { nmes() <- qmes; }
+            IF nmes() < 1 OR nmes() > 12 THEN MESSAGE 'Месяц сверки вне диапазона 1..12';
+            ELSE {  
+                newTempCustomerReports(0,'название клиента\nорганизации','дата','количество лицензий','дата','количество объектов','примечание');
+                onRevise(2,'Отчет по сверке торговых объектов за ' + nmes() + ' месяц','Список лицензий','Список объектов','S1' + nmes(),'');
+            }    
+    }    
 }
 
 
 EXTEND FORM customers
-    PROPERTIES onCalc(), delimiter()
-    PROPERTIES(o) onCustomerReports 
+    PROPERTIES onCalc(), delimiter(), onCustomerReports(o) 
     PROPERTIES(o) READONLY clientType AFTER nameGroup(o)
     PROPERTIES(o) PANEL READONLY calcInfo
     EVENTS ON INIT {
