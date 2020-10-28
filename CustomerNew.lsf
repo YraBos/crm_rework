@@ -18,8 +18,6 @@ onCalc 'Обновить' () {
 
 // статический справочник отчетов
 CLASS EnumNameReports 'Отчеты по сверке' {
-//    p1 ' 1. Сверка по клиенту - тип SV', p2 ' 2. Cверка по ТО - тип S1', p3 ' 3. Cверка по ТСД - тип S2',
-//    p4 ' 4. Сверка по ТО с СП - тип S3', p5 ' 5. Ежемесячная сверка - тип S1M', p6 ' 6. Сверка по месяцу N - тип S1N'
     p1 ' 1. Cверка по ТСД - тип S2', 
     p2 ' 2. Cверка по ТО - тип S1', p3 ' 3. Ежемесячная сверка - тип S1M', p4 ' 4. Сверка по месяцу N - тип S1N'
 }
@@ -32,6 +30,7 @@ FORM listEnumNameReports ''
 
 CLASS TempCustomerReports 'Временные отчеты по клиенту';
 pi '' = DATA LOCAL INTEGER  (TempCustomerReports);
+ps '' = DATA LOCAL INTEGER  (TempCustomerReports);
 p1 '' = DATA LOCAL TEXT     (TempCustomerReports);
 p2 '' = DATA LOCAL TEXT     (TempCustomerReports);
 p3 '' = DATA LOCAL TEXT     (TempCustomerReports);
@@ -45,14 +44,14 @@ date = DATA LOCAL DATE (); title = DATA LOCAL TEXT ();
 FORM repTempCustomerReports 'Печатная форма универсального отчета'
   PROPERTIES() date, title PANEL  
   OBJECTS o1 = TempCustomerReports
-  PROPERTIES(o1) pi,p1,p2,p3,p4,p5,p6
+  PROPERTIES(o1) pi,ps,p1,p2,p3,p4,p5,p6
   ORDERS pi(o1)   
 ;
 
 newTempCustomerReports '' (INTEGER ind, TEXT c1,c2,c3,c4,c5,c6) {
     DELETE TempCustomerReports o1 WHERE o1 IS TempCustomerReports;
     NEW o2 = TempCustomerReports {
-        pi(o2) <- ind; 
+        pi(o2) <- ind; ps(o2) <- 0;  
         p1(o2) <- c1;                   // клиента 
         p2(o2) <- c2; p3(o2) <- c3;     // дата, кол-во
         p4(o2) <- c4; p5(o2) <- c5;     // дата, кол-во
@@ -60,7 +59,7 @@ newTempCustomerReports '' (INTEGER ind, TEXT c1,c2,c3,c4,c5,c6) {
     }
 }
 
-// 2. Cверка по ТО - тип S1  по отдельному клиенту
+// 2. Cверка по ТО - тип S1 (S1M, S1N) по отдельному клиенту
 onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, Attachment ox1, Attachment ox2, STRING cFDelimiter) {
     LOCAL frep = FILE(); 
     LOCAL ks1,ks2,iks1,iks2,nv = INTEGER ();
@@ -69,9 +68,11 @@ onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, Attachment ox1,
     LOCAL ctxt, c1 = TEXT();
     IMPORT XLS NOHEADER FROM file(ox1) AS FILE TO colA1=A,colB1=B,colC1=C,colD1=D;  // организация, унп, магазины, склады
     IMPORT XLS NOHEADER FROM file(ox2) AS FILE TO colB2=B,colD2=D,colG2=G;          // адрес, унп, продажи
-    iks1() <- 0; iks2() <- 0;
+    iks1() <- 0; iks2() <- 0;                                                       // общие итоги по клиенту 
+    ps(oRep) <- 1;                                                                  // отмечаем, что это клиент, для выделения цветом
     FOR imported(INTEGER i1) AND i1 > 0 ORDER i1 DO {
-        colA1(i1) <- OVERRIDE colA1(i1),''; colB1(i1) <- OVERRIDE colB1(i1),''; colC1(i1) <- OVERRIDE colC1(i1),''; colD1(i1) <- OVERRIDE colD1(i1),''; 
+        colA1(i1) <- OVERRIDE colA1(i1),''; colB1(i1) <- OVERRIDE colB1(i1),''; 
+        colC1(i1) <- OVERRIDE colC1(i1),''; colD1(i1) <- OVERRIDE colD1(i1),''; 
         IF NOT (length(colA1(i1)) > 0 AND length(colB1(i1)) > 0) THEN BREAK;
         ks1() <- toInteger(colC1(i1)) + toInteger(colD1(i1)); iks1() <- iks1() + ks1();
         ctxt() <- '';
@@ -83,7 +84,7 @@ onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, Attachment ox1,
             }    
         }
         NEW ob = TempCustomerReports {
-            pi(ob) <- ind; p1(ob) <- '   ' + colA1(i1); ks2()  <- 0;                 // организация клиента 
+            pi(ob) <- ind; ps(ob) <- 2; p1(ob) <- '   ' + colA1(i1); ks2()  <- 0;    // организация клиента 
             FOR imported(INTEGER i2) AND i2 > 0 ORDER i2 DO {
                 ctxt() <- ctxt() + OVERRIDE colB2(i2),'' + '\n';   
                 IF colB1(i1) = colD2(i2) THEN {
@@ -91,10 +92,10 @@ onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, Attachment ox1,
                 }
             }
             iks2() <- iks2() + ks2();
-            p3(ob) <- toChar(ks1(),'9999'); p5(ob) <- toChar(ks2(),'9999');
+            p3(ob) <- toChar(ks1(),'9999'); p5(ob) <- toChar(ks2(),'9999');         // итог по организации клиента
         }   
     }
-    p3(oRep) <- toChar(iks1(),'9999'); p5(oRep) <- toChar(iks2(),'9999');
+    p3(oRep) <- toChar(iks1(),'9999'); p5(oRep) <- toChar(iks2(),'9999');           // итог по клиенту
 }
 
 
@@ -117,6 +118,7 @@ onRevise3 '' (INTEGER ind, TempCustomerReports oRep, Customer c, Attachment ox1,
 
 // универсальный метод сверки
 // тип отчета, заголовок отчета, док1, док2, значение атрибута в тип клиента, доп. разделитель
+maxDate(Customer c,STRING rname) = GROUP MAX date(Attachment o) IF customer(o) = c AND name(type(o)) = rname; 
 onRevise '' (INTEGER ntype, STRING cTitle,cRepName1,cRepName2,cFilter,cDelimiter) {
     LOCAL cmsg,c1 = TEXT (); 
     LOCAL ot1, ot2  = Attachment();
@@ -124,16 +126,15 @@ onRevise '' (INTEGER ntype, STRING cTitle,cRepName1,cRepName2,cFilter,cDelimiter
     inReport(Customer c) <- NULL;
     FOR [FILTER customers.o](Customer c) DO inReport(c) <- TRUE; 
     FOR (Customer c IS Customer) AND isSubstring(clientType(c),cFilter) AND inReport(c) ORDER name(c) NEW ob = TempCustomerReports DO {
-        p1(ob) <- name(c); ind() <- ind() + 1; pi(ob) <- ind();  
-        ot1()  <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName1;
-        ot2()  <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2;
+        p1(ob) <- name(c); ind() <- ind() + 1; pi(ob) <- ind();
+        ot1() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName1 AND date(a) = maxDate(c, cRepName1);
+        ot2() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2 AND date(a) = maxDate(c, cRepName2);
         IF ot1() THEN p2(ob) <- toDateDDMMYY(date(ot1()));
         IF ot2() THEN p4(ob) <- toDateDDMMYY(date(ot2()));
         IF ot1() AND ot2() THEN {
             IF ntype = 1 THEN ;
             ELSE IF ntype = 2 THEN onRevise2(ind(),ob,c,ot1(),ot2(),cDelimiter);
             ELSE IF ntype = 3 THEN onRevise3(ind(),ob,c,ot1(),ot2(),cDelimiter);
-//            ELSE IF ntype = 4 THEN onRevise2(ind(),ob,c,ot1(),ot2(),cDelimiter);
         } ELSE {
             p6(ob) <- '* Отсутствуют данные для сверки';
         }
