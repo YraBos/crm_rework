@@ -69,6 +69,33 @@ onRepOutSerials 'Данные' (Equipment e,SubjectType t) {
     APPLY;
 }
 
+onLoadWorkTSD 'Загрузить раб. ТСД' (Equipment e) {
+    IF NOT filterCustomer() THEN {
+        MESSAGE 'Определите клиента';
+        RETURN ;
+    }
+    // грузим файл 
+    LOCAL frep = FILE();
+    INPUT fx = FILE DO frep() <- fx;
+    IF NOT frep() THEN {
+        MESSAGE 'Загрузка отменена';
+        RETURN ;
+    }
+    LOCAL ot = Attachment();
+    LOCAL at = AttachmentType();
+    // ищем вид предложения, если не нашли, то создаем новое предложение
+    at() <- GROUP MAX AttachmentType o IF name(o) = 'Список работающих ТСД';
+    IF NOT at() THEN NEW o = AttachmentType {
+        at() <- o; name(o) <- 'Список работающих ТСД';
+    } 
+    // ищем для клиента тип предложения, если нет, то создаем новую запись, иначе замещаем данные
+    IF NOT ot() THEN NEW a = Attachment {
+        ot() <- a; customer(a) <- customer(e); type(a) <- at();
+    }
+    date(ot()) <- currentDate(); file(ot()) <- frep();
+    APPLY;
+}
+
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[15] () CHARWIDTH 15; 
 // вычисление ID equipment от значения ключа оборудования
 exprEquipment '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF number(n1) = num;
@@ -78,7 +105,7 @@ clsExprEquipment 'X' () {fltNumber() <- NULL;}
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
     PROPERTIES(n) NEWSESSION EDIT
-    PROPERTIES onRepOutSerials(e,t)
+    PROPERTIES onRepOutSerials(e,t), onLoadWorkTSD(e)
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
     FILTERS IF fltNumber() THEN number(n) = fltNumber() ELSE TRUE
@@ -87,6 +114,7 @@ EXTEND FORM equipmentDashboard
 DESIGN equipmentDashboard {
     head {
         MOVE PROPERTY (onRepOutSerials(e,t));
+        MOVE PROPERTY (onLoadWorkTSD(e));
     }
     TOOLBARRIGHT(e) {
         MOVE PROPERTY (fltNumber()) {marginLeft = 10;};
