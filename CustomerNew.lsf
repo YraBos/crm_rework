@@ -222,7 +222,7 @@ onCustomerReports 'Отчеты' (Customer c) {
         newTempCustomerReports();
         title() <- 'Отчет по сверке торговых объектов';    
         onRevise(2,'Список лицензий','Список объектов','S1','###');
-        PRINT repReviseTO ;//XLS;
+        PRINT repReviseTO XLS;//XLS;
     }
     ELSE IF ps() = ' 2.' THEN {
         newTempCustomerReports();    
@@ -245,7 +245,7 @@ onCustomerReports 'Отчеты' (Customer c) {
         newTempCustomerReports();    
         title() <- 'Отчет по сверке выданных лицензий ТСД';
         onRevise(3,'Список лицензий ТСД','Список ключей LS Trade ТСД','S2','*#*');
-        PRINT repReviseTSD ;
+        PRINT repReviseTSD XLS;
     } 
     CANCEL; 
 }
