@@ -89,6 +89,7 @@ onLoadWorkTSD 'Загрузить раб. ТСД' (Equipment e) {
         at() <- o; name(o) <- 'Список работающих ТСД';
     } 
     // ищем для клиента тип предложения, если нет, то создаем новую запись, иначе замещаем данные
+    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND name(type(a)) = 'Список работающих ТСД';
     IF NOT ot() THEN NEW a = Attachment {
         ot() <- a; customer(a) <- customer(e); type(a) <- at();
     }
