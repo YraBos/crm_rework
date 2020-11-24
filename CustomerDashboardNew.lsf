@@ -23,10 +23,14 @@ EXTEND FORM dashboardCustomer
 ;
 
 DESIGN dashboardCustomer {
-    MOVE PROPERTY(dateTo(is)) {caption='Окончена';charWidth=8;} 
-    MOVE PROPERTY(dateTimeCreated(is)) {pattern = 'dd.MM.yy';caption='Создана';charWidth=8;}
-    MOVE PROPERTY(dateTimeUpdated(is)) {pattern = 'dd.MM.yy';caption='Обновлена';charWidth=10;} 
-    MOVE PROPERTY(dateFrom(is)) {caption='Начата';charWidth=8;} 
+    PROPERTY(dateTo(is)) {caption='Окончена';charWidth=8;}                                      // 25.11.20 MOVE PROPERTY 
+    PROPERTY(dateTimeCreated(is)) {pattern = 'dd.MM.yy';caption='Создана';charWidth=8;}         // 25.11.20 MOVE PROPERTY 
+    PROPERTY(dateTimeUpdated(is)) {pattern = 'dd.MM.yy';caption='Обновлена';charWidth=10;}      // 25.11.20 MOVE PROPERTY 
+    PROPERTY(dateFrom(is)) {caption='Начата';charWidth=8;}                                      // 25.11.20 MOVE PROPERTY 
+    PROPERTY(dateTo(ss)) {caption='Окончена';charWidth=8;}                                      
+    PROPERTY(dateTimeCreated(ss)) {pattern = 'dd.MM.yy';caption='Создана';charWidth=8;}         
+    PROPERTY(dateTimeUpdated(ss)) {pattern = 'dd.MM.yy';caption='Обновлена';charWidth=10;}      
+    PROPERTY(dateFrom(ss)) {caption='Начата';charWidth=8;}                                      
     issues {
         MOVE BOX (is) {
             NEW dateFilter FIRST {

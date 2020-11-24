@@ -1,0 +1,15 @@
+MODULE IssueDashboardNew;
+
+REQUIRE IssueDashboard, Act;
+
+//issueAct '' (Issue i) = document(i);
+issueAct '' (Issue i) = GROUP MAX Act a IF document(i) = a;
+issueNameLegalEntity 'Организация' (Issue i) = name(legalEntity(issueAct(i)));
+issueActNumber 'Номер Акта' (Issue i) = number(issueAct(i));
+issueDateAct 'Дата акта' (Issue i) = date(issueAct(i));
+issueContractNumber 'Договор' (Issue i) = number(contract(issueAct(i)));
+issueAgreementNumber 'Доп. соглашение' (Issue i) = number(agreement(issueAct(i)));
+
+EXTEND FORM issueDashboard
+    PROPERTIES(o) issueNameLegalEntity, issueActNumber, issueDateAct, issueContractNumber, issueAgreementNumber  
+;

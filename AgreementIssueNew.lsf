@@ -3,9 +3,10 @@ MODULE AgreementIssueNew;
 REQUIRE AgreementIssue, CustomerTime;
 
 EXTEND FORM agreement
-    PROPERTIES(i) hours 
+    PROPERTIES(i) hours
 ;
 
 DESIGN agreement {
-    MOVE PROPERTY (hours(i)) {caption = 'Часы';} 
+    PROPERTY (hours(i)) {caption = 'Часы';} // 25.11.20 MOVE PROPERTY 
 }
+

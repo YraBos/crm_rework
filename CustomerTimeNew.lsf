@@ -140,7 +140,7 @@ DESIGN customerTimeDashboard {
             MOVE PROPERTY (commentStringIssue(t)) {background=#EEF7F7; charWidth = 150;};
         }
         GRID(t) {
-            MOVE PROPERTY (in(t)) {marginLeft = 20;marginRight = 20;}
+            PROPERTY (in(t)) {marginLeft = 20;marginRight = 20;} // 25.11.20 MOVE PROPERTY
             PROPERTY (numberIssue(t)) ;
             PROPERTY (nameEmployee(t)) {caption = 'Исполнитель';}
         } 
@@ -226,13 +226,13 @@ DESIGN customerTimeDashboard {
         }
     }
     BOX(is) {
-        MOVE PROPERTY (hours(is)) {caption = 'Часы';}
-        MOVE PROPERTY (number(is)) {caption = 'Номер задачи';}
-        MOVE PROPERTY (name(is)) {caption = 'Задача';}
-        MOVE PROPERTY (dateTo(is)) {caption = 'Завершена'; charWidth = 8;}
-        MOVE PROPERTY (dateTimeCreated(is)) {caption = 'Создана'; charWidth = 8; pattern = 'dd.MM.yy';}
-        MOVE PROPERTY (dateTimeUpdated(is)) {caption = 'Обновлена'; pattern = 'dd.MM.yy'; charWidth = 10; pattern = 'dd.MM.yy';}
-        MOVE PROPERTY (dateFrom(is)) {caption = 'Начата'; charWidth = 8;}
+        PROPERTY (hours(is)) {caption = 'Часы';}                                                                            // 25.11.20 MOVE PROPERTY 
+        PROPERTY (number(is)) {caption = 'Номер задачи';}
+        PROPERTY (name(is)) {caption = 'Задача';}
+        PROPERTY (dateTo(is)) {caption = 'Завершена'; charWidth = 8;}
+        PROPERTY (dateTimeCreated(is)) {caption = 'Создана'; charWidth = 8; pattern = 'dd.MM.yy';}
+        PROPERTY (dateTimeUpdated(is)) {caption = 'Обновлена'; pattern = 'dd.MM.yy'; charWidth = 10; pattern = 'dd.MM.yy';}
+        PROPERTY (dateFrom(is)) {caption = 'Начата'; charWidth = 8;}
     }
     TOOLBARRIGHT(is) {
         MOVE PROPERTY (open(is)) {caption = 'Redmine';}; 
