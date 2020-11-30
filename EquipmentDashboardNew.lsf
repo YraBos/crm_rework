@@ -97,7 +97,7 @@ onLoadWorkTSD 'Загрузить раб. ТСД' (Equipment e) {
     APPLY;
 }
 
-fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[15] () CHARWIDTH 15; 
+fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] (); 
 // вычисление ID equipment от значения ключа оборудования
 exprEquipment '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF number(n1) = num;
 // сброс выражения фильтра
