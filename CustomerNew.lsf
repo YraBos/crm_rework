@@ -1,6 +1,6 @@
 MODULE CustomerNew;
 
-REQUIRE Customer, CustomerAttachment, Utils, Time;
+REQUIRE Customer, CustomerAttachment, CustomerDashboard, Utils, Time;
 
 calcInfo 'Данные сверки' = DATA LOCAL TEXT (Customer);
 delimiter 'Разделитель' = DATA LOCAL STRING[10] () CHARWIDTH 10; 
@@ -11,7 +11,7 @@ onCalc 'Обновить' () {
     calcInfo(Customer c) <- '';
     FOR (Customer o IS Customer) AND isSubstring(info(o),delimiter()) DO {
         FOR iterate(INTEGER i, 2, wordCount(info(o),delimiter())) ORDER i DO {
-            calcInfo(o) <- calcInfo(o) + getWord(getWord(info(o),delimiter(),i),'\n',1) + ';      ';
+            calcInfo(o) <- calcInfo(o) + getWord(getWord(info(o),delimiter(),i),'\n',1) + '\n';
         }  
     }
 }
@@ -250,9 +250,22 @@ onCustomerReports 'Отчеты' (Customer c) {
     CANCEL; 
 }
 
+onHelpCode 'Подсказка по кодам' () {
+    LOCAL ox = Attachment();
+    ox() <- GROUP MAX Attachment a IF id(Customer c) = '1' AND note(a) = 'Коды поля "Тип клиента"';
+    IF NOT ox() THEN {
+        MESSAGE 'Документ с кодами не найден';
+        RETURN; 
+    } 
+    open(file(ox()));
+}
+
+onCustomerDashboard 'Журнал клиенты' (Customer o) {
+    SHOW dashboardCustomer OBJECTS c = o DOCKED NOWAIT;
+}
 
 EXTEND FORM customers
-    PROPERTIES onCalc(), delimiter(), onCustomerReports(o) 
+    PROPERTIES onCalc(), delimiter(), onCustomerReports(o), onHelpCode(), onCustomerDashboard(o) 
     PROPERTIES(o) READONLY clientType AFTER nameGroup(o)
     PROPERTIES(o) PANEL READONLY calcInfo
     EVENTS ON INIT {
@@ -286,7 +299,16 @@ DESIGN customers {
                     MOVE PROPERTY (onCalc());
                     MOVE PROPERTY (onCustomerReports(o));
                 }
-           }     
+                // cnt3, см. RateService
+                NEW cnt4 {
+                    marginLeft = 10;
+                    caption = 'дополнительно'; 
+                    columns = 4;
+                    type = CONTAINERH ;
+                    MOVE PROPERTY (onHelpCode());
+                    MOVE PROPERTY (onCustomerDashboard(o));
+                }
+           } 
         }
     }
 }
