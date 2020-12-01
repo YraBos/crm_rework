@@ -260,7 +260,7 @@ onHelpCode 'Подсказка по кодам' () {
     open(file(ox()));
 }
 
-onCustomerDashboard 'Журнал клиенты' (Customer o) {
+onCustomerDashboard 'Работа с клиентами' (Customer o) {
     SHOW dashboardCustomer OBJECTS c = o DOCKED NOWAIT;
 }
 
