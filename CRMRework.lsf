@@ -15,6 +15,9 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         DebtDashboardNew,       // Форма задолженностей. Доб. фильтры и отчеты (RM 12230)
         EventDashboardNew,      // Рабочий стол - Обработка события, Форма (RM 12438)   
         RateService,            // Отчет - проценты за обслуживание (RateService_repProcService.jrxml)
-        AgreementIssueNew       // RM 13065, добавить колонку кол-во часов
+        AgreementIssueNew,      // RM 13065, добавить колонку кол-во часов
+        IssueDashboardNew,      // RM 14003, Добавить в журнал Мои задачи колонки: 
+                                // наименование организации, номер договора, номер допсоглашения, дата акта
+        FixedAssetsLog          // RM14084, организовать логирование журнала ОС                         
 ;
 
