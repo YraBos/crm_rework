@@ -78,7 +78,7 @@ onLoadWorkTSD 'Загрузить раб. ТСД' (Equipment e) {
     LOCAL frep = FILE();
     INPUT fx = FILE DO frep() <- fx;
     IF NOT frep() THEN {
-        MESSAGE 'Загрузка отменена';
+        MESSAGE 'Выполнение операции отменено';
         RETURN ;
     }
     LOCAL ot = Attachment();
@@ -95,6 +95,7 @@ onLoadWorkTSD 'Загрузить раб. ТСД' (Equipment e) {
     }
     date(ot()) <- currentDate(); file(ot()) <- frep();
     APPLY;
+    MESSAGE 'Операция выполнена успешно';
 }
 
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] (); 
