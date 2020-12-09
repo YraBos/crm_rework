@@ -93,7 +93,7 @@ colorStatus '' (FixedAssetsLog o) =
     ELSE IF status(o) = 3 THEN RGB(245,216,214) ELSE RGB(255,255,255); 
 
 FORM viewFixedAssetsLog 'Журнал логирования ОС'
-    OBJECTS o = FixedAssetsLog
+    OBJECTS o = FixedAssetsLog LAST
     PROPERTIES(o) GRID BACKGROUND colorStatus(o) READONLY date, operName, userName
     PROPERTIES(o) GRID BACKGROUND colorStatus(o) READONLY inventoryNumber,passport,inputDoc,inputDate,
                   name,fullName,docOfDisposal,dateOfDisposal,dateFactDisposal,
@@ -102,7 +102,7 @@ FORM viewFixedAssetsLog 'Журнал логирования ОС'
     OBJECTS p = FixedAssetsLog
     PROPERTIES(p) PANEL READONLY other, note
     FILTERS p = o              
-//    PROPERTIES(o) DELETE
+//    PROPERTIES(o) DELETE // для отладки
 ;  
 
 onSaveLog 'Запись данных в лог' (FixedAssets fa, BOOLEAN last, STRING[30] oname, INTEGER nstat) {
