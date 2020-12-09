@@ -261,7 +261,8 @@ onHelpCode 'Подсказка по кодам' () {
 }
 
 onCustomerDashboard 'Работа с клиентами' (Customer o) {
-    SHOW dashboardCustomer OBJECTS c = o DOCKED NOWAIT;
+//    SHOW dashboardCustomer OBJECTS c = o; //DOCKED NOWAIT;
+    show(o);
 }
 
 EXTEND FORM customers
