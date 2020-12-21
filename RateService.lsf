@@ -44,18 +44,22 @@ rateCureency2 'Коэф. USD' (ContractSubject s) =
 // количество - это сумма (quantity), сумма - сумма (sum) % обслуживания, price - это % обслуживания (не нужен) 
 // в рублях сальдо на начало
 s11 '' (LegalEntity l) = 
-    GROUP SUM (quantity(ContractSubject s) * IF inCurrency(contract(s)) THEN rateCureency2(s) ELSE 1) 
-    IF nameType(contract(s)) = 'Сопровождение' AND date(s)=dateStart() BY legalEntity(contract(s)); 
+    GROUP MAX (quantity(ContractSubject s) * IF inCurrency(contract(s)) THEN rateCureency2(s) ELSE 1) 
+    IF (nameType(contract(s)) = 'Сопровождение' OR nameType(contract(s)) = 'Лицензия' OR nameType(contract(s)) = 'Лицензия ТСД') AND 
+    date(s) <= dateStart() BY legalEntity(contract(s)); 
 s12 '' (LegalEntity l) = 
-    GROUP SUM (sum(ContractSubject s)  * IF inCurrency(contract(s)) THEN rateCureency2(s) ELSE 1)
-    IF nameType(contract(s)) = 'Сопровождение' AND date(s)=dateStart() BY legalEntity(contract(s)); 
+    GROUP MAX (sum(ContractSubject s)  * IF inCurrency(contract(s)) THEN rateCureency2(s) ELSE 1)
+    IF (nameType(contract(s)) = 'Сопровождение' OR nameType(contract(s)) = 'Лицензия' OR nameType(contract(s)) = 'Лицензия ТСД') AND 
+    date(s) <= dateStart() BY legalEntity(contract(s)); 
 // в USD сальдо на начало
 s21 '' (LegalEntity l) = 
-    GROUP SUM (quantity(ContractSubject s) / IF inCurrency(contract(s)) THEN 1 ELSE rateCureency2(s)) 
-    IF nameType(contract(s)) = 'Сопровождение' AND date(s)=dateStart() BY legalEntity(contract(s)); 
+    GROUP MAX (quantity(ContractSubject s) / IF inCurrency(contract(s)) THEN 1 ELSE rateCureency2(s)) 
+    IF (nameType(contract(s)) = 'Сопровождение' OR nameType(contract(s)) = 'Лицензия' OR nameType(contract(s)) = 'Лицензия ТСД') AND 
+    date(s) <= dateStart() BY legalEntity(contract(s)); 
 s22 '' (LegalEntity l) = 
-    GROUP SUM (sum(ContractSubject s)  / IF inCurrency(contract(s)) THEN 1 ELSE rateCureency2(s))
-    IF nameType(contract(s)) = 'Сопровождение' AND date(s)=dateStart() BY legalEntity(contract(s)); 
+    GROUP MAX (sum(ContractSubject s)  / IF inCurrency(contract(s)) THEN 1 ELSE rateCureency2(s))
+    IF (nameType(contract(s)) = 'Сопровождение' OR nameType(contract(s)) = 'Лицензия' OR nameType(contract(s)) = 'Лицензия ТСД') AND 
+    date(s) <= dateStart() BY legalEntity(contract(s)); 
 
 sb      'BYN'       (LegalEntity l) = NUMERIC[14,2](round2( IF s11(l) THEN s11(l) ELSE 0.00 ));
 sbr     'BYN(%)'    (LegalEntity l) = NUMERIC[14,2](round2( IF s12(l) THEN s12(l) ELSE 0.00 ));
