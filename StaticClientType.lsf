@@ -1,0 +1,102 @@
+MODULE StaticClientType;
+
+REQUIRE Utils;
+
+CLASS EnumProducts 'Продукты' {
+    p101 'LS:  LS Trade Back-office, LS Trade Front-office',
+    p102 'LT:  LS Trade ТСД',
+    p103 'LH:  LS Trade Head-office',
+    p104 'LC:  LS Cook',
+    p105 'LF:  LS Food',
+    p106 'LP:  LS Pharm',
+    p107 'VT:  Ветразь - ТМЦ',
+    p108 'VS:  Ветразь - Сводный Учет',
+    p109 'ZP:  Зарплата',
+    p110 'FS:  Ls Fusion ERP',
+    p111 'FP:  Ls Fusion ERP – собственное производство',
+    p112 'FL:  Ls Fusion ERP – склад, логистический центр',
+    p113 'FF:  Ls Fusion ERP - фармация',
+    p114 'FR:  Ls Fusion ERP – специальная разработка',
+    p115 'KS:  LS Trade Сервер Торгового оборудования'
+}
+
+CLASS EnumRevise 'Сверка' {
+    p201 'SV:  Проводится сверка по клиенту',
+    p202 'S1:  Производится сверка по ТО',
+    p203 'S2:  Производится сверка по ТСД',
+    p204 'S3:  Производится сверка по ТО с СП',
+    p205 'S1M: Производится ежемесячная сверка',
+    p206 'S1N: Производится сверка по месяцу N'
+}
+
+CLASS EnumContract 'Условия договора' {    
+    p301 'KD:  Сопровождение. Привязка к курсу доллара (порог изменения)', 
+    p302 'LI1: Согласованный лимит времени обслуживания (консультации и доработки) в ч.,  LI1(80)',
+    p303 'LI2: Согласованный лимит времени обслуживания (консультации) в ч.,  LI2(20)',
+    p304 'ST:  Сопровождение. Привязка к нормо/часу',
+    p305 'SO:  Сопровождение. Привязка  к стоимости за 1 ТО',
+    p306 'SP:  Сопровождение. Привязка  к % от стоимости лицензий и доработок',
+    p307 'SF:  Сопровождение. Фиксированная  стоимость',
+    p308 'SS:  Сопровождение. Расчёт по шкале',
+    p309 'RK:  Сопровождение. Привязка к курсу доллара (на дату)',
+    p310 'SL:  Сопровождение. Привязка  к % от стоимости лицензий', 
+    p311 'VL:  Лицензия. Привязка к курсу доллара (на дату)'
+}
+
+mark 'Отм.' = DATA LOCAL BOOLEAN (EnumProducts);
+mark 'Отм.' = DATA LOCAL BOOLEAN (EnumRevise);
+mark 'Отм.' = DATA LOCAL BOOLEAN (EnumContract);
+
+FORM listEnumAtr 'Выбор признаков для установки фильтра (до 10 признаков)'
+    OBJECTS ep = EnumProducts 
+    PROPERTIES(ep) mark 
+    PROPERTIES(ep) READONLY staticCaption
+    PROPERTIES(ep) staticName SHOWIF NULL
+    OBJECTS er = EnumRevise 
+    PROPERTIES(er) mark 
+    PROPERTIES(er) READONLY staticCaption
+    PROPERTIES(er) staticName SHOWIF NULL
+    OBJECTS ec = EnumContract 
+    PROPERTIES(ec) mark 
+    PROPERTIES(ec) READONLY staticCaption
+    PROPERTIES(ec) staticName SHOWIF NULL
+    ORDERS staticName(ep), staticName(er), staticName(ec)
+;
+
+DESIGN listEnumAtr {
+    OBJECTS {type = CONTAINERH;}
+    BOX(ep) {flex=3;}
+    BOX(er) {flex=2;}
+    BOX(ec) {flex=5;}
+}
+
+fltClientType '' = DATA LOCAL STRING (INTEGER);
+
+onClsClientTypeProp '' () {
+    mark(EnumProducts ep)   <- NULL; 
+    mark(EnumRevise er)     <- NULL; 
+    mark(EnumContract ec)   <- NULL; 
+    FOR iterate(INTEGER i,0,9) DO fltClientType(i) <- NULL;
+}
+
+onSetClientTypeProp '' () {
+    LOCAL i = INTEGER (); i() <- 0; 
+    FOR (EnumProducts ep IS EnumProducts) ORDER staticName(ep) DO {
+        IF mark(ep) AND i() < 10 THEN {
+            fltClientType(i()) <- substr(staticCaption(ep),1,strpos(staticCaption(ep),':')-1) + ',';
+            i() <- i() + 1;
+        }
+    }   
+    FOR (EnumRevise er IS EnumRevise) ORDER staticName(er) DO {
+        IF mark(er) AND i() < 10 THEN {
+            fltClientType(i()) <- substr(staticCaption(er),1,strpos(staticCaption(er),':')-1) + ',';
+            i() <- i() + 1;
+        }
+    }   
+    FOR (EnumContract ec IS EnumContract) ORDER staticName(ec) DO {
+        IF mark(ec) AND i() < 10 THEN {
+            fltClientType(i()) <- substr(staticCaption(ec),1,strpos(staticCaption(ec),':')-1) + ',';
+            i() <- i() + 1;
+        }
+    }   
+}

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.12.2.final using JasperReports Library version 6.12.2-75c5e90a222ab406e416cbf590a5397028a52de3  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CustomerNew.repReviseTO" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" isSummaryWithPageHeaderAndFooter="true" uuid="3ff3c80d-47a0-4c20-964e-c90635690b17">
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CustomerNew.repReviseTO" pageWidth="1000" pageHeight="595" orientation="Landscape" columnWidth="960" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" isSummaryWithPageHeaderAndFooter="true" uuid="3ff3c80d-47a0-4c20-964e-c90635690b17">
 	<property name="net.sf.jasperreports.export.xls.print.page.width" value="842"/>
 	<property name="net.sf.jasperreports.export.xls.print.page.height" value="595"/>
 	<style name="DefaultStyle" isDefault="true" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
@@ -39,6 +39,7 @@
 	<field name="p2(o1)" class="java.lang.Integer"/>
 	<field name="p3(o1)" class="java.lang.String"/>
 	<field name="p4(o1)" class="java.lang.Integer"/>
+	<field name="p6(o1)" class="java.lang.Integer"/>
 	<field name="pn(o1)" class="java.lang.String"/>
 	<title>
 		<band height="50" splitType="Prevent">
@@ -112,35 +113,43 @@
 				<text><![CDATA[дата<br/>файла]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="360" y="0" width="70" height="30" backcolor="#DDD9C3" uuid="0fe982c8-3b79-4ebb-afd6-568c72ceb1b1">
+				<reportElement mode="Opaque" x="360" y="0" width="90" height="30" backcolor="#DDD9C3" uuid="0fe982c8-3b79-4ebb-afd6-568c72ceb1b1">
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center" markup="html"/>
-				<text><![CDATA[количество<br/>лицензий]]></text>
+				<text><![CDATA[количество<br/> лицензий по ТО]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="430" y="0" width="50" height="30" backcolor="#DDD9C3" uuid="57827589-545b-439c-b0dc-116fb63b208d">
+				<reportElement mode="Opaque" x="450" y="0" width="50" height="30" backcolor="#DDD9C3" uuid="57827589-545b-439c-b0dc-116fb63b208d">
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center" markup="html"/>
 				<text><![CDATA[дата<br/>файла]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="480" y="0" width="70" height="30" backcolor="#DDD9C3" uuid="99d9ce2a-043e-48a5-87e9-426724e4e2c1">
+				<reportElement mode="Opaque" x="500" y="0" width="80" height="30" backcolor="#DDD9C3" uuid="99d9ce2a-043e-48a5-87e9-426724e4e2c1">
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center" markup="html"/>
-				<text><![CDATA[количество<br/>объектов]]></text>
+				<text><![CDATA[количество<br/>объектов ТО]]></text>
 			</staticText>
 			<staticText>
-				<reportElement mode="Opaque" x="550" y="0" width="252" height="30" backcolor="#DDD9C3" uuid="f500288b-c983-4af4-b751-2af962ced8a2">
+				<reportElement mode="Opaque" x="670" y="0" width="290" height="30" backcolor="#DDD9C3" uuid="f500288b-c983-4af4-b751-2af962ced8a2">
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center"/>
 				<text><![CDATA[примечание]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="580" y="0" width="90" height="30" backcolor="#DDD9C3" uuid="42d410c0-af0a-47fe-9ae2-10797bb9c2de">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center" markup="html"/>
+				<text><![CDATA[количество<br/>объектов склад]]></text>
 			</staticText>
 		</band>
 	</pageHeader>
@@ -155,7 +164,7 @@
 				<textFieldExpression><![CDATA[$F{p1(o1)}]]></textFieldExpression>
 			</textField>
 			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
-				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="360" y="0" width="70" height="18" uuid="18d20e42-e873-4a72-b390-175094215622">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="360" y="0" width="90" height="18" uuid="18d20e42-e873-4a72-b390-175094215622">
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 				</reportElement>
@@ -163,7 +172,7 @@
 				<textFieldExpression><![CDATA[$F{p2(o1)}]]></textFieldExpression>
 			</textField>
 			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
-				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="430" y="0" width="50" height="18" uuid="21361004-1031-4809-95de-9af090ef3aab">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="450" y="0" width="50" height="18" uuid="21361004-1031-4809-95de-9af090ef3aab">
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 				</reportElement>
@@ -171,7 +180,7 @@
 				<textFieldExpression><![CDATA[$F{p3(o1)}]]></textFieldExpression>
 			</textField>
 			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
-				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="480" y="0" width="70" height="18" uuid="bbe3438e-ab30-46e4-bad1-d675633d8da7">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="500" y="0" width="80" height="18" uuid="bbe3438e-ab30-46e4-bad1-d675633d8da7">
 					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 				</reportElement>
@@ -179,7 +188,7 @@
 				<textFieldExpression><![CDATA[$F{p4(o1)}]]></textFieldExpression>
 			</textField>
 			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
-				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="550" y="0" width="252" height="18" uuid="0522b48d-f2e7-4db8-9187-d385dd0c8210">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="670" y="0" width="290" height="18" uuid="0522b48d-f2e7-4db8-9187-d385dd0c8210">
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Left"/>
@@ -192,6 +201,15 @@
 				</reportElement>
 				<textElement textAlignment="Left"/>
 				<textFieldExpression><![CDATA[$F{pc(o1)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="580" y="0" width="90" height="18" uuid="3ebbbd60-ce31-4906-8284-8b1065744f3b">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[(( $F{p6(o1)} > 0) ? $F{p6(o1)} : "")]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
