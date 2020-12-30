@@ -265,7 +265,7 @@ onCustomerReports 'Отчеты' (Customer c) {
 
 // вызов статического класса для выбора установки фильтров, см. определение в StaticClientType.lsf
 onStaticClientType 'Фильтр: Тип клиента' () {
-    onClsClientTypeProp();
+    onClsClientTypeProp(NULL);
     DIALOG listEnumAtr ; 
     onSetClientTypeProp();
 }

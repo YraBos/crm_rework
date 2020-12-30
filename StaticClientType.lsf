@@ -47,6 +47,18 @@ mark 'Отм.' = DATA LOCAL BOOLEAN (EnumProducts);
 mark 'Отм.' = DATA LOCAL BOOLEAN (EnumRevise);
 mark 'Отм.' = DATA LOCAL BOOLEAN (EnumContract);
 
+fltClientType '' = DATA LOCAL STRING (INTEGER);
+
+onClsClientTypeProp '' (BOOLEAN all) {
+    IF all THEN {
+        mark(EnumProducts ep)   <- NULL; 
+        mark(EnumRevise er)     <- NULL; 
+        mark(EnumContract ec)   <- NULL; 
+    }
+    FOR iterate(INTEGER i,0,9) DO fltClientType(i) <- NULL;
+}
+
+
 FORM listEnumAtr 'Выбор признаков для установки фильтра (до 10 признаков)'
     OBJECTS ep = EnumProducts 
     PROPERTIES(ep) mark 
@@ -63,20 +75,23 @@ FORM listEnumAtr 'Выбор признаков для установки фил
     ORDERS staticName(ep), staticName(er), staticName(ec)
 ;
 
+onClsClientTypePropAll 'Сбросить' () {
+    onClsClientTypeProp(TRUE);
+    formClose(); 
+}
+
+EXTEND FORM listEnumAtr
+    PROPERTIES onClsClientTypePropAll()
+;
+
 DESIGN listEnumAtr {
     OBJECTS {type = CONTAINERH;}
     BOX(ep) {flex=3;}
     BOX(er) {flex=2;}
     BOX(ec) {flex=5;}
-}
-
-fltClientType '' = DATA LOCAL STRING (INTEGER);
-
-onClsClientTypeProp '' () {
-    mark(EnumProducts ep)   <- NULL; 
-    mark(EnumRevise er)     <- NULL; 
-    mark(EnumContract ec)   <- NULL; 
-    FOR iterate(INTEGER i,0,9) DO fltClientType(i) <- NULL;
+    TOOLBARBOX {
+        MOVE PROPERTY (onClsClientTypePropAll());  
+    }
 }
 
 onSetClientTypeProp '' () {
