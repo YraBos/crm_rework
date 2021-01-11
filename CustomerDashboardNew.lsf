@@ -1,6 +1,6 @@
 MODULE CustomerDashboardNew;
 
-REQUIRE CustomerDashboard;
+REQUIRE CustomerDashboard, Document;
 
 inSData 'Созданы с:' = DATA LOCAL DATE ();
 inEData 'по:' = DATA LOCAL DATE();
@@ -42,4 +42,31 @@ DESIGN dashboardCustomer {
             }            
         }
     }
+}
+
+// вычисление даты последней оплаты
+dateP1 'Предоплата (акт не выставлялся)' (Contract c) = GROUP LAST date(Payment p) IF sum(p) AND NOT act(p) ORDER date(p),p BY contract(p);
+dateP2 'Оплата по акту' (Act a) = GROUP LAST date(Payment p) IF sum(p) AND act(p) ORDER date(p),p BY act(p);
+dateLastPaid 'Дата пос. оплаты' (Debt d) = IF paid(d) THEN OVERRIDE dateP2(act(d)), dateP1(contract(d));
+
+// вычисление суммы оплаты в USD
+paid11 'Оплачено' (Agreement a) = GROUP SUM sumCurrency(Payment p) BY agreement(p) MATERIALIZED;
+paid12 'Оплачено по соглашениям' (Debt d) = 
+    PARTITION UNGROUP paid11 LIMIT STRICT sumCurrency(d) ORDER date(d),d BY agreement(d) MATERIALIZED; 
+paid21 (Contract c) = paidCurrency(c) (-) [GROUP SUM paid12(Debt d) BY contract(d)](c);
+paid22 'Оплачено по контракту без соглашений' (Debt d) = 
+    PARTITION UNGROUP paid21 LIMIT STRICT (sumCurrency(d) (-) paid12(d)) IF NOT agreement(d) ORDER date(d),d BY contract(d) MATERIALIZED; 
+paidCurrencyDebt 'Оплачено, USD' (Debt d) = paid12(d) (+) paid22(d);            
+
+differenceSum 'Разница: долг-оплата' (Debt d) = 
+    IF inCurrency(contract(d)) THEN sumCurrency(d) (-) paidCurrencyDebt(d) ELSE sum(d) (-) paid(d); 
+
+EXTEND FORM dashboardCustomer
+    PROPERTIES(d) paidCurrencyDebt, dateLastPaid, differenceSum 
+;
+
+DESIGN dashboardCustomer {
+    PROPERTY(sumCurrency(d)) {caption='Сумма, USD';}
+    PROPERTY(dateLastPaid(d)) {charWidth=10;} 
+    PROPERTY(differenceSum(d)) {charWidth=11;} 
 }
