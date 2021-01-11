@@ -1,0 +1,3 @@
+MODULE EmployeeNew;
+
+REQUIRE Employee;
