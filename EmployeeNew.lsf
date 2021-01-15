@@ -1,3 +1,31 @@
 MODULE EmployeeNew;
 
 REQUIRE Employee;
+
+NAMESPACE Contact;
+
+dateBirthday 'Дата' = DATA DATE (Employee);
+noDateBirthday 'Скрыть в поздравлении' = DATA BOOLEAN (Employee);
+showMsgBirthdayStarted 'Показывать поздравления при старте' = DATA BOOLEAN (Employee);
+
+// форма отображения
+EXTEND FORM employees
+    PROPERTIES(o) READONLY dateBirthday 
+; 
+
+// форма редактирования
+EXTEND FORM employee
+    PROPERTIES(o) dateBirthday, noDateBirthday, showMsgBirthdayStarted
+; 
+
+DESIGN employee {
+    OBJECTS {
+        NEW dop2 AFTER dop {
+            caption = 'Дни рождения';
+            type = CONTAINERH; 
+            MOVE PROPERTY (dateBirthday(o));  
+            MOVE PROPERTY (noDateBirthday(o)) {marginLeft = 10;};  
+            MOVE PROPERTY (showMsgBirthdayStarted(o)) {marginLeft = 10;};  
+        }
+    }
+}

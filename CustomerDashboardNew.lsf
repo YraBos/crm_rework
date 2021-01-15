@@ -1,6 +1,6 @@
 MODULE CustomerDashboardNew;
 
-REQUIRE CustomerDashboard, Document;
+REQUIRE CustomerDashboard, Document, EmployeeNew, Utils, Time;
 
 inSData 'Созданы с:' = DATA LOCAL DATE ();
 inEData 'по:' = DATA LOCAL DATE();
@@ -61,12 +61,61 @@ paidCurrencyDebt 'Оплачено, USD' (Debt d) = paid12(d) (+) paid22(d);
 differenceSum 'Разница: долг-оплата' (Debt d) = 
     IF inCurrency(contract(d)) THEN sumCurrency(d) (-) paidCurrencyDebt(d) ELSE sum(d) (-) paid(d); 
 
+// общая обработка дней рождения для вызова из кнопки на форме или при старте приложения
+onCheckBirthday 'Поиск ДР' () {
+    LOCAL ctxt = TEXT (); LOCAL dtmp = DATE (); LOCAL cdel = STRING(); LOCAL nmonth = INTEGER();
+    cdel() <- '---------------------------------------------------';
+    FOR (Employee e IS Employee) AND isISubstring(nameCustomer(e),'ЛЮКССОФТ') AND 
+        dateBirthday(e) AND NOT noDateBirthday(e) AND NOT inactive(e) AND
+        dateBirthday(e) >= sum(currentDate(), -4) AND dateBirthday(e) <= sum(currentDate(), 4) 
+        ORDER dateBirthday(e), name(e) DO {
+            IF ctxt() THEN ctxt() <- ctxt() + '\n'; ELSE ctxt() <- '';
+            IF NOT dtmp() = dateBirthday(e) THEN {
+                dtmp() <- dateBirthday(e); 
+                ctxt() <- ctxt() + cdel() + '\n';
+            } 
+            nmonth() <- extractMonthNumber(dateBirthday(e));
+            IF      nmonth() =  1 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' января: '     + name(e);
+            ELSE IF nmonth() =  2 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' февраля: '    + name(e);
+            ELSE IF nmonth() =  3 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' марта: '      + name(e);
+            ELSE IF nmonth() =  4 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' апреля: '     + name(e);
+            ELSE IF nmonth() =  5 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' мая: '        + name(e);
+            ELSE IF nmonth() =  6 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' июня: '       + name(e);
+            ELSE IF nmonth() =  7 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' июля: '       + name(e);
+            ELSE IF nmonth() =  8 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' августа: '    + name(e);
+            ELSE IF nmonth() =  9 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' сентября: '   + name(e);
+            ELSE IF nmonth() = 10 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' октября: '    + name(e);
+            ELSE IF nmonth() = 11 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' ноября: '     + name(e);
+            ELSE IF nmonth() = 12 THEN ctxt() <- ctxt() + extractDay(dateBirthday(e)) + ' декабря: '    + name(e);
+    } 
+    IF ctxt() THEN {
+        ctxt() <- 'Поздравляем с днем рождения:\n' + ctxt() + '\n' + cdel();
+        MESSAGE ctxt();
+    }
+} 
+
+// кнопка на форме
+onCheckBirthday2 'Поиск ДР' () { onCheckBirthday(); }
+
+// автоматическое отображение на форме
+onClientStarted() + { 
+    LOCAL e = Employee(); e() <- currentUser(); // указываем явно, что бы исключить implict usage (неявное использование)
+    IF showMsgBirthdayStarted(e()) THEN onCheckBirthday(); 
+}
+
+
 EXTEND FORM dashboardCustomer
-    PROPERTIES(d) paidCurrencyDebt, dateLastPaid, differenceSum 
+    PROPERTIES(d) READONLY paidCurrencyDebt, dateLastPaid, differenceSum
+    PROPERTIES onCheckBirthday2() SHOWIF isISubstring(name(c),'ЛЮКССОФТ') 
 ;
+
 
 DESIGN dashboardCustomer {
     PROPERTY(sumCurrency(d)) {caption='Сумма, USD';}
     PROPERTY(dateLastPaid(d)) {charWidth=10;} 
     PROPERTY(differenceSum(d)) {charWidth=11;} 
+    TOOLBARRIGHT(ct) {
+        MOVE PROPERTY (onCheckBirthday2());
+    } 
 }
+

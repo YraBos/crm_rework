@@ -9,8 +9,12 @@ customer    'Клиент'        = DATA Customer         (CustomerExtensions) A
 date        'Дата действия' = DATA DATE             (CustomerExtensions) NONULL;
 rate        'Коэффициент'   = DATA NUMERIC[14,4]    (CustomerExtensions) NONULL;
 
+//rateCureency 'Коэф. USD' (Act a) = 
+//    NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(a)),date(a)),4)); 
+
 rateCureency 'Коэф. USD' (Act a) = 
-    NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(a)),date(a)),4)); 
+    NUMERIC[10,4](IF shortNameCurrency(contract(a)) = 'BYN' THEN 
+        round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(a)),date(a)),4) ELSE 1); 
 
 dateStart 'Период с'      = DATA LOCAL DATE ();
 dateEnd   'по'            = DATA LOCAL DATE ();
@@ -37,9 +41,12 @@ exprAct '' (Act a) =
     ( nameType(contract(a)) = 'Лицензия' OR nameType(contract(a)) = 'Лицензия ТСД' OR nameType(contract(a)) = 'Сопровождение' ) 
     THEN TRUE;
 
-rateCureency2 'Коэф. USD' (ContractSubject s) = 
-    NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(s)),date(s)),4)); 
+//rateCureency2 'Коэф. USD' (ContractSubject s) = 
+//    NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(s)),date(s)),4)); 
 
+rateCureency2 'Коэф. USD' (ContractSubject s) = 
+    NUMERIC[10,4](IF shortNameCurrency(contract(s)) = 'BYN' THEN 
+        round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(s)),date(s)),4) ELSE 1); 
     
 // количество - это сумма (quantity), сумма - сумма (sum) % обслуживания, price - это % обслуживания (не нужен) 
 // в рублях сальдо на начало
@@ -109,15 +116,15 @@ EXTEND FORM customers
     EVENTS ON INIT {
         dateStart() <- currentDate();
         dateEnd() <- currentDate();
-//        dateStart() <- 2020_02_01;            // отладка
-//        dateEnd() <- 2020_02_29;
+//        dateStart() <- 2020_11_01;            // отладка
+//        dateEnd() <- 2020_11_30;
     }
    OBJECTS ce = CustomerExtensions
    PROPERTIES(ce) READONLY date, rate
    PROPERTIES(ce) NEWSESSION NEW, DELETE, EDIT 
    ORDERS date(ce)
    FILTERS customer(ce) = o 
-//   FILTERS name(o) = 'Санта' OR name(o) = 'Соседи'             // Отладка, Санта  
+//   FILTERS name(o) = 'Санта' OR name(o) = 'Узбекистан'             // Отладка, Санта  
 ;
 
 DESIGN customers {
