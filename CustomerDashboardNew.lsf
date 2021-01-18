@@ -66,7 +66,7 @@ onCheckBirthday 'Поиск ДР' () {
     LOCAL ctxt = TEXT (); LOCAL dtmp = DATE (); LOCAL cdel = STRING(); LOCAL nmonth = INTEGER();
     cdel() <- '---------------------------------------------------';
     FOR (Employee e IS Employee) AND isISubstring(nameCustomer(e),'ЛЮКССОФТ') AND 
-        dateBirthday(e) AND NOT noDateBirthday(e) AND NOT inactive(e) AND
+        dateBirthday(e) AND NOT inactive(e) AND
         dateBirthday(e) >= sum(currentDate(), -4) AND dateBirthday(e) <= sum(currentDate(), 4) 
         ORDER dateBirthday(e), name(e) DO {
             IF ctxt() THEN ctxt() <- ctxt() + '\n'; ELSE ctxt() <- '';
@@ -107,6 +107,7 @@ onClientStarted() + {
 EXTEND FORM dashboardCustomer
     PROPERTIES(d) READONLY paidCurrencyDebt, dateLastPaid, differenceSum
     PROPERTIES onCheckBirthday2() SHOWIF isISubstring(name(c),'ЛЮКССОФТ') 
+    PROPERTIES(e) READONLY dateBirthday 
 ;
 
 

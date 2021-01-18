@@ -4,8 +4,7 @@ REQUIRE Employee;
 
 NAMESPACE Contact;
 
-dateBirthday 'Дата' = DATA DATE (Employee);
-noDateBirthday 'Скрыть в поздравлении' = DATA BOOLEAN (Employee);
+dateBirthday 'Дата рожд.' = DATA DATE (Employee);
 showMsgBirthdayStarted 'Показывать поздравления при старте' = DATA BOOLEAN (Employee);
 
 // форма отображения
@@ -15,7 +14,7 @@ EXTEND FORM employees
 
 // форма редактирования
 EXTEND FORM employee
-    PROPERTIES(o) dateBirthday, noDateBirthday, showMsgBirthdayStarted
+    PROPERTIES(o) dateBirthday, showMsgBirthdayStarted
 ; 
 
 DESIGN employee {
@@ -24,7 +23,6 @@ DESIGN employee {
             caption = 'Дни рождения';
             type = CONTAINERH; 
             MOVE PROPERTY (dateBirthday(o));  
-            MOVE PROPERTY (noDateBirthday(o)) {marginLeft = 10;};  
             MOVE PROPERTY (showMsgBirthdayStarted(o)) {marginLeft = 10;};  
         }
     }

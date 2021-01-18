@@ -66,6 +66,28 @@ newTempCustomerReports '' () {
 // Максимальная дата отчета для сверки
 maxDate(Customer c,STRING rname) = GROUP MAX date(Attachment o) IF customer(o) = c AND name(type(o)) = rname; 
 
+retInteger '' = DATA LOCAL INTEGER ();
+onRetInteger2 '' (STRING cs) {
+    retInteger() <- NULL;
+    IF cs THEN {
+        IF strpos(cs,'.') > 0 THEN {
+            retInteger() <- toInteger(substr(cs,1,strpos(cs,'.')-1));
+        } ELSE IF strpos(cs,',') > 0 THEN {
+            retInteger() <- toInteger(substr(cs,1,strpos(cs,',')-1));
+        } ELSE {
+            retInteger() <- toInteger(cs);
+        }
+    }
+    IF NOT retInteger() THEN retInteger() <- 0;
+}
+
+onRetInteger '' (STRING c1, c2) {
+    LOCAL r1, r2 = INTEGER ();
+    onRetInteger2(c1); r1() <- retInteger();
+    onRetInteger2(c2); r2() <- retInteger();
+    retInteger() <- r1() + r2();
+}
+
 // 2. Cверка по ТО - тип S1 (S1M, S1N) по отдельному клиенту
 onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, STRING cRepName1, cRepName2, cFDelimiter) {
     LOCAL frep = FILE(); 
@@ -88,13 +110,14 @@ onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, STRING cRepName
             colC1(i) <- OVERRIDE colC1(i),''; colD1(i) <- OVERRIDE colD1(i),'';
             IF i > 0 THEN {
                 IF length(colA1(i)) > 0 THEN {
-                    IF NOT isISubstring(colA1(i),'Лицензи') THEN { 
-                        iks3() <- iks3() + toInteger(colC1(i)) + toInteger(colD1(i));
+                    IF NOT isISubstring(colA1(i),'Лицензи') THEN {
+//                        iks3() <- iks3() + toInteger(colC1(i)) + toInteger(colD1(i));
+                        onRetInteger(colC1(i),colD1(i)); iks3() <- iks3() + retInteger(); 
                         IF length(colB1(i)) = 0 THEN onlyClient() <- TRUE;
                         imax() <- i; 
                         UNP1() <- UNP1() + ',' + colB1(i);    // список УНП для сравнения (прописанные в списке лицензий)  
                     } ELSE BREAK; 
-                } ELSE BREAK;
+                } ELSE BREAK; 
             }    
         } 
     } ELSE  {
@@ -110,7 +133,10 @@ onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, STRING cRepName
         IMPORT XLS FROM file(ox2()) AS FILE TO colB2=B, colC2=C, colD2=D, colF2=F, colG2=G, colH2=H;          
         iks1() <- 0; iks2() <- 0; iks6() <- 0; 
         FOR iterate(INTEGER i1,1,imax()) ORDER i1 DO {
-            IF onlyClient() THEN ks1() <- iks3(); ELSE ks1() <- toInteger(colC1(i1)) + toInteger(colD1(i1)); 
+            IF onlyClient() THEN ks1() <- iks3(); ELSE {
+//                ks1() <- toInteger(colC1(i1)) + toInteger(colD1(i1));
+                onRetInteger(colC1(i1), colD1(i1)); ks1() <- retInteger();                
+            } 
             NEW ob = TempCustomerReports {
                 pi(ob) <- ind; ps(ob) <- 2; pc(ob) <- '   ' + colA1(i1);     // организация клиента
                 ks2() <- 0; ks6() <- 0; 
@@ -119,8 +145,11 @@ onRevise2 '' (INTEGER ind, TempCustomerReports oRep, Customer c, STRING cRepName
                     colD2(i2) <- OVERRIDE trim(colD2(i2)),''; colG2(i2) <- OVERRIDE colG2(i2),'';
                     colF2(i2) <- OVERRIDE trim(colF2(i2)), ''; colH2(i2) <- OVERRIDE colH2(i2), '';
                     IF onlyClient() OR trim(colB1(i1)) = colD2(i2) THEN {
-                        IF toInteger(colG2(i2)) > 0 THEN ks2() <- ks2() + 1;
-                        IF colF2(i2) = 'Скл.' AND toInteger(colH2(i2)) > 0 THEN ks6() <- ks6() + 1;
+                        onRetInteger(colG2(i2),NULL);
+//                        IF toInteger(colG2(i2)) > 0 THEN ks2() <- ks2() + 1;
+                        IF retInteger() > 0 THEN ks2() <- ks2() + 1;
+                        onRetInteger(colH2(i2),NULL);
+                        IF colF2(i2) = 'Скл.' AND retInteger() > 0 THEN ks6() <- ks6() + 1;
                     }  
                     IF NOT onlyClient() AND NOT isISubstring(colD2(i2),'УНП') THEN {
                     // Обработка ситуации, что УНП не прописан в списке лицензий, но присутствует в списке объектов
@@ -162,13 +191,15 @@ onRevise3 '' (INTEGER ind, TempCustomerReports oRep, Customer c, STRING cRepName
     IF ox1() THEN {
         p1(oRep) <- toDateDDMMYY(date(ox1()));
         IMPORT XLS NOHEADER FROM file(ox1()) AS FILE TO value1 = A;
-        p2(oRep) <- toInteger(value1(0));
+//        p2(oRep) <- toInteger(value1(0));
+        onRetInteger(value1(0),NULL); p2(oRep) <- retInteger();
     } ELSE pnote() <- cRepName1;
     ox2() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2 AND date(a) = maxDate(c, cRepName2);
     IF ox2() THEN {
         p3(oRep) <- toDateDDMMYY(date(ox2()));
         IMPORT XLS NOHEADER FROM file(ox2()) AS FILE TO value2 = A;
-        p4(oRep) <- toInteger(value2(0));
+//        p4(oRep) <- toInteger(value2(0));
+        onRetInteger(value2(0),NULL); p4(oRep) <- retInteger();
     } ELSE {
         IF pnote() THEN pnote() <- pnote() + ', ';
         pnote() <- (OVERRIDE pnote(),'') + cRepName2;
@@ -240,7 +271,7 @@ onCustomerReports 'Отчеты' (Customer c) {
         newTempCustomerReports();    
         title() <- 'Ежемесячный отчет по сверке торговых объектов';    
         onRevise(2,'Список лицензий','Список объектов','S1M','###');
-        PRINT repReviseTO XLS;
+        PRINT repReviseTO ;//XLS;
     }    
     ELSE IF ps() = ' 3.' THEN {
         LOCAL nmes = INTEGER (); nmes() <- extractMonthNumber(currentDate()); 
