@@ -271,7 +271,7 @@ onCustomerReports 'Отчеты' (Customer c) {
         newTempCustomerReports();    
         title() <- 'Ежемесячный отчет по сверке торговых объектов';    
         onRevise(2,'Список лицензий','Список объектов','S1M','###');
-        PRINT repReviseTO ;//XLS;
+        PRINT repReviseTO XLS;//XLS;
     }    
     ELSE IF ps() = ' 3.' THEN {
         LOCAL nmes = INTEGER (); nmes() <- extractMonthNumber(currentDate()); 
