@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.12.2.final using JasperReports Library version 6.12.2-75c5e90a222ab406e416cbf590a5397028a52de3  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="RateService.repProcService" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="7abe1353-21e7-4894-b884-bd037c349b08">
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="RateService.repProcService" pageWidth="850" pageHeight="595" orientation="Landscape" columnWidth="810" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="7abe1353-21e7-4894-b884-bd037c349b08">
 	<property name="net.sf.jasperreports.export.xls.print.page.width" value="842"/>
 	<property name="net.sf.jasperreports.export.xls.print.page.height" value="595"/>
 	<style name="DefaultStyle" isDefault="true" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
@@ -49,6 +49,10 @@
 	<field name="sbr(l)" class="java.math.BigDecimal"/>
 	<field name="sc(l)" class="java.math.BigDecimal"/>
 	<field name="scr(l)" class="java.math.BigDecimal"/>
+	<field name="dCnt(l)" class="java.util.Date"/>
+	<field name="dAgr(l)" class="java.util.Date"/>
+	<field name="cidCnt(l)" class="java.lang.Long"/>
+	<field name="cidAgr(l)" class="java.lang.Long"/>
 	<field name="d.object" class="java.lang.Long"/>
 	<field name="numberContract(d)" class="java.lang.String"/>
 	<field name="dateContract(d)" class="java.util.Date"/>
@@ -83,6 +87,7 @@
 		<groupExpression><![CDATA[String.valueOf($F{l.object})]]></groupExpression>
 		<groupHeader>
 			<band height="18" splitType="Prevent">
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
 					<reportElement style="GroupCellStyle2" positionType="Float" stretchType="RelativeToBandHeight" x="0" y="0" width="435" height="18" backcolor="#CCFFFF" uuid="82c020e1-cf5b-42cf-a7e4-dbab81c1ce1d"/>
 					<textElement textAlignment="Left"/>
