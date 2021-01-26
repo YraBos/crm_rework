@@ -1,0 +1,118 @@
+MODULE ContractDashboardNew;
+
+REQUIRE ContractDashboard, Debt, Time, Utils;
+
+dateStart 'Начать с даты' = DATA DATE ();
+qMonth 'Кол-во месяцев' = DATA INTEGER ();
+skipDebt 'Пропускать ранее созданные' = DATA LOCAL BOOLEAN ();
+oK 'Флаг удачного завершения' = DATA LOCAL BOOLEAN ();
+inFilter '' = DATA LOCAL BOOLEAN (Contract);
+
+FORM setProperties 'Создание задолженностей'
+    PROPERTIES() dateStart, qMonth, skipDebt
+    EVENTS ON INIT {
+        dateStart() <- currentDate();
+        qMonth() <- 12 - extractMonthNumber(dateStart()) + 1;  // countMonthsDebt() - кол-во месяцев из настроек
+        skipDebt() <- TRUE;
+    }
+    EVENTS ON CLOSE {
+        qMonth() <- 0;
+    }
+;
+
+// основной метод создания задолженностей по одному договору
+onFillCreateDebts '' (Contract c) {
+    LOCAL month, year, monthCur, yearCur = INTEGER ();
+    LOCAL date, dateCur = DATE ();
+    oK() <- NULL;    
+    // проверка: сумма ежемесячного платежа, день платежа, дата подписания клиентом
+    IF NOT (sumMonth(c) AND paymentDay(c) AND dateSigningCustomer(c)) THEN RETURN;  
+    IF NOT skipDebt() THEN {DELETE Debt d WHERE contract(d) == c AND date(d) > dateStart();}
+    month()     <- extractMonthNumber(dateStart());
+    year()      <- extractYear(dateStart());
+    monthCur()  <- CASE WHEN NOT prevMonthCurrency(c) THEN month()
+                        WHEN (prevMonthCurrency(c) AND (month() == 1)) THEN 12
+                        ELSE month() (-) 1;
+    yearCur() <- CASE WHEN monthCur() == 12 THEN year() (-) 1 ELSE year();
+    FOR iterate(INTEGER i, 1, qMonth()) DO {
+        TRY {
+                date() <- toDateFormat(text(paymentDay(c)) + text(month()) + year(), 'DDMMYYYY');
+                dateCur() <- toDateFormat(text(currencyDay(c)) + text(monthCur()) + yearCur(), 'DDMMYYYY');
+        } CATCH {
+                date() <- lastDayOfMonth(toDateFormat('01' + text(month()) + year(), 'DDMMYYYY'));
+                dateCur() <- lastDayOfMonth(toDateFormat('01' + text(monthCur()) + yearCur(), 'DDMMYYYY'));
+        }
+       IF NOT debt(date(), c) THEN NEW d = Debt {
+            contract(d) <- c;
+            date(d) <- date();
+            IF inCurrency(c) THEN {
+                sumCurrency(d) <- sumMonth(c);
+                dataDateCurrency(d) <- dateCur();
+            } ELSE {
+                    sum(d) <- sumMonth(c);
+            }
+       }
+       month() <- month() (+) 1; monthCur() <- monthCur() (+) 1;
+       IF month() > 12 THEN {
+            month() <- month() - 12; year() <- year() + 1;
+       }
+       IF monthCur() > 12 THEN {
+            monthCur() <- monthCur() - 12; yearCur() <- yearCur() + 1;
+       }
+    }   // конец основного цикла FOR iterate
+    oK() <- TRUE;
+}
+
+// кнопка на форме Задолженности
+onSingleCreateDebts 'Создать задолженности' (Contract c) {
+    SHOW setProperties;
+    IF qMonth() = 0 THEN {MESSAGE 'Выполнение отменено'; RETURN;}
+    onFillCreateDebts(c);
+}
+
+// кнопка на форме Работа с договорами
+onFullCreateDebts 'Создать задолженности' () {
+    LOCAL iAll, iOk = INTEGER();
+    LOCAL cmsg, emsg = STRING();
+    SHOW setProperties;
+    inFilter(Contract o1) <- NULL;
+    IF qMonth() = 0 THEN {MESSAGE 'Выполнение отменено'; RETURN;}
+    FOR [FILTER contractDashboard.o](Contract o2) DO inFilter(o2) <- TRUE;
+    FOR (Contract c IS Contract) AND inFilter(c) AND nameType(c) = 'Сопровождение' DO {
+        iAll() <- iAll() (+) 1;
+        onFillCreateDebts(c);
+        IF NOT oK() THEN {
+            IF emsg() THEN emsg() <- ', '; ELSE  emsg() <- '';
+            IF length(emsg()) > 60 THEN emsg() <- emsg() + '\n';
+            emsg() <- emsg() + name(customer(c));  
+        } ELSE {iOk() <- iOk() (+) 1;}
+    }
+    cmsg() <-  'Всего договоров Сопровождения: ' + toChar(iAll(),'99999') + '\n' + 'Успешно обработано: ' + toChar(iOk(),'99999');
+    IF emsg() THEN cmsg() <- cmsg() + 
+        '\n----------------------------\n' + 
+        'Необработанные договора по клиентам:\n' + emsg();
+    MESSAGE cmsg();
+    APPLY; 
+}
+
+EXTEND FORM contractDashboard
+    PROPERTIES() onFullCreateDebts
+; 
+
+DESIGN contractDashboard {
+    BOX(o) {
+        TOOLBAR(o) {
+            MOVE PROPERTY (onFullCreateDebts()) AFTER PROPERTY (recalcCurrencyDebts()); 
+        } 
+    }
+}
+
+EXTEND FORM contract
+    PROPERTIES(o) onSingleCreateDebts SHOWIF (sumMonth(o) AND paymentDay(o)) 
+;
+
+DESIGN contract {
+    secondRow {
+        MOVE PROPERTY (onSingleCreateDebts(o));
+    }
+}

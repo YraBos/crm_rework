@@ -21,6 +21,7 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         IssueDashboardNew,      // RM 14003, Добавить в журнал Мои задачи колонки: 
                                 // наименование организации, номер договора, номер допсоглашения, дата акта
         StaticClientType,       // Определение статических классов для ClientType для вызова из CustomerNew.lsf
-        EmployeeNew             // RM 14473, Дни рождения сотрудников  
+        EmployeeNew,            // RM 14473, Дни рождения сотрудников  
+        ContractDashboardNew    // RM 14544, Генерация задолженностей
 ;
 
