@@ -62,7 +62,7 @@ differenceSum 'Разница: долг-оплата' (Debt d) =
     IF inCurrency(contract(d)) THEN sumCurrency(d) (-) paidCurrencyDebt(d) ELSE sum(d) (-) paid(d); 
 
 // общая обработка дней рождения для вызова из кнопки на форме или при старте приложения
-onCheckBirthday 'Поиск ДР' () {
+onCheckBirthday 'Поиск ДР' (BOOLEAN msgNo) {
     LOCAL ctxt = TEXT (); LOCAL dtmp = DATE (); LOCAL cdel = STRING(); LOCAL nmonth = INTEGER();
     cdel() <- '---------------------------------------------------';
     FOR (Employee e IS Employee) AND isISubstring(nameCustomer(e),'ЛЮКССОФТ') AND 
@@ -91,23 +91,25 @@ onCheckBirthday 'Поиск ДР' () {
     IF ctxt() THEN {
         ctxt() <- 'Поздравляем с днем рождения:\n' + ctxt() + '\n' + cdel();
         MESSAGE ctxt();
+    } ELSE {
+        IF msgNo THEN MESSAGE 'Именники не найдены';
     }
 } 
 
 // кнопка на форме
-onCheckBirthday2 'Поиск ДР' () { onCheckBirthday(); }
+onCheckBirthday2 'Поиск ДР' () { onCheckBirthday(TRUE); }
 
 // автоматическое отображение на форме
 onClientStarted() + { 
     LOCAL e = Employee(); e() <- currentUser(); // указываем явно, что бы исключить implict usage (неявное использование)
-    IF showMsgBirthdayStarted(e()) THEN onCheckBirthday(); 
+    IF showMsgBirthdayStarted(e()) THEN onCheckBirthday(NULL); 
 }
 
-
+dr 'Дата рожд.' (Contact.Contact c) = dateBirthday(c);
 EXTEND FORM dashboardCustomer
     PROPERTIES(d) READONLY paidCurrencyDebt, dateLastPaid, differenceSum
     PROPERTIES onCheckBirthday2() SHOWIF isISubstring(name(c),'ЛЮКССОФТ') 
-    PROPERTIES(e) READONLY dateBirthday 
+    PROPERTIES(ct) READONLY dr SHOWIF isISubstring(name(c),'ЛЮКССОФТ')
 ;
 
 
