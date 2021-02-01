@@ -48,7 +48,8 @@ DESIGN dashboardCustomer {
 dateP1 'Предоплата (акт не выставлялся)' (Contract c) = GROUP MIN date(Payment p) IF sum(p) AND NOT act(p) BY contract(p);
 dateP2 'Предоплата (акт не выставлялся)' (Agreement e) = GROUP MIN date(Payment p) IF sum(p) AND NOT act(p) BY agreement(p);
 dateP3 'Оплата по акту' (Act a) = GROUP MIN date(Payment p) IF sum(p) AND act(p) BY act(p);
-dateLastPaid 'Дата нач. оплат' (Debt d) = IF paid(d) THEN OVERRIDE dateP3(act(d)), dateP2(agreement(d)), date(contract(d));
+dateLastPaid 'Дата нач. оплат' (Debt d) = IF paid(d) THEN OVERRIDE dateP3(act(d)), dateP2(agreement(d)), dateP1(contract(d));
+
 
 // вычисление суммы оплаты в USD
 paid11 'Оплачено' (Agreement a) = GROUP SUM sumCurrency(Payment p) BY agreement(p) MATERIALIZED;
