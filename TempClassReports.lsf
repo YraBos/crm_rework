@@ -1,0 +1,19 @@
+MODULE TempClassReports;
+
+CLASS TempClassReports 'Временные отчеты';
+pi 'индекс'     = DATA LOCAL INTEGER        (TempClassReports);    // порядок следования     
+ps 'сортировка' = DATA LOCAL INTEGER        (TempClassReports);    // 1 - клиент, 2 - организация 
+pc 'клиент'     = DATA LOCAL STRING         (TempClassReports);    // название клиента (организации)
+p1 'дата 1'     = DATA LOCAL STRING[10]     (TempClassReports);
+p2 'значение 1' = DATA LOCAL INTEGER        (TempClassReports);
+p3 'дата 2'     = DATA LOCAL STRING[10]     (TempClassReports);
+p4 'значение 2' = DATA LOCAL INTEGER        (TempClassReports);
+p5 'дата 3'     = DATA LOCAL STRING[10]     (TempClassReports);
+p6 'значение 3' = DATA LOCAL INTEGER        (TempClassReports);
+p8 'значение 4' = DATA LOCAL INTEGER        (TempClassReports);
+pn 'примечание' = DATA LOCAL TEXT           (TempClassReports);
+
+newTempClassReports '' () {
+    DELETE TempClassReports o1 WHERE o1 IS TempClassReports;   // очищаем предыдущий результат
+}
+
