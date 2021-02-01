@@ -195,7 +195,7 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
             IF length(colC3(i)) > 0 THEN p6(oRep) <- p6(oRep) + 1;
             IF isSubstring(colD3(i),'TRUE') OR isSubstring(colD3(i),'ИСТИНА') THEN p8(oRep) <- p8(oRep) + 1; 
             IF length(colC3(i)) > 0 THEN {
-                oES() <- GROUP MAX (EquipmentSerial es) IF customer(equipment(es)) = c AND number(es) = colC3(i);
+                oES() <- GROUP MAX (EquipmentSerial es) IF customer(equipment(es)) = c AND upper(number(es)) = upper(colC3(i));
                 IF NOT oES() THEN {
                     IF pnote3() THEN pnote3() <- pnote3() + ', '; ELSE pnote3() <- '';
                     pnote3() <- pnote3() + colC3(i); 

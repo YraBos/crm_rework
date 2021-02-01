@@ -150,7 +150,7 @@ onReviseTSD 'Сверка раб. ТСД' (Equipment e) {
 
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] (); 
 // вычисление ID equipment от значения ключа оборудования
-exprEquipment '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF number(n1) = num;
+exprEquipment '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF upper(number(n1)) = upper(num);
 // сброс выражения фильтра
 clsExprEquipment 'X' () {fltNumber() <- NULL;}
 
@@ -160,7 +160,7 @@ EXTEND FORM equipmentDashboard
     PROPERTIES onRepOutSerials(e,t), onLoadWorkTSD(e), onReviseTSD(e)
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
-    FILTERS IF fltNumber() THEN number(n) = fltNumber() ELSE TRUE
+    FILTERS IF fltNumber() THEN upper(number(n)) = upper(fltNumber()) ELSE TRUE
 ;
 
 
