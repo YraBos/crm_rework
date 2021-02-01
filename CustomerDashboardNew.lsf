@@ -44,10 +44,10 @@ DESIGN dashboardCustomer {
     }
 }
 
-// вычисление даты последней оплаты
-dateP1 'Предоплата (акт не выставлялся)' (Contract c) = GROUP LAST date(Payment p) IF sum(p) AND NOT act(p) ORDER date(p),p BY contract(p);
-dateP2 'Оплата по акту' (Act a) = GROUP LAST date(Payment p) IF sum(p) AND act(p) ORDER date(p),p BY act(p);
-dateLastPaid 'Дата пос. оплаты' (Debt d) = IF paid(d) THEN OVERRIDE dateP2(act(d)), dateP1(contract(d));
+// вычисление даты первой оплаты
+dateP1 'Предоплата (акт не выставлялся)' (Contract c) = GROUP MIN date(Payment p) IF sum(p) AND NOT act(p) BY contract(p);
+dateP2 'Оплата по акту' (Act a) = GROUP MIN date(Payment p) IF sum(p) AND act(p) BY act(p);
+dateLastPaid 'Дата нач. оплат' (Debt d) = IF paid(d) THEN OVERRIDE dateP2(act(d)), dateP1(contract(d));
 
 // вычисление суммы оплаты в USD
 paid11 'Оплачено' (Agreement a) = GROUP SUM sumCurrency(Payment p) BY agreement(p) MATERIALIZED;
@@ -58,8 +58,14 @@ paid22 'Оплачено по контракту без соглашений' (D
     PARTITION UNGROUP paid21 LIMIT STRICT (sumCurrency(d) (-) paid12(d)) IF NOT agreement(d) ORDER date(d),d BY contract(d) MATERIALIZED; 
 paidCurrencyDebt 'Оплачено, USD' (Debt d) = paid12(d) (+) paid22(d);            
 
-differenceSum 'Разница: долг-оплата' (Debt d) = 
-    IF inCurrency(contract(d)) THEN sumCurrency(d) (-) paidCurrencyDebt(d) ELSE sum(d) (-) paid(d); 
+differenceSum 'Разница, руб.' (Debt d) = IF NOT inCurrency(contract(d)) THEN sum(d) (-) paid(d); 
+
+differenceSumUSD 'Разница, USD' (Debt d) = IF inCurrency(contract(d)) THEN sumCurrency(d) (-) paidCurrencyDebt(d); 
+
+EXTEND FORM dashboardCustomer
+    PROPERTIES(d) READONLY paidCurrencyDebt, dateLastPaid, differenceSum, differenceSumUSD
+;
+
 
 // общая обработка дней рождения для вызова из кнопки на форме или при старте приложения
 onCheckBirthday 'Поиск ДР' (BOOLEAN msgNo) {
@@ -107,7 +113,6 @@ onClientStarted() + {
 
 dr 'Дата рожд.' (Contact.Contact c) = dateBirthday(c);
 EXTEND FORM dashboardCustomer
-    PROPERTIES(d) READONLY paidCurrencyDebt, dateLastPaid, differenceSum
     PROPERTIES onCheckBirthday2() SHOWIF isISubstring(name(c),'ЛЮКССОФТ') 
     PROPERTIES(ct) READONLY dr SHOWIF isISubstring(name(c),'ЛЮКССОФТ')
 ;
