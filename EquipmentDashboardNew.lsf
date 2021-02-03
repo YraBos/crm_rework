@@ -45,8 +45,7 @@ FORM repOutSerials 'Данные'
 
 onRepOutSerials 'Данные' (Equipment e,SubjectType t) {
     IF NOT filterCustomer() THEN {
-        MESSAGE 'Определите клиента';
-        RETURN ;
+        MESSAGE 'Определите клиента'; RETURN ;
     } 
     IF NOT name(t) = 'LST ТСД' THEN {
     // просто отобразим отчет и выйдем
@@ -71,8 +70,7 @@ onRepOutSerials 'Данные' (Equipment e,SubjectType t) {
 
 onLoadWorkTSD 'Загрузить раб. ТСД' (Equipment e) {
     IF NOT filterCustomer() THEN {
-        MESSAGE 'Определите клиента';
-        RETURN ;
+        MESSAGE 'Определите клиента'; RETURN ;
     }
     // грузим файл 
     LOCAL frep = FILE();
@@ -154,10 +152,29 @@ exprEquipment '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF
 // сброс выражения фильтра
 clsExprEquipment 'X' () {fltNumber() <- NULL;}
 
+// генерация лицензий по фильтру на форме
+inMark 'Отм.' = DATA LOCAL BOOLEAN (Equipment);
+
+onGenLic 'Создать LIC' (Equipment ob) {
+    LOCAL ctxt = TEXT(); 
+    IF NOT filterCustomer() THEN {
+        MESSAGE 'Определите клиента'; RETURN ;
+    }
+    inMark(Equipment e) <- NULL;
+    FOR [FILTER equipmentDashboard.e](Equipment e) DO inMark(e) <- TRUE;
+    FOR (Equipment e IS Equipment) AND customer(e) = customer(ob) AND inMark(e) DO {
+        generateLicense(e);
+        fileToString(file(e));
+        ctxt() <- (IF NOT ctxt() THEN '' ELSE ctxt() + '\n') + resultString(); 
+    }
+    stringToFile(ctxt(),'UTF-8', '');
+    open(resultFile(),'lic');
+}
+
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
     PROPERTIES(n) NEWSESSION EDIT
-    PROPERTIES onRepOutSerials(e,t), onLoadWorkTSD(e), onReviseTSD(e)
+    PROPERTIES onRepOutSerials(e,t), onLoadWorkTSD(e), onReviseTSD(e), onGenLic(e)
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
     FILTERS IF fltNumber() THEN upper(number(n)) = upper(fltNumber()) ELSE TRUE
@@ -169,6 +186,7 @@ DESIGN equipmentDashboard {
         MOVE PROPERTY (onRepOutSerials(e,t));
         MOVE PROPERTY (onLoadWorkTSD(e));
         MOVE PROPERTY (onReviseTSD(e));
+        MOVE PROPERTY (onGenLic(e));
     }
     TOOLBARRIGHT(e) {
         MOVE PROPERTY (fltNumber()) {marginLeft = 10;};
