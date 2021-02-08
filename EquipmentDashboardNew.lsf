@@ -52,15 +52,15 @@ onRepOutSerials 'Данные' (Equipment e,SubjectType t) {
         PRINT repOutSerials OBJECTS c = customer(e),t = t XLS; // XLS;
         RETURN;
     }
-    // формируем отчет и пишим в документы по клиенту
+    // формируем отчет и пишим в документы по клиенту, RM 14804 Список ключей LS Trade ТСД меняем на Список выданных ключей ТСД
     LOCAL frep = FILE();
     PRINT repOutSerials OBJECTS c = customer(e),t = t XLS TO frep; 
     LOCAL ot = Attachment();
-    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND name(type(a)) = 'Список ключей LS Trade ТСД';
+    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND name(type(a)) = 'Список выданных ключей ТСД';
     IF NOT ot() THEN NEW a = Attachment {
         ot() <- a;
         customer(a) <- customer(e);
-        type(a) <- GROUP MAX AttachmentType at IF name(at) = 'Список ключей LS Trade ТСД';
+        type(a) <- GROUP MAX AttachmentType at IF name(at) = 'Список выданных ключей ТСД';
     }
     date(ot()) <- currentDate();
     file(ot()) <- frep();
