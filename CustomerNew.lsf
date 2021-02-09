@@ -162,13 +162,15 @@ onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
 }
 
 // 3. сверка по ТСД и работающим ТСД (если есть), тип S2 по отдельному клиенту
+// Обрабатываемые XLS документы: Список лицензий ТСД, Список выданных ключей ТСД, Список работающих ТСД
 onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, cRepName2, cRepName3, cFDelimiter) {
     LOCAL frep = FILE(); LOCAL c1 = TEXT(); 
-    LOCAL pnote,pnote3 = TEXT(); 
+    LOCAL pnote,pnote3, pnote4 = TEXT(); 
     LOCAL ox1, ox2, ox3 = Attachment();
     LOCAL value1,value2 = BPSTRING[50] (INTEGER);
-    LOCAL oES = EquipmentSerial();
-    LOCAL n3 = INTEGER();
+    LOCAL colE2, colG2 = STRING (INTEGER);
+    LOCAL err31, err32 = BOOLEAN();
+    LOCAL n3, n4, imax2 = INTEGER();
     ox1() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName1 AND date(a) = maxDate(c, cRepName1);
     IF ox1() THEN {
         p1(oRep) <- toDateDDMMYY(date(ox1()));
@@ -178,28 +180,45 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
     ox2() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2 AND date(a) = maxDate(c, cRepName2);
     IF ox2() THEN {
         p3(oRep) <- toDateDDMMYY(date(ox2()));
-        IMPORT XLS NOHEADER FROM file(ox2()) AS FILE TO value2 = A;
+        IMPORT XLS NOHEADER FROM file(ox2()) AS FILE TO value2 = A, colE2 = E, colG2 = G;
         onRetInteger(value2(0),NULL); p4(oRep) <- retInteger();
+        FOR imported(INTEGER i2) DO {
+            imax2() <- imax2() (+) 1;
+            colE2(i2) <- upper(trim(OVERRIDE colE2(i2), '')); 
+            colG2(i2) <- upper(trim(OVERRIDE colG2(i2), ''));   
+        }
     } ELSE {
         IF pnote() THEN pnote() <- pnote() + ', ';
         pnote() <- (OVERRIDE pnote(),'') + cRepName2;
     }
-    // дополнительная сверка по работающим у клиента ТСД
+    // дополнительная сверка по работающим у клиента ТСД (Список работающих ТСД)
     ox3() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName3 AND date(a) = maxDate(c, cRepName3);
     IF ox3() THEN {
         p5(oRep) <- toDateDDMMYY(date(ox3()));
-        LOCAL colC3, colD3 = STRING (INTEGER); 
-        IMPORT XLS NOHEADER FROM file(ox3()) AS FILE TO colC3 = C, colD3 = D;
+        LOCAL colC3 = STRING (INTEGER); 
+        IMPORT XLS NOHEADER FROM file(ox3()) AS FILE TO colC3 = C;
         FOR imported(INTEGER i) AND i > 1 ORDER i DO {
-            colC3(i) <- OVERRIDE colC3(i), ''; colD3(i) <- OVERRIDE colD3(i), '';
-            IF length(colC3(i)) > 0 THEN p6(oRep) <- p6(oRep) + 1;
-            IF isSubstring(colD3(i),'TRUE') OR isSubstring(colD3(i),'ИСТИНА') THEN p8(oRep) <- p8(oRep) + 1; 
+            colC3(i) <- upper(trim(OVERRIDE colC3(i), '')); 
             IF length(colC3(i)) > 0 THEN {
-                oES() <- GROUP MAX (EquipmentSerial es) IF customer(equipment(es)) = c AND upper(number(es)) = upper(colC3(i));
-                IF NOT oES() THEN {
+                p6(oRep) <- p6(oRep) + 1;
+                // ищем работающие ключи в Список выданных ключей ТСД и замененные, которых не должно быть
+                err31() <- TRUE; err32() <- NULL; 
+                FOR iterate(INTEGER i2,1,imax2()) DO {
+                    IF colE2(i2) = colC3(i) THEN {
+                        err31() <- NULL; // работающий ТСД найден в списке выданных ТСД
+                        IF length(colG2(i2)) > 0 THEN err32() <- TRUE; // содержит информацию о замене, так не должно быть
+                        BREAK;
+                    }
+                }
+                IF err31() THEN {
                     IF pnote3() THEN pnote3() <- pnote3() + ', '; ELSE pnote3() <- '';
-                    pnote3() <- pnote3() + colC3(i); 
+                    pnote3() <- pnote3() + colC3(i);
                     n3() <- n3() (+) 1;
+                }
+                IF err32() THEN {
+                    IF pnote4() THEN pnote4() <- pnote4() + ', '; ELSE pnote4() <- '';
+                    pnote4() <- pnote4() + colC3(i);
+                    n4() <- n4() (+) 1;
                 }
             }
         }
@@ -207,11 +226,12 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
         IF pnote() THEN pnote() <- pnote() + ', ';
         pnote() <- (OVERRIDE pnote(),'') + cRepName3;
     }
-    IF pnote() THEN pnote() <- '* док. не найдены: ' + pnote() + '\n'; ELSE pnote() <- '';  
-    IF pnote3() THEN {
+    IF pnote() THEN pnote() <- '* док. не найдены: ' + pnote() + '\n'; ELSE pnote() <- '';
+    IF pnote3() OR pnote4() THEN {
         IF length(pnote()) > 0 THEN pnote() <- pnote() + '\n';
-        pnote() <- '* ключей не выдано всего ' + trim(toChar(n3(),'99999')) + ':\n' + pnote3() + '\n';
-    }
+            IF pnote3() THEN pnote() <- pnote() + '* не выданы ключи на ТСД по серийным номерам, всего ' + trim(toChar(n3(),'99999')) + ':\n' + pnote3() + '\n';        
+            IF pnote4() THEN pnote() <- pnote() + '* замененные  серийные номера, всего ' + trim(toChar(n4(),'99999')) + ':\n' + pnote4() + '\n';
+}  
     // обработка разделителя по клиенту
     IF cFDelimiter THEN {
         FOR iterate(INTEGER i, 2, wordCount(info(c),cFDelimiter)) ORDER i DO {
@@ -279,8 +299,8 @@ onCustomerReports 'Отчеты' (Customer c) {
     ELSE IF ps() = ' 4.' THEN {
         newTempClassReports();    
         title() <- 'Отчет по сверке выданных лицензий ТСД';
-        onRevise(3,'Список лицензий ТСД','Список ключей LS Trade ТСД','S2','*#*');
-        PRINT repReviseTSD XLS;
+        onRevise(3,'Список лицензий ТСД','Список выданных ключей ТСД','S2','*#*');
+        PRINT repReviseTSD XLS; // XLS;
     } 
     CANCEL; 
 }
