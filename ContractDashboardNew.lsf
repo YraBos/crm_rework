@@ -100,10 +100,17 @@ EXTEND FORM contractDashboard
 ; 
 
 DESIGN contractDashboard {
-    BOX(o) {
-        TOOLBAR(o) {
-            MOVE PROPERTY (onFullCreateDebts()) AFTER PROPERTY (recalcCurrencyDebts()); 
-        } 
+    OBJECTS {
+        NEW ocnt FIRST {
+            type = CONTAINERH;
+            MOVE filter;
+            NEW cntBut {
+                caption = 'доп. обработки';
+                type = CONTAINERH;
+                MOVE PROPERTY (onFullCreateDebts());
+                MOVE PROPERTY (recalcCurrencyDebts());
+            }           
+        }
     }
 }
 

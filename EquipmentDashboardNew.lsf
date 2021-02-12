@@ -190,7 +190,24 @@ DESIGN equipmentDashboard {
     }
     TOOLBARRIGHT(e) {
         MOVE PROPERTY (fltNumber()) {marginLeft = 10;};
+        
         MOVE PROPERTY (clsExprEquipment());
     } 
 }
 
+
+// удаление серийных номеров во вкладке Серийные номера, RM 14861
+onDeleteSerial 'Удалить СН' (EquipmentSerial o) {
+    ASK 'Вы действительно хотите удалить SN?' DO {
+        LOCAL icnt = INTEGER();         
+        DELETE o;
+        icnt() <- GROUP SUM 1 IF equipment(EquipmentSerial es) = equipment(o); 
+        dataQuantitySerial(Equipment e) <- icnt() WHERE e = equipment(o);
+        APPLY;
+    }        
+}
+
+
+EXTEND FORM equipmentDashboard
+    PROPERTIES(es) TOOLBAR onDeleteSerial
+;

@@ -47,6 +47,9 @@ mark 'Отм.' = DATA LOCAL BOOLEAN (EnumProducts);
 mark 'Отм.' = DATA LOCAL BOOLEAN (EnumRevise);
 mark 'Отм.' = DATA LOCAL BOOLEAN (EnumContract);
 
+captionStaticClientType 'Заголовок формы' = DATA LOCAL STRING ();
+eventStaticClientType 'Событие формы' = DATA LOCAL BOOLEAN ();
+
 fltClientType '' = DATA LOCAL STRING (INTEGER);
 
 onClsClientTypeProp '' (BOOLEAN all) {
@@ -59,7 +62,7 @@ onClsClientTypeProp '' (BOOLEAN all) {
 }
 
 
-FORM listEnumAtr 'Выбор признаков для установки фильтра (до 10 признаков)'
+FORM listEnumAtr ''
     OBJECTS ep = EnumProducts 
     PROPERTIES(ep) mark 
     PROPERTIES(ep) READONLY staticCaption
@@ -73,7 +76,13 @@ FORM listEnumAtr 'Выбор признаков для установки фил
     PROPERTIES(ec) READONLY staticCaption
     PROPERTIES(ec) staticName SHOWIF NULL
     ORDERS staticName(ep), staticName(er), staticName(ec)
+    EVENTS ON INIT {eventStaticClientType() <- NULL;}
+    EVENTS ON OK {eventStaticClientType() <- TRUE;}
 ;
+
+DESIGN listEnumAtr {
+    caption = IF NOT captionStaticClientType() THEN 'Выбор признаков для установки фильтра (до 10 признаков)' ELSE captionStaticClientType();
+}
 
 onClsClientTypePropAll 'Сбросить' () {
     onClsClientTypeProp(TRUE);

@@ -375,3 +375,43 @@ DESIGN customers {
         }
     }
 }
+
+onSetLabelsClientType '' (Customer c,STRING[50] olab) {
+    LOCAL tlabs = STRING[50]();
+    FOR (EnumProducts ep IS EnumProducts) AND mark(ep) ORDER staticName(ep) DO 
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + substr(staticCaption(ep),1,strpos(staticCaption(ep),':')-1);      
+    FOR (EnumRevise er IS EnumRevise) AND mark(er) ORDER staticName(er) DO 
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + substr(staticCaption(er),1,strpos(staticCaption(er),':')-1);      
+    FOR (EnumContract ec IS EnumContract) AND mark(ec) ORDER staticName(ec) DO 
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + substr(staticCaption(ec),1,strpos(staticCaption(ec),':')-1);
+    IF tlabs() THEN clientType(c) <- tlabs() + IF olab THEN ',' + olab ELSE '';          
+} 
+
+onSetLabels 'Выбор Типов клиента' (Customer c) {
+    LOCAL ep = EnumProducts(); LOCAL er = EnumRevise(); LOCAL ec = EnumContract(); 
+    LOCAL olab, cpart = STRING(); 
+    mark(EnumProducts o1) <- NULL; mark(EnumRevise o2) <- NULL; mark(EnumContract o3)   <- NULL;
+    IF clientType(c) THEN {
+        FOR iterate(INTEGER i,1,wordCount(clientType(c),',')) DO {
+            cpart() <- getWord(clientType(c),',',i);
+            ep() <- GROUP MAX (EnumProducts o1) IF isSubstring(staticCaption(o1),cpart() + ':');
+            IF ep() THEN mark(ep()) <- TRUE; ELSE {
+                er() <- GROUP MAX (EnumRevise o2) IF isSubstring(staticCaption(o2),cpart() + ':');
+                IF er() THEN mark(er()) <- TRUE; ELSE {
+                    ec() <- GROUP MAX (EnumContract o3) IF isSubstring(staticCaption(o3),cpart() + ':');
+                    IF ec() THEN mark(ec()) <- TRUE; ELSE olab() <- (IF olab() THEN olab() + ',' ELSE '') + cpart(); // неизвестный признак
+                }    
+            }  
+        }
+    } 
+    // новый заголовок окна
+    captionStaticClientType() <- 'Установка Типа клиента. ' + IF olab() THEN 'Отдельные типы:  ' + olab() ELSE '';
+    DIALOG listEnumAtr;
+    IF eventStaticClientType() THEN onSetLabelsClientType(c, olab());
+    captionStaticClientType() <- NULL;
+}
+
+// кнопка на форме редактирования для установки признаков клиента
+//EXTEND FORM customer
+//    PROPERTIES(o) onSetLabels AFTER clientType(o) 
+//;
