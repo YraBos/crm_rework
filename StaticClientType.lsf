@@ -43,9 +43,12 @@ CLASS EnumContract 'Условия договора' {
     p311 'VL:  Лицензия. Привязка к курсу доллара (на дату)'
 }
 
-mark 'Отм.' = DATA LOCAL BOOLEAN (EnumProducts);
-mark 'Отм.' = DATA LOCAL BOOLEAN (EnumRevise);
-mark 'Отм.' = DATA LOCAL BOOLEAN (EnumContract);
+mark 'Отм.' = DATA LOCAL BOOLEAN    (EnumProducts);
+mark 'Отм.' = DATA LOCAL BOOLEAN    (EnumRevise);
+mark 'Отм.' = DATA LOCAL BOOLEAN    (EnumContract);
+cdop 'Арг.' = DATA LOCAL STRING     (EnumProducts)  CHARWIDTH 5;
+cdop 'Арг.' = DATA LOCAL STRING     (EnumRevise)    CHARWIDTH 5;
+cdop 'Арг.' = DATA LOCAL STRING     (EnumContract)  CHARWIDTH 5;
 
 captionStaticClientType 'Заголовок формы' = DATA LOCAL STRING ();
 eventStaticClientType 'Событие формы' = DATA LOCAL BOOLEAN ();
@@ -54,9 +57,9 @@ fltClientType '' = DATA LOCAL STRING (INTEGER);
 
 onClsClientTypeProp '' (BOOLEAN all) {
     IF all THEN {
-        mark(EnumProducts ep)   <- NULL; 
-        mark(EnumRevise er)     <- NULL; 
-        mark(EnumContract ec)   <- NULL; 
+        mark(EnumProducts ep)   <- NULL; cdop(EnumProducts ep) <- NULL; 
+        mark(EnumRevise er)     <- NULL; cdop(EnumProducts er) <- NULL;
+        mark(EnumContract ec)   <- NULL; cdop(EnumProducts ec) <- NULL;
     }
     FOR iterate(INTEGER i,0,9) DO fltClientType(i) <- NULL;
 }
@@ -65,14 +68,17 @@ onClsClientTypeProp '' (BOOLEAN all) {
 FORM listEnumAtr ''
     OBJECTS ep = EnumProducts 
     PROPERTIES(ep) mark 
+    PROPERTIES(ep) SHOWIF captionStaticClientType() cdop  
     PROPERTIES(ep) READONLY staticCaption
     PROPERTIES(ep) staticName SHOWIF NULL
     OBJECTS er = EnumRevise 
     PROPERTIES(er) mark 
+    PROPERTIES(er) SHOWIF captionStaticClientType() cdop  
     PROPERTIES(er) READONLY staticCaption
     PROPERTIES(er) staticName SHOWIF NULL
     OBJECTS ec = EnumContract 
     PROPERTIES(ec) mark 
+    PROPERTIES(ec) SHOWIF captionStaticClientType() cdop  
     PROPERTIES(ec) READONLY staticCaption
     PROPERTIES(ec) staticName SHOWIF NULL
     ORDERS staticName(ep), staticName(er), staticName(ec)

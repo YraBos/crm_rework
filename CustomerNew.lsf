@@ -164,8 +164,8 @@ onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
 // 3. сверка по ТСД и работающим ТСД (если есть), тип S2 по отдельному клиенту
 // Обрабатываемые XLS документы: Список лицензий ТСД, Список выданных ключей ТСД, Список работающих ТСД
 onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, cRepName2, cRepName3, cFDelimiter) {
-    LOCAL frep = FILE(); LOCAL c1 = TEXT(); 
-    LOCAL pnote,pnote3, pnote4 = TEXT(); 
+    LOCAL frep = FILE();  
+    LOCAL pnote,pnote3, pnote4, c1 = TEXT(); 
     LOCAL ox1, ox2, ox3 = Attachment();
     LOCAL value1,value2 = BPSTRING[50] (INTEGER);
     LOCAL colE2, colG2 = STRING (INTEGER);
@@ -185,7 +185,7 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
         FOR imported(INTEGER i2) DO {
             imax2() <- imax2() (+) 1;
             colE2(i2) <- upper(trim(OVERRIDE colE2(i2), '')); 
-            colG2(i2) <- upper(trim(OVERRIDE colG2(i2), ''));   
+            colG2(i2) <- upper(trim(OVERRIDE colG2(i2), '')); 
         }
     } ELSE {
         IF pnote() THEN pnote() <- pnote() + ', ';
@@ -376,30 +376,47 @@ DESIGN customers {
     }
 }
 
+
 onSetLabelsClientType '' (Customer c,STRING[50] olab) {
     LOCAL tlabs = STRING[50]();
-    FOR (EnumProducts ep IS EnumProducts) AND mark(ep) ORDER staticName(ep) DO 
-        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + substr(staticCaption(ep),1,strpos(staticCaption(ep),':')-1);      
-    FOR (EnumRevise er IS EnumRevise) AND mark(er) ORDER staticName(er) DO 
-        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + substr(staticCaption(er),1,strpos(staticCaption(er),':')-1);      
-    FOR (EnumContract ec IS EnumContract) AND mark(ec) ORDER staticName(ec) DO 
-        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + substr(staticCaption(ec),1,strpos(staticCaption(ec),':')-1);
+    FOR (EnumProducts ep IS EnumProducts) AND mark(ep) ORDER staticName(ep) DO {
+        IF cdop(ep) THEN IF length(trim(cdop(ep))) = 0 THEN cdop(ep) <- NULL;  
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + 
+            substr(staticCaption(ep),1,strpos(staticCaption(ep),':')-1) + IF cdop(ep) THEN '(' + trim(cdop(ep)) + ')' ELSE '';
+    }
+    FOR (EnumRevise er IS EnumRevise) AND mark(er) ORDER staticName(er) DO { 
+        IF cdop(er) THEN IF length(trim(cdop(er))) = 0 THEN cdop(er) <- NULL;  
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + 
+            substr(staticCaption(er),1,strpos(staticCaption(er),':')-1) + IF cdop(er) THEN '(' + trim(cdop(er)) + ')' ELSE ''; 
+    }      
+    FOR (EnumContract ec IS EnumContract) AND mark(ec) ORDER staticName(ec) DO { 
+        IF cdop(ec) THEN IF length(trim(cdop(ec))) = 0 THEN cdop(ec) <- NULL;  
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + 
+            substr(staticCaption(ec),1,strpos(staticCaption(ec),':')-1) + IF cdop(ec) THEN '(' + trim(cdop(ec)) + ')' ELSE '';
+    }
     IF tlabs() THEN clientType(c) <- tlabs() + IF olab THEN ',' + olab ELSE '';          
 } 
 
+
 onSetLabels 'Выбор Типов клиента' (Customer c) {
     LOCAL ep = EnumProducts(); LOCAL er = EnumRevise(); LOCAL ec = EnumContract(); 
-    LOCAL olab, cpart = STRING(); 
-    mark(EnumProducts o1) <- NULL; mark(EnumRevise o2) <- NULL; mark(EnumContract o3)   <- NULL;
+    LOCAL olab, cpart, cpart2 = STRING(); 
+    mark(EnumProducts o1) <- NULL; mark(EnumRevise o2) <- NULL; mark(EnumContract o3) <- NULL;
+    cdop(EnumProducts o1) <- NULL; cdop(EnumRevise o2) <- NULL; cdop(EnumContract o3) <- NULL;
     IF clientType(c) THEN {
         FOR iterate(INTEGER i,1,wordCount(clientType(c),',')) DO {
-            cpart() <- getWord(clientType(c),',',i);
+            cpart() <- getWord(clientType(c),',',i); cpart2() <- NULL;
+            IF isSubstring(cpart(),'(') THEN {
+                cpart2() <- getWord(cpart(),'(',2);
+                cpart2() <- getWord(cpart2(),')',1);
+                cpart()  <- getWord(cpart(),'(',1);
+            } 
             ep() <- GROUP MAX (EnumProducts o1) IF isSubstring(staticCaption(o1),cpart() + ':');
-            IF ep() THEN mark(ep()) <- TRUE; ELSE {
+            IF ep() THEN {mark(ep()) <- TRUE; cdop(ep()) <- cpart2();} ELSE {
                 er() <- GROUP MAX (EnumRevise o2) IF isSubstring(staticCaption(o2),cpart() + ':');
-                IF er() THEN mark(er()) <- TRUE; ELSE {
+                IF er() THEN {mark(er()) <- TRUE; cdop(er()) <- cpart2();} ELSE {
                     ec() <- GROUP MAX (EnumContract o3) IF isSubstring(staticCaption(o3),cpart() + ':');
-                    IF ec() THEN mark(ec()) <- TRUE; ELSE olab() <- (IF olab() THEN olab() + ',' ELSE '') + cpart(); // неизвестный признак
+                    IF ec() THEN {mark(ec()) <- TRUE;cdop(ec()) <- cpart2();} ELSE olab() <- (IF olab() THEN olab() + ',' ELSE '') + cpart(); // неизвестный признак
                 }    
             }  
         }

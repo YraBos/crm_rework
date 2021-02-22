@@ -65,8 +65,15 @@ onFillCreateDebts '' (Contract c) {
 
 // кнопка на форме Задолженности
 onSingleCreateDebts 'Создать задолженности' (Contract c) {
+    IF NOT dateSigningCustomer(c) THEN {
+        MESSAGE 'Не заполнено поле\nДата подписания клиентом';
+        RETURN;
+    }
     SHOW setProperties;
-    IF qMonth() = 0 THEN {MESSAGE 'Выполнение отменено'; RETURN;}
+    IF NOT qMonth() OR qMonth() < 1 THEN {
+        MESSAGE 'Неопределено количество месяцев\nВыполнение отменено'; 
+        RETURN;
+    }
     onFillCreateDebts(c);
 }
 
@@ -105,7 +112,7 @@ DESIGN contractDashboard {
             type = CONTAINERH;
             MOVE filter;
             NEW cntBut {
-                caption = 'доп. обработки';
+                caption = 'Доп. обработки';
                 type = CONTAINERH;
                 MOVE PROPERTY (onFullCreateDebts());
                 MOVE PROPERTY (recalcCurrencyDebts());
