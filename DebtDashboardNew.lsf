@@ -1,6 +1,6 @@
 MODULE DebtDashboardNew;
 
-REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew;
+REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew, AgreementNew;
 
 filterSumDebt 'Размер задолженности' = DATA LOCAL INTEGER ();
 
@@ -40,7 +40,6 @@ FORM reportDebs 'Печать'
     FILTERS abs(balance(db)) > 0
     FILTERS sumDebt(c, dd)
     FILTERS IF filterCustomerContractType() THEN t == filterCustomerContractType() ELSE TRUE 
-//    FILTERS IF filterSumDebt() THEN abs(sumDebt(c,t,dd)) > filterSumDebt() ELSE TRUE
     FILTERS IF filterSumDebt() THEN abs(sum(db) (-) paid(db)) > filterSumDebt() ELSE TRUE  
     ORDERS nameLegalEntity(db),dateContractISO(db),numberContract(db),date(db)
 ;
@@ -68,3 +67,44 @@ DESIGN debtDashboard {
         MOVE PROPERTY (onReport(c, dd));
     }
 }
+
+
+// акты на соглашении, RM 12213
+// ---------------------------------------------------------------- 
+//onCreateActsAgrOnly 'Создать Акты (согл.)' () {
+//    LOCAL copy = BOOLEAN ();
+//    IF (GROUP SUM 1 IF in(Debt d) AND NOT act(d)) THEN NEWSESSION NESTED (in[Debt]) {
+//        ASK 'Скопировать текст и название?' DO copy() <- TRUE;
+//        //по соглашениям
+//        FOR [GROUP SUM 1 IF in(Debt d) AND NOT act(d) BY contract(d), agreement(d)](Contract c, Agreement ag) DO NEW a = Act {
+//            act(Debt d) <- a WHERE in(d) AND NOT act(d) AND contract(d) == c AND agreement(d) == ag;
+//            contract(a) <- c;
+//            agreement(a) <- ag;
+//            date(a) <- currentDate();
+//            sum(a) <- GROUP SUM sum(Debt d) IF in(d) AND act(d) == a;
+//            number(a) <- ISTRING[15] ([GROUP MAX INTEGER(number(Act ac)) BY contract(ac), year(ac)](contract(a), year(a)) (+) 1);
+//            type(a) <- IF actType(ag) THEN actType(ag) ELSE actType(type(c));
+//            IF copy() THEN {
+//                name(a) <- OVERRIDE name(ag), name(c);
+//                text(a) <- OVERRIDE text(ag), text(c);
+//            }
+//            created(a) <- TRUE;
+//        }
+//        IF GROUP SUM 1 IF created(Act a) AND NOT actTemplate(contract(a)) THEN {
+//            MESSAGE 'Для договоров № ' + (GROUP CONCAT (OVERRIDE number(contract(Act a)), 'б/н') IF created(a) AND NOT actTemplate(contract(a)), ', ' ORDER date(contract(a))) + ' не выбран шаблон для актов';
+//        }
+//        DIALOG requiredTemplateEntries OBJECTS d = currentDate() DO in(Debt d) <- NULL;
+//    }
+//}
+//
+//EXTEND FORM debtDashboard
+//    PROPERTIES() onCreateActsAgrOnly 
+//;
+//
+//DESIGN debtDashboard {
+//    TOOLBAR (d) {
+//        MOVE PROPERTY (onCreateActsAgrOnly()); 
+//    }
+//} 
+// ---------------------------------------------------------------- 
+

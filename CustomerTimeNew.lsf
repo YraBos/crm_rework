@@ -1,6 +1,6 @@
 MODULE CustomerTimeNew;
 
-REQUIRE CustomerTime, TimeEntryCustomer, Utils, IssueNew, Time;
+REQUIRE CustomerTime, TimeEntryCustomer, Utils, IssueNew, CustomerNew, Time;
 NAMESPACE Project;
 
 discountHours 'Скидка' = DATA NUMERIC[7,2] (TimeEntry);
@@ -240,4 +240,26 @@ DESIGN customerTimeDashboard {
     TOOLBARRIGHT(t) {
         MOVE PROPERTY (openER(t));
     } 
+}
+
+
+EXTEND FORM customerTimeDashboard
+    PROPERTIES(c) PANEL READONLY clientType, clientTypeInfo
+; 
+
+
+DESIGN customerTimeDashboard {
+    head {
+        caption = '';
+        NEW head1 {
+            caption = 'Фильтры';
+            MOVE PROPERTY (year);
+            MOVE PROPERTY (month) {charWidth=14;}
+        }
+        NEW head2 AFTER  head1 {
+            caption = 'Тип клиента и его расшифровка';
+            MOVE PROPERTY (clientType(c)) ; 
+            MOVE PROPERTY (clientTypeInfo(c)) {caption=''; charHeight=3; charWidth=120;}
+        }
+    }
 }

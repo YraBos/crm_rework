@@ -1,6 +1,6 @@
 MODULE AgreementNew;
 
-REQUIRE Agreement, DebtAgreement, Contract;
+REQUIRE Agreement, DebtAgreement, DebtDashboard, Contract;
 
 onDelAgreement 'Удалить с задол.' (Agreement a) {
     ASK 'Вы действительно хотите удалить Соглашение\nи связанные с ним Задолженности?' DO {
@@ -12,3 +12,22 @@ onDelAgreement 'Удалить с задол.' (Agreement a) {
 EXTEND FORM contract
     PROPERTIES(ag) onDelAgreement SHOWIF (nameType(ag) = 'ДСГ' OR nameType(ag) = 'ПРТ') TOOLBAR 
 ;
+
+// Акты на соглашении, RM 12213
+// ---------------------------------------------------------------- 
+//actType = DATA ActType(Agreement);
+//nameActType 'Тип акта' (Agreement a) = name(actType(a));
+//
+//EXTEND FORM agreement 
+//    PROPERTIES(o) nameActType;
+//
+//DESIGN agreement {
+//    row3 {
+//        NEW add2 {
+//            type = CONTAINERH;
+//            caption = 'Доп. необязательный параметр'; 
+//            MOVE PROPERTY(nameActType(o)) {charWidth = 30;}; 
+//        }
+//    }
+//}
+// ---------------------------------------------------------------- 
