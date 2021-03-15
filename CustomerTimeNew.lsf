@@ -267,7 +267,6 @@ DESIGN customerTimeDashboard {
 
 // Отдельный журнал, RM 15166
 nameCustomerIssue 'Клиент' (Issue i) = name(customer(i));
-// фильтры
 dateStart   'Дата начала периода' = DATA LOCAL DATE ();
 dateEnd     'Дата конца периода' = DATA LOCAL DATE ();
 filterCustomerIssue '' = DATA LOCAL Customer ();
@@ -281,7 +280,7 @@ nameFilterAssignedTo 'Назначена' = name(filterAssignedTo());
 FORM tasksEmployees 'Задачи сотрудников'
     PROPERTIES() PANEL dateStart, dateEnd, nameFilterCustomerIssue, nameFilterTracker, nameFilterAssignedTo, nameFilterAuthor 
     OBJECTS is = Issue
-    PROPERTIES(is) READONLY number, nameCustomerIssue, dateTimeCreated, name, hours, dateTimeUpdated, nameTracker, nameAuthor, nameAssignedTo
+    PROPERTIES(is) READONLY number, nameCustomerIssue, dateTimeCreated, name, hours, dateTimeUpdated, nameTracker, nameAssignedTo, nameAuthor
     PROPERTIES(is) PANEL READONLY descriptionStringTablo   
     ORDERS number(is) 
     EVENTS ON INIT {
