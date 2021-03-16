@@ -24,6 +24,7 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         EmployeeNew,            // RM 14473, Дни рождения сотрудников, см. также CustomerDashboardNew.onCheckBirthday  
         ContractDashboardNew,   // RM 14544, Генерация задолженностей
         TempClassReports,
-        AgreementNew
+        AgreementNew,
+        TasksEmployees          // RM 15166, Отдельный журнал по задачам сотрудников,  
 ;
 

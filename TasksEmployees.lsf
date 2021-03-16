@@ -1,0 +1,75 @@
+MODULE TasksEmployees;
+
+REQUIRE CustomerTimeNew;
+
+dateStart   'Дата начала периода' = DATA LOCAL DATE ();
+dateEnd     'Дата конца периода' = DATA LOCAL DATE ();
+filterCustomerIssue '' = DATA LOCAL Customer ();
+nameFilterCustomerIssue 'Клиент' = name(filterCustomerIssue());
+filterProject '' = DATA LOCAL Project ();
+nameFilterProject 'Проект' = name(filterProject());
+filterStatus '' = DATA LOCAL IssueStatus ();
+nameFilterStatus 'Статус' = name(filterStatus());
+filterAssignedTo '' = DATA LOCAL Employee ();
+nameFilterAssignedTo 'Назначена' = name(filterAssignedTo());
+filterAuthor '' = DATA LOCAL Employee ();
+nameFilterAuthor 'Автор' = name(filterAuthor());
+
+dateCreated 'Создана' (Issue i) = toDate(dateTimeCreated(i));
+dateUpdated 'Обновлена' (Issue i) = toDate(dateTimeUpdated(i));
+
+FORM tasksEmployees 'Задачи сотрудников'
+    PROPERTIES() PANEL dateStart, dateEnd, nameFilterCustomerIssue, nameFilterProject, nameFilterTracker, 
+                       nameFilterStatus, nameFilterAssignedTo, nameFilterAuthor
+    OBJECTS is = Issue
+    PROPERTIES(is) READONLY number, nameCustomer, nameProject, dateCreated, name, hours, dateUpdated, 
+                            nameTracker, nameStatus, nameAssignedTo, doneRatio, nameAuthor
+    PROPERTIES(is) PANEL READONLY descriptionStringTablo   
+    ORDERS number(is) 
+    EVENTS ON INIT {
+        dateStart() <- firstDayOfMonth(currentDate());
+        dateEnd()   <- currentDate();
+    }
+    FILTERS dateUpdated(is) >= dateStart() AND dateUpdated(is) <= dateEnd()
+    FILTERS IF nameFilterCustomerIssue()    THEN nameCustomer(is)   = nameFilterCustomerIssue() ELSE TRUE
+    FILTERS IF nameFilterProject()          THEN nameProject(is)    = nameFilterProject()       ELSE TRUE 
+    FILTERS IF nameFilterTracker()          THEN nameTracker(is)    = nameFilterTracker()       ELSE TRUE
+    FILTERS IF nameFilterStatus()           THEN nameStatus(is)     = nameFilterStatus()        ELSE TRUE
+    FILTERS IF nameFilterAssignedTo()       THEN nameAssignedTo(is) = nameFilterAssignedTo()    ELSE TRUE 
+    FILTERS IF nameFilterAuthor()           THEN nameAuthor(is)     = nameFilterAuthor()        ELSE TRUE
+;
+
+DESIGN tasksEmployees {
+    PROPERTY (name(is)) {caption = 'Тема';}
+    PROPERTY (hours(is)) {caption = 'Часы';}
+    PROPERTY (dateCreated(is)) {pattern = 'dd.MM.yyyy'; charWidth = 11;}
+    PROPERTY (dateUpdated(is)) {pattern = 'dd.MM.yyyy'; charWidth = 11;}
+    PROPERTY (doneRatio(is)) {caption = 'Готов,%';}
+    PANEL {
+        NEW cntMain {
+            type = CONTAINERV;
+            NEW cntFlt {
+                type = CONTAINERH;
+                caption = 'Фильтры';
+                MOVE PROPERTY (dateStart()) {caption = 'Дата с';} 
+                MOVE PROPERTY (dateEnd()) {caption = 'по';}
+                MOVE PROPERTY (nameFilterCustomerIssue()) {marginLeft = 10;} 
+                MOVE PROPERTY (nameFilterProject()) {marginLeft = 5;} 
+                MOVE PROPERTY (nameFilterTracker()) {marginLeft = 10;}
+                MOVE PROPERTY (nameFilterStatus()) {marginLeft = 5;}
+                MOVE PROPERTY (nameFilterAssignedTo()) {marginLeft = 10;}
+                MOVE PROPERTY (nameFilterAuthor()) {marginLeft = 5;}
+            } 
+            NEW cntDsc {
+                type = CONTAINERH;
+                MOVE PROPERTY (descriptionStringTablo(is)) {charWidth = 100;};
+            }
+        }
+    }
+}
+
+NAVIGATOR {
+    dashboard {
+        NEW tasksEmployees;
+    }
+}  
