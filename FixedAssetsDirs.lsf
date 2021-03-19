@@ -1,5 +1,5 @@
 MODULE FixedAssetsDirs;
-// Модкль справочников основных средств
+// Модуль справочников основных средств
 
 META newDirClass (object, table, title, titles)
 CLASS object title;
@@ -27,6 +27,7 @@ END
 @newDirClass(DirClassifier, dirclassifier, 'Классификатор','Классификатор');
 @newDirClass(DirStorage, dirstorage, 'Место хранения','Места хранения');
 @newDirClass(DirTypeObjects, dirtypeobjects, 'Вид объекта', 'Виды объектов');
+
 
  
 // см. навигатор в FixedAssets.lsf        
