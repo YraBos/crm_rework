@@ -25,6 +25,7 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         ContractDashboardNew,   // RM 14544, Генерация задолженностей
         TempClassReports,
         AgreementNew,
-        TasksEmployees          // RM 15166, Отдельный журнал по задачам сотрудников,  
+        TasksEmployees,         // RM 15166, Отдельный журнал по задачам сотрудников,  
+        HourFusion              // Учет занятий
 ;
 

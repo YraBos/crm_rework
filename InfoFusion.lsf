@@ -1,0 +1,163 @@
+MODULE HourFusion;
+
+REQUIRE Employee, Dashboard, Issue, Customer, Utils;
+
+NAMESPACE InfoFusion;
+
+CLASS InfoFusionTopic 'Темы';
+name        'Название раздела'      = DATA STRING[20] (InfoFusionTopic) NONULL;  
+
+FORM viewInfoFusionTopic 'Разделы занятий'
+    OBJECTS o = InfoFusionTopic
+    PROPERTIES(o) READONLY name
+    PROPERTIES(o) NEWSESSION DELETE, NEW, EDIT
+    LIST InfoFusionTopic OBJECT o
+;
+
+FORM editInfoFusionTopic 'Редактирование'
+    OBJECTS o = InfoFusionTopic PANEL
+    PROPERTIES(o) name
+    EDIT InfoFusionTopic OBJECT o
+;
+
+CLASS InfoFusion 'База знаний lsFusion';
+TABLE hourfusion (InfoFusion);
+
+date        'Дата'                  = DATA DATE             (InfoFusion) NONULL;
+lession     'Урок'                  = DATA INTEGER          (InfoFusion) CHARWIDTH 5;
+employee    'ID сотрудника'         = DATA Employee         (InfoFusion) NONULL;
+topic       'ID раздела'            = DATA InfoFusionTopic  (InfoFusion) NONULL;
+theme       'Тема занятия'          = DATA STRING[100]      (InfoFusion) NONULL;
+customer    'ID клиента'            = DATA Customer         (InfoFusion);     
+description 'Описание занятия'      = DATA TEXT             (InfoFusion);
+
+guru 'Докладчик' (InfoFusion o)   = name(employee(o));
+nameTopic 'Раздел' (InfoFusion o) = name(topic(o));
+nameCustomer 'Клиент' (InfoFusion o) = name(customer(o));
+
+CLASS InfoFusionResource 'Ресурсы';
+TABLE inforusionresource (InfoFusionResource);
+
+CLASS InfoFusionTypeResource 'Тип ресурса' {
+    p101 'FILE', p102 'WEB', p103 'RM', p104 'LS',p900 'NONE'
+}
+
+infoFusion  'ID шапки'              = DATA InfoFusion       (InfoFusionResource) AUTOSET;
+date        'Дата'                  = DATA DATE             (InfoFusionResource) NONULL;
+type        'ID типа ресурса'       = DATA InfoFusionTypeResource (InfoFusionResource) NONULL;
+link        'Ссылка на ресурс'      = DATA STRING[200]      (InfoFusionResource) NONULL;
+description 'Описание'              = DATA STRING[200]      (InfoFusionResource) NONULL;
+
+nameType 'Тип ресурса' (InfoFusionResource r) = staticCaption(type(r)) CHARWIDTH 8;
+
+onRedMine 'Redmine' (InfoFusionResource r) {
+    DIALOG dialogIssues OBJECTS o INPUT DO {
+        type(r) <- GROUP MAX (InfoFusionTypeResource o1) IF isSubstring(staticCaption(o1),'RM');
+        link(r) <- STRING[200] (number(o));
+        description(r) <- STRING[200] (name(o));
+    }
+}
+
+FORM editInfoFusionResource 'Редактирование'
+    OBJECTS r = InfoFusionResource PANEL
+    PROPERTIES(r) date, nameType, link, description
+    PROPERTIES(r) onRedMine  
+    EDIT InfoFusionResource OBJECT r
+    EVENTS ON INIT {
+        IF NOT date(r) THEN date(r) <- currentDate();
+    }
+;
+
+DESIGN editInfoFusionResource {
+    OBJECTS {
+        NEW cnt1 {
+            type = CONTAINERV;
+            fill = 1;
+            MOVE PROPERTY (date(r)) {caption = 'Дата создания ресурса';};
+            NEW cnt2 {
+                type = CONTAINERH;
+                MOVE PROPERTY (nameType(r));
+                MOVE PROPERTY (onRedMine(r));
+            }
+            MOVE PROPERTY (link(r));
+            MOVE PROPERTY (description(r));  
+        }
+    }
+}
+
+onShow 'Показать' (InfoFusionResource r) {
+    LOCAL cname = STRING[4] ();
+    cname() <- trim(nameType(r));
+    IF cname() = 'FILE' THEN open(link(r));
+    ELSE IF cname() = 'WEB' THEN open(LINK(link(r))); 
+    ELSE IF cname() = 'RM' THEN open(LINK('http://support.luxsoft.by/issues/' + link(r))); 
+    ELSE IF cname() = 'LS' THEN open('//192.168.42.7/WorkUser/employeeteaching/' + link(r)); 
+    ELSE MESSAGE 'Не обрабатываемый тип';
+}
+
+FORM viewInfoFusion 'Проводимые занятия'
+    OBJECTS o = InfoFusion
+    PROPERTIES(o) READONLY PANEL description
+    PROPERTIES(o) READONLY date, lession, guru, nameTopic, theme, nameCustomer
+    PROPERTIES(o) NEWSESSION DELETE, NEW, EDIT
+    OBJECTS r = InfoFusionResource
+    PROPERTIES(r) READONLY date, nameType, description, link
+    PROPERTIES(r) NEWSESSION DELETE, NEW, EDIT
+    PROPERTIES(r) TOOLBAR onShow 
+    FILTERS infoFusion(r) = o
+    ORDERS date(o)  
+; 
+
+FORM editInfoFusion 'Редактирование'
+    OBJECTS o = InfoFusion PANEL 
+    PROPERTIES(o) date, lession, guru, nameTopic, theme, nameCustomer, description
+    EDIT InfoFusion OBJECT o
+    EVENTS ON INIT {
+        IF NOT date(o) THEN date(o) <- currentDate();
+        IF NOT employee(o) THEN employee(o) <- currentUser();
+    }
+;   
+
+DESIGN editInfoFusion {
+    OBJECTS {
+        NEW cntMain {
+            type = CONTAINERV; 
+            fill = 1;
+            NEW cnt1 {
+                type = CONTAINERV ;
+                MOVE PROPERTY (date(o));
+                MOVE PROPERTY (lession(o));
+                MOVE PROPERTY (guru(o));
+                MOVE PROPERTY (nameTopic(o));
+                MOVE PROPERTY (theme(o));
+                MOVE PROPERTY (nameCustomer(o));
+            }
+            NEW cnt2 {
+                type = CONTAINERH;
+                fill = 1;
+                caption = 'Описание темы';
+                MOVE PROPERTY (description(o)) {caption = '';} 
+            }
+        }
+    }
+}
+
+DESIGN viewInfoFusion {
+    PANEL {
+        NEW tablo {
+            type = CONTAINERH;
+            fill = 1;
+            caption = 'Описание темы';
+            MOVE PROPERTY (description(o)) {caption = '';}
+        }
+    }
+    BOX(o) {
+        flex = 6;
+    }   
+}
+
+NAVIGATOR {
+    dashboard {
+        NEW viewInfoFusion;
+    }
+}   
