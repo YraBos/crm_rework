@@ -1,4 +1,4 @@
-MODULE HourFusion;
+MODULE InfoFusion;
 
 REQUIRE Employee, Dashboard, Issue, Customer, Utils;
 
@@ -21,7 +21,7 @@ FORM editInfoFusionTopic 'Редактирование'
 ;
 
 CLASS InfoFusion 'База знаний lsFusion';
-TABLE hourfusion (InfoFusion);
+TABLE infofusion (InfoFusion);
 
 date        'Дата'                  = DATA DATE             (InfoFusion) NONULL;
 lession     'Урок'                  = DATA INTEGER          (InfoFusion) CHARWIDTH 5;

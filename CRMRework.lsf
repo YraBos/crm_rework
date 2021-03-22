@@ -26,6 +26,6 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         TempClassReports,
         AgreementNew,
         TasksEmployees,         // RM 15166, Отдельный журнал по задачам сотрудников,  
-        HourFusion              // Учет занятий
+        InfoFusion              // Учет занятий
 ;
 
