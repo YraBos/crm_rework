@@ -91,7 +91,18 @@ onShow 'Показать' (InfoFusionResource r) {
     IF cname() = 'FILE' THEN open(link(r));
     ELSE IF cname() = 'WEB' THEN open(LINK(link(r))); 
     ELSE IF cname() = 'RM' THEN open(LINK('http://support.luxsoft.by/issues/' + link(r))); 
-    ELSE IF cname() = 'LS' THEN open('//192.168.42.7/WorkUser/employeeteaching/' + link(r)); 
+    ELSE IF cname() = 'LS' THEN {
+        LOCAL importFile = FILE ();
+        LOCAL sconnect, cmsg = STRING();
+        cmsg() <- 'Прием и отображение запрашиваемого ресурса\nможет занять несколько минут или более\n';
+        cmsg() <- cmsg() + 'Ресурс доступен по адресу:\n//SERVER2/WorkUser/employeeteaching/' + link(r) + '\n';
+        cmsg() <- cmsg() + 'Вы согласны продолжить?';
+        ASK cmsg() DO {
+            sconnect() <- 'ftp://piu:963741@office.luxsoft.by/' + link(r);
+            READ sconnect() TO importFile;
+            open(importFile());
+        }
+    } 
     ELSE MESSAGE 'Не обрабатываемый тип';
 }
 
