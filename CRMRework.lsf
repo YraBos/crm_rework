@@ -23,9 +23,10 @@ REQUIRE FixedAssets,            // Журнал учета основных ср
         StaticClientType,       // Определение статических классов для ClientType для вызова из CustomerNew.lsf
         EmployeeNew,            // RM 14473, Дни рождения сотрудников, см. также CustomerDashboardNew.onCheckBirthday  
         ContractDashboardNew,   // RM 14544, Генерация задолженностей
-        TempClassReports,
-        AgreementNew,
+        TempClassReports,       // Класс произвольного отчета для сверок (см. CustomerNew.lsf)
+        AgreementNew,           // RM12638 , удаление соглашения со связанными задолженностями
         TasksEmployees,         // RM 15166, Отдельный журнал по задачам сотрудников,  
-        InfoFusion              // Учет занятий
+        InfoFusion,             // Учет занятий, RM15308
+        DocDashboardNew         // Обработка документов, RM15373 допол. реквизит Признак валютного (псевдовалютного) договора
 ;
 

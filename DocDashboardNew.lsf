@@ -1,0 +1,11 @@
+MODULE DocDashboardNew;
+
+REQUIRE DocDashboard;
+
+EXTEND FORM docDashboard
+    PROPERTIES(d) READONLY inCurrency BEFORE shortNameCurrency(d) 
+;
+
+DESIGN docDashboard {
+    PROPERTY (inCurrency(d)) {caption = '$'; charWidth = 3;}
+} 
