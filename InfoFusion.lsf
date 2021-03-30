@@ -4,14 +4,16 @@ REQUIRE Employee, Dashboard, Issue, Customer, Utils;
 
 NAMESPACE InfoFusion;
 
-CLASS InfoFusionTopic 'Темы';
-name        'Название раздела'      = DATA STRING[20] (InfoFusionTopic) NONULL;  
+CLASS InfoFusionTopic 'Разделы';
+name        'Название раздела'      = DATA STRING[40] (InfoFusionTopic) NONULL;  
+TABLE infofusiontopic (InfoFusionTopic);
 
 FORM viewInfoFusionTopic 'Разделы занятий'
     OBJECTS o = InfoFusionTopic
     PROPERTIES(o) READONLY name
     PROPERTIES(o) NEWSESSION DELETE, NEW, EDIT
     LIST InfoFusionTopic OBJECT o
+    ORDERS name(o)
 ;
 
 FORM editInfoFusionTopic 'Редактирование'
@@ -34,6 +36,9 @@ description 'Описание занятия'      = DATA TEXT             (Info
 guru 'Докладчик' (InfoFusion o)   = name(employee(o));
 nameTopic 'Раздел' (InfoFusion o) = name(topic(o));
 nameCustomer 'Клиент' (InfoFusion o) = name(customer(o));
+
+CONSTRAINT nameTopic(InfoFusion o) = '!ВСЕ' MESSAGE 'Не допустимое название раздела: !ВСЕ';
+
 
 CLASS InfoFusionResource 'Ресурсы';
 TABLE inforusionresource (InfoFusionResource);
@@ -106,17 +111,31 @@ onShow 'Показать' (InfoFusionResource r) {
     ELSE MESSAGE 'Не обрабатываемый тип';
 }
 
+otop '' = DATA InfoFusionTopic ();          // указатель перехода на раздел, после редактирования темы занятия. См. editInfoFusion, edit +
+descriptionText = DATA LOCAL TEXT ();       // обманка для description. Если 2-й грид не имеет записей, то табло пропадает
+                                            // обманка исправляет "прагание" интерфейсов 
+
 FORM viewInfoFusion 'Проводимые занятия'
+    OBJECTS t = InfoFusionTopic
+    PROPERTIES(t) READONLY name 
+    ORDERS name(t)
+
     OBJECTS o = InfoFusion
-    PROPERTIES(o) READONLY PANEL description
-    PROPERTIES(o) READONLY date, lession, guru, nameTopic, theme, nameCustomer
+    PROPERTIES( ) READONLY PANEL descriptionText 
+    PROPERTIES(o) READONLY date, lession, guru, theme, nameCustomer
     PROPERTIES(o) NEWSESSION DELETE, NEW, EDIT
+    FILTERS IF name(t) = '!ВСЕ' THEN TRUE ELSE topic(o) = t
+
     OBJECTS r = InfoFusionResource
     PROPERTIES(r) READONLY date, nameType, description, link
     PROPERTIES(r) NEWSESSION DELETE, NEW, EDIT
     PROPERTIES(r) TOOLBAR onShow 
     FILTERS infoFusion(r) = o
-    ORDERS date(o)  
+    ORDERS date(o)
+    
+    EVENTS ON CHANGE o {
+        descriptionText() <- OVERRIDE description(o), '';       
+    }
 ; 
 
 FORM editInfoFusion 'Редактирование'
@@ -126,8 +145,17 @@ FORM editInfoFusion 'Редактирование'
     EVENTS ON INIT {
         IF NOT date(o) THEN date(o) <- currentDate();
         IF NOT employee(o) THEN employee(o) <- currentUser();
+        otop() <- NULL;
     }
-;   
+    EVENTS ON OK {
+        otop() <- GROUP MAX (InfoFusionTopic t) IF name(t) = nameTopic(o);
+    }
+;
+
+edit (InfoFusion i) + {
+    SHOW editInfoFusion OBJECTS o=i WAIT DOCKED;
+    IF otop() THEN SEEK viewInfoFusion.t = otop(); 
+}
 
 DESIGN editInfoFusion {
     OBJECTS {
@@ -159,12 +187,26 @@ DESIGN viewInfoFusion {
             type = CONTAINERH;
             fill = 1;
             caption = 'Описание темы';
-            MOVE PROPERTY (description(o)) {caption = '';}
+            MOVE PROPERTY (descriptionText()) {caption = '';}
         }
     }
-    BOX(o) {
-        flex = 6;
-    }   
+    OBJECTS {
+        NEW cntV {
+            type = CONTAINERV;
+            fill = 1;
+            NEW cnt1 {
+                type = SPLITH;
+                fill = 5;
+                MOVE BOX(t);
+                MOVE BOX(o) {fill = 6;}
+            }
+            NEW cnt2 {
+                type = CONTAINERH;
+                fill = 1;
+                MOVE BOX(r);
+            }
+        } 
+    }
 }
 
 NAVIGATOR {
