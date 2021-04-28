@@ -73,11 +73,12 @@ onRetInteger '' (STRING c1, c2) {
 }
 
 // 2. Cверка по ТО - тип S1 (S1M, S1N) по отдельному клиенту
+// 'Список лицензий','Список объектов'
 onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, cRepName2, cFDelimiter) {
     LOCAL frep = FILE(); 
     LOCAL pnote, UNP1, UNP2 = TEXT(); UNP1() <- ''; UNP2() <- ''; 
     LOCAL ox1, ox2 = Attachment();
-    LOCAL ks1,ks2,ks6,iks1,iks2,iks3,iks6 = INTEGER (); iks3() <- 0; 
+    LOCAL ks1,ks2,ks6,iks1,iks2,iks3,iks6 = INTEGER (); iks3() <- 0;   
     LOCAL onlyClient = BOOLEAN ();
     LOCAL nob,imax = INTEGER(); nob() <- 0; imax() <- 0;  
     LOCAL colA1,colB1,colC1,colD1,colB2,colC2,colD2,colF2,colH2,colG2 = BPSTRING[50] (INTEGER);

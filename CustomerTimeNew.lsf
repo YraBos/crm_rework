@@ -242,7 +242,6 @@ DESIGN customerTimeDashboard {
     } 
 }
 
-
 EXTEND FORM customerTimeDashboard
     PROPERTIES(c) PANEL READONLY clientType, clientTypeInfo
 ; 
@@ -264,4 +263,27 @@ DESIGN customerTimeDashboard {
     }
 }
 
+remark 'Замечание' = DATA STRING[100] (Issue);
+ifRemark 'Зм.' (Issue i) = IF remark(i) THEN TRUE; 
 
+// форма редактирования
+FORM editRemark 'Изменить'
+    OBJECTS is = Issue PANEL PROPERTIES(is) remark
+    EVENTS ON OK {APPLY;} 
+    EVENTS ON CLOSE {CANCEL;}
+;
+
+onEditReamark 'Замечание' (Issue o) {
+    SHOW editRemark OBJECTS is = o;   
+}
+
+EXTEND FORM customerTimeDashboard
+    PROPERTIES(is) READONLY remark, ifRemark AFTER in(is)
+    PROPERTIES(is) onEditReamark    
+; 
+
+DESIGN customerTimeDashboard {
+    TOOLBARRIGHT(is) {
+        MOVE PROPERTY (onEditReamark(is)) BEFORE PROPERTY (open(is));
+    }    
+}

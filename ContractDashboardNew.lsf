@@ -1,14 +1,15 @@
 MODULE ContractDashboardNew;
 
-REQUIRE ContractDashboard, Debt, Time, Utils;
+REQUIRE ContractDashboard, Debt, DebtDashboard, Time, Utils;
 
 dateStart 'Начать с даты' = DATA DATE ();
 qMonth 'Кол-во месяцев' = DATA INTEGER ();
 skipDebt 'Пропускать ранее созданные' = DATA LOCAL BOOLEAN ();
 oK 'Флаг удачного завершения' = DATA LOCAL BOOLEAN ();
+seekDebt 'ID 1-й созданной задолженности' = DATA LOCAL Debt(); // только для редактирования договоров
 inFilter '' = DATA LOCAL BOOLEAN (Contract);
 
-FORM setProperties 'Создание задолженностей'
+FORM setProperties 'Создание задолженностей' 
     PROPERTIES() dateStart, qMonth, skipDebt
     EVENTS ON INIT {
         dateStart() <- currentDate();
@@ -24,10 +25,12 @@ FORM setProperties 'Создание задолженностей'
 onFillCreateDebts '' (Contract c) {
     LOCAL month, year, monthCur, yearCur = INTEGER ();
     LOCAL date, dateCur = DATE ();
+    seekDebt() <- NULL; 
     oK() <- NULL;    
     // проверка: сумма ежемесячного платежа, день платежа, дата подписания клиентом
     IF NOT (sumMonth(c) AND paymentDay(c) AND dateSigningCustomer(c)) THEN RETURN;  
-    IF NOT skipDebt() THEN {DELETE Debt d WHERE contract(d) == c AND date(d) > dateStart();}
+    IF NOT skipDebt() THEN DELETE Debt d WHERE contract(d) == c AND date(d) > dateStart();
+//    DELETE Debt d WHERE contract(d) == c AND date(d) > currentDate();
     month()     <- extractMonthNumber(dateStart());
     year()      <- extractYear(dateStart());
     monthCur()  <- CASE WHEN NOT prevMonthCurrency(c) THEN month()
@@ -43,6 +46,7 @@ onFillCreateDebts '' (Contract c) {
                 dateCur() <- lastDayOfMonth(toDateFormat('01' + text(monthCur()) + yearCur(), 'DDMMYYYY'));
         }
        IF NOT debt(date(), c) THEN NEW d = Debt {
+            IF NOT seekDebt() THEN seekDebt() <- d; 
             contract(d) <- c;
             date(d) <- date();
             IF inCurrency(c) THEN {
@@ -74,7 +78,21 @@ onSingleCreateDebts 'Создать задолженности' (Contract c) {
         MESSAGE 'Неопределено количество месяцев\nВыполнение отменено'; 
         RETURN;
     }
-    onFillCreateDebts(c);
+    LOCAL cnt1, cnt2, month, year = INTEGER ();
+    LOCAL date = DATE (); // дата, с которой выполняется расчет
+    month() <- extractMonthNumber(dateStart()); year() <- extractYear(dateStart());
+    TRY     date() <- toDateFormat(text(paymentDay(c)) + text(month()) + year(), 'DDMMYYYY'); 
+    CATCH   date() <- lastDayOfMonth(toDateFormat('01' + text(month()) + year(), 'DDMMYYYY'));
+    cnt1() <- GROUP SUM 1 IF contract(Debt d) = c AND date(d) < date();
+    onFillCreateDebts(c); // Вызывает расчет задолженностей
+    cnt2() <- GROUP SUM 1 IF contract(Debt d) = c AND date(d) < date();
+    cnt1() <- OVERRIDE cnt1(), 0; cnt2() <- OVERRIDE cnt2(), 0;
+    IF cnt1() != cnt2() THEN {
+            MESSAGE 'Внимание. Обратите внимание!!!\n' + 
+                    'Изменилось количество предыдущих задолженностей\n' + 
+                    'до (' + cnt1() + ') и после (' + cnt2() + ') выполнения операции';
+    }
+    IF oK() AND seekDebt() THEN SEEK contract.d = seekDebt();
 }
 
 // кнопка на форме Работа с договорами
@@ -103,6 +121,7 @@ onFullCreateDebts 'Создать задолженности' () {
 }
 
 EXTEND FORM contractDashboard
+    PROPERTIES(o) READONLY nameActTemplate  
     PROPERTIES() onFullCreateDebts
 ; 
 

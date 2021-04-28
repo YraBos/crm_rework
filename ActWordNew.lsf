@@ -1,0 +1,10 @@
+MODULE ActWordNew;
+
+REQUIRE ActWord, Time, Utils;
+
+NAMESPACE Act;
+
+AFTER createActTemplate (Act ag, Template t) DO {
+    value(TemplateEntry d) <- TEXT (lower(extractMonthName(toDate(ag)))) WHERE key(d) = 'NAME_ACT_MONTH' AND template (d) == t;
+}
+
