@@ -21,6 +21,14 @@ customer    'Клиент'        = DATA Customer         (CustomerExtensions) A
 date        'Дата действия' = DATA DATE             (CustomerExtensions) NONULL;
 rate        'Коэффициент'   = DATA NUMERIC[14,4]    (CustomerExtensions) NONULL;
 
+// признак, что указанные значения являются остатком на начало периода
+markBalance 'Признак остатка на начало' = DATA BOOLEAN (ContractSubject);
+markBalance 'Признак остатка на начало' = DATA BOOLEAN (AgreementSubject);
+EXTEND FORM contract 
+    PROPERTIES(as) markBalance SHOWIF nameType(o) = 'Сопровождение'
+    PROPERTIES(s)  markBalance SHOWIF nameType(o) = 'Сопровождение'
+;
+
 //rateCureency 'Коэф. USD' (Act a) = 
 //    NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(a)),date(a)),4)); 
 
@@ -62,8 +70,10 @@ rateCureency2 'Коэф. USD' (Contract c,DATE ds) =
 baseCnt '' (LegalEntity l) = GROUP MAX (Contract c) IF nameType(c) = 'Сопровождение' BY legalEntity(c);
 
 // максимальная дата остатка на начало по договору или соглашению
-dCnt '' (LegalEntity l) = OVERRIDE (GROUP MAX (date(ContractSubject s)) IF contract(s) = baseCnt(l) AND date(s) <= dateStart()), 1900_01_01;               
-dAgr '' (LegalEntity l) = OVERRIDE (GROUP MAX (date(AgreementSubject s)) IF contract(agreement(s)) = baseCnt(l) AND date(s) <= dateStart()), 1900_01_02;               
+dCnt '' (LegalEntity l) = OVERRIDE (GROUP MAX (date(ContractSubject s)) 
+        IF contract(s) = baseCnt(l) AND markBalance(s) AND date(s) <= dateStart()), 1900_01_01;               
+dAgr '' (LegalEntity l) = OVERRIDE (GROUP MAX (date(AgreementSubject s)) 
+        IF contract(agreement(s)) = baseCnt(l) AND markBalance(s) AND date(s) <= dateStart()), 1900_01_02;               
 
 // вычисляем ссылку на остаток в предмете договора по договору и в предмете договора по соглашению
 cidCnt '' (LegalEntity l) = GROUP MAX (ContractSubject s)  
@@ -73,6 +83,7 @@ cidAgr '' (LegalEntity l) = GROUP MAX (AgreementSubject s)
 
 
 // в рублях на начало расчетного периода
+
 s11 '' (LegalEntity l) = 
     IF dCnt(l) > dAgr(l) THEN 
         quantity(cidCnt(l)) * (IF inCurrency(baseCnt(l)) THEN rateCureency2(baseCnt(l),dCnt(l)) ELSE 1)
