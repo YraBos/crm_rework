@@ -5,16 +5,15 @@ REQUIRE EVAT, ActEVAT;
 NAMESPACE EVAT;
 
 // Сдвигаем кнопку создать ЭСЧФ линию панели инструментов грида
-//DESIGN ActEVATs {
-//    BOX(a) {
-//        TOOLBAR (a) {
-//            MOVE PROPERTY (generateEVAT());
-//        }
-//    }
-//}
+DESIGN ActEVATs {
+    BOX(a) {
+        TOOLBAR (a) {
+            MOVE PROPERTY (generateEVAT());
+        }
+    }
+}
 
-// Печатная форма, стиль, как на портале
-// ---------------------------------------------------------------------------
+// Печатная форма, стиль отображения, как на портале
 FORM viewEvat 'Просмотр ЭСЧФ'
     OBJECTS e=EVAT PANEL
     PROPERTIES(e) READONLY documentType, exportNumber, dateDoc, dependentPersonSupplier, 
@@ -29,7 +28,7 @@ FORM viewEvat 'Просмотр ЭСЧФ'
 ;
 
 onReportEvat 'Показать СФ' (EVAT o) {
-    PRINT viewEvat OBJECTS e = o ;
+    PRINT viewEvat OBJECTS e = o;
 } TOOLBAR ;
 
 EXTEND FORM EVATs
@@ -37,35 +36,29 @@ EXTEND FORM EVATs
 ;
 
 // Редактирование нименования услуг
-// ---------------------------------------------------------------------------
-// пока отменим редактирование услуг, так как реально поле должно быть другим (TEXT вместо STRING), 27.04.2021
-//FORM editNameEvatDetail 'Редактирование услуг'
-//    OBJECTS d = EVATDetail PANEL 
-//    PROPERTIES(d) name
-//    EDIT EVATDetail OBJECT d
-//    EVENTS ON OK {
-//        APPLY; 
-//    } 
-//;
-//
-//DESIGN editNameEvatDetail {
-//    OBJECTS {
-//        NEW cnt1 {
-//            type = CONTAINERH;
-//            fill = 1;
-//            caption = 'Наименование товаров (работ, услуг)'; 
-//            MOVE PROPERTY (name(d)) {caption = ''; charHeight = 20;}
-//        }
-//    }
-//}
-//
-//
-//onEditDetailName 'Изменить Услуги' (EVATDetail o) {
-//    SHOW editNameEvatDetail OBJECTS d = o WAIT DOCKED;
-//} TOOLBAR ;
-//
-//EXTEND FORM EVATs
-//    PROPERTIES(d) onEditDetailName
-//;
+FORM editNameEvatDetail 'Редактирование услуг'
+    OBJECTS d = EVATDetail PANEL 
+    PROPERTIES(d) name
+    EDIT EVATDetail OBJECT d
+;
 
+DESIGN editNameEvatDetail {
+    OBJECTS {
+        NEW cnt1 {
+            type = CONTAINERH;
+            fill = 1;
+            caption = 'Наименование товаров (работ, услуг)';
+            MOVE PROPERTY (name(d)) {caption = ''; fontSize = 16;}
+        }
+    }
+}
+
+
+onEditDetailName 'Изменить Услуги' (EVATDetail o) {
+  NEWSESSION SHOW editNameEvatDetail OBJECTS d = o WAIT DOCKED ;
+} TOOLBAR ;
+
+EXTEND FORM EVATs
+    PROPERTIES(d) onEditDetailName
+;
 

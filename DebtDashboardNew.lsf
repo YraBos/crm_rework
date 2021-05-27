@@ -68,4 +68,8 @@ DESIGN debtDashboard {
     }
 }
 
-
+// RM15937, вытянуть тип акта из договоора
+nameActTemplateDebt 'Шаблон акта' (Debt d) = nameActTemplate(contract(d));
+EXTEND FORM debtDashboard
+    PROPERTIES(d) nameActTemplateDebt 
+; 

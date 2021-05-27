@@ -1,0 +1,194 @@
+MODULE ActRevise;
+
+REQUIRE PaymentProcessDashboardNew, LegalEntityBy, DocWord;
+
+// для формы
+actReviseDS     'Начало периода'                        = DATA LOCAL DATE ();
+actReviseDE     'Конец периода'                         = DATA LOCAL DATE ();
+actReviseCN     'Контракт'                              = DATA LOCAL Contract ();
+actReviseScreen 'Выводить на экран'                     = DATA LOCAL BOOLEAN ();
+
+// Заголовки и отд. свойства отчета
+actReviseTitle1     '' = DATA LOCAL TEXT          ();    
+actReviseTitle2     '' = DATA LOCAL TEXT          ();   
+actReviseTitle3     '' = DATA LOCAL TEXT          ();   
+actReviseTitle4     '' = DATA LOCAL TEXT          ();   
+actReviseTitle5     '' = DATA LOCAL TEXT          ();   
+actReviseTitle6     '' = DATA LOCAL TEXT          ();   
+actReviseTitle7     '' = DATA LOCAL TEXT          ();  // сальдо на конец   
+actReviseText       '' = DATA LOCAL STRING[100]   ();  // Связанные документы 
+ 
+// временный класс строк класс отчета 
+CLASS ActReviseTemp;
+nid     'Индекс'    = DATA INTEGER          (ActReviseTemp); 
+number  'Документ'  = DATA STRING[100]      (ActReviseTemp);
+date    'Дата'      = DATA DATE             (ActReviseTemp);
+note    'Примечание'= DATA STRING[100]      (ActReviseTemp);
+debit   'Дебет'     = DATA NUMERIC[10,2]    (ActReviseTemp);
+credit  'Кредит'    = DATA NUMERIC[10,2]    (ActReviseTemp);
+
+FORM actRevise 'Акт сверки'
+    OBJECTS ds = DATE PANEL, de = DATE PANEL, le = LegalEntity PANEL, cn = Contract PANEL, pscr1 = YesNo PANEL          
+    PROPERTIES ds 'Дата с' = VALUE(ds), de 'по' = VALUE(de)
+    PROPERTIES design1 = name(le) SELECTOR 
+    PROPERTIES design2 = number(cn) SELECTOR
+    PROPERTIES(cn) READONLY date, nameType
+    PROPERTIES design3 'Выводить отчет на экран ' = staticCaption(pscr1) SELECTOR 
+    FILTERS legalEntity(cn) = le
+    EVENTS ON INIT {
+        SEEK actRevise.ds = toDateFormat('0101' + toChar(extractYear(currentDate()),'9999'), 'DDMMYYYY');
+        SEEK actRevise.de = currentDate();
+        SEEK actRevise.le = legalEntity(cn);
+        SEEK actRevise.pscr1 = YesNo.no;
+    }
+    EVENTS ON OK {
+        actReviseDS() <- ds; actReviseDE() <- de; actReviseCN() <- cn; 
+        actReviseScreen() <- IF pscr1 = YesNo.yes THEN TRUE;
+    }
+;
+
+DESIGN actRevise {
+    OBJECTS {
+        NEW cntMain {
+            type = CONTAINERV;
+            NEW cntDate {
+                caption = 'выбор период расчета';
+                type = CONTAINERH;
+                MOVE PROPERTY (ds);
+                MOVE PROPERTY (de) {marginLeft = 10;};
+            }
+            NEW cntLE {
+                caption = 'выбор организации';
+                MOVE PROPERTY (design1) {charWidth = 50;};
+            }
+            NEW cntCNT {
+                caption = 'выбор договора';
+                type = CONTAINERH;  
+                MOVE PROPERTY (design2);
+                MOVE PROPERTY (date(cn)) {marginLeft = 10;}; 
+                MOVE PROPERTY (nameType(cn)) {marginLeft = 10;}; 
+            }
+            NEW cntProp {
+                caption = 'дополнительные свойства';
+                type = CONTAINERV;  
+                MOVE PROPERTY (design3) {charWidth = 3; marginLeft = 5;};                
+            }
+        }
+    }    
+}
+
+// печатная форма
+FORM reportActRevise 'Печать Акта сверки'
+    PROPERTIES() actReviseTitle1, actReviseTitle2, actReviseTitle3, actReviseTitle4, actReviseTitle5, actReviseTitle6, actReviseTitle7 PANEL 
+    OBJECTS a = ActReviseTemp
+    PROPERTIES(a) nid, date, number, note, debit, credit
+    ORDERS nid(a), date(a)
+;
+
+// чистим совйства и временную таблицу
+onActReviseCls 'Очистка свойств' () {
+    DELETE ActReviseTemp a WHERE a IS ActReviseTemp; // чистим tmp таблицу
+    actReviseCN() <- NULL;  
+    actReviseTitle1() <- NULL; actReviseTitle2() <- NULL; actReviseTitle3() <- NULL; actReviseTitle4() <- NULL; 
+    actReviseTitle5() <- NULL; actReviseTitle6() <- NULL; actReviseTitle7() <- NULL; 
+}
+
+// расчет акта для печатной формы
+onActRevise 'Акт сверки' (Payment o) {
+    onActReviseCls();
+    DIALOG actRevise OBJECTS cn = contract(o);
+    IF NOT actReviseCN() THEN RETURN;
+    LOCAL sdS, sdE, skS, skE = NUMERIC[14,5] (); // обороты дебет начало-конец, кредит начало-конец
+    sdS() <- GROUP SUM sum(Act a) IF contract(a) = actReviseCN() AND date(a) <  actReviseDS(); 
+    sdS() <- OVERRIDE sdS(), 0.00; 
+    sdE() <- GROUP SUM sum(Act a) IF contract(a) = actReviseCN() AND date(a) <= actReviseDE(); 
+    sdE() <- OVERRIDE sdE(), 0.00;
+    FOR (Act a IS Act) AND contract(a) = contract(actReviseCN()) AND (date(a) > actReviseDS() AND date(a) <= actReviseDE()) DO {
+        NEW ob = ActReviseTemp {
+            nid(ob)     <- 2;
+            date(ob)    <- date(a);
+            number(ob)  <- number(a);
+            debit(ob)   <- round(sum(a),2);
+        }
+    }  
+    skS() <- GROUP SUM sum(Payment p) IF contract(p) = actReviseCN() AND date(p) <  actReviseDS();
+    skS() <- OVERRIDE skS(), 0.00;
+    skE() <- GROUP SUM sum(Payment p) IF contract(p) = actReviseCN() AND date(p) <= actReviseDE();
+    skE() <- OVERRIDE skE(), 0.00;
+    FOR (Payment p IS Payment) AND contract(p) = contract(actReviseCN())  AND (date(p) > actReviseDS() AND date(p) <= actReviseDE()) DO {
+        NEW ob = ActReviseTemp {
+            nid(ob)     <- 2;
+            date(ob)    <- date(p);
+            number(ob)  <- OVERRIDE number(p),'б/н';
+            note(ob)    <- note(p);
+            credit(ob)  <- round(sum(p),2);         
+        }
+    }
+    // сальдо и обороты
+    NEW ob = ActReviseTemp {
+       nid(ob)    <- 1;
+       note(ob)   <- 'Сальдо на ' + toDateDDMMYYYY(actReviseDS()) + 'г., бел. рубли';
+       IF      sdS() - skS() > 0 THEN debit(ob)  <- round(sdS() - skS(),2);
+       ELSE IF sdS() - skS() < 0 THEN credit(ob) <- round(skS() - sdS(),2);
+    }
+    NEW ob = ActReviseTemp {
+       nid(ob)    <- 3;
+       note(ob)   <- 'Обороты за период \nc ' + toDateDDMMYYYY(actReviseDS()) + ' по ' + toDateDDMMYYYY(actReviseDE()) + 'г.';
+       debit(ob)  <- IF sdE() - sdS() != 0 THEN round(sdE() - sdS(),2);
+       credit(ob) <- IF skE() - skS() != 0 THEN round(skE() - skS(),2);
+    }
+    // заголовки и итоги
+    LOCAL ole1, ole2 = LegalEntity ();
+    LOCAL gbux, gdir = STRING ();
+    gbux() <- 'Лангуева И.И.'; gdir() <- 'Донсков Е.С.'; 
+    ole1() <- GROUP MAX (LegalEntity l) IF id(l) = '1'; // НТ ООО ЛюксСофт
+    ole2() <- legalEntity(contract(actReviseCN()));     // Организация
+    actReviseTitle1() <- OVERRIDE fullName(ole1()), name(ole1());
+    actReviseTitle2() <- OVERRIDE fullName(ole2()), name(ole2());
+    actReviseTitle3() <- 
+        'взаимных расчетов за период с ' + toDateDDMMYYYY(actReviseDS()) + ' по ' + toDateDDMMYYYY(actReviseDE()) + 'г.\n' +
+        'между ' + actReviseTitle1() + ' и ' + actReviseTitle2() + '\n' +
+        'по договору № '   + number(contract(actReviseCN())) + ' от ' + toDateDDMMYYYY(date(contract(actReviseCN()))) + 'г.\n';
+    actReviseTitle4() <- 
+        '   Мы, нижеподписавшиеся, гл. бухгалтер ' + actReviseTitle1() + ' ' + gbux() + ' ' + 
+        'с одной стороны, и ' + actReviseTitle2() + ' с другой стороны, составили настоящий акт сверки в том, ' + 
+        'что состояние взаимных расчетов по данным учета следующее:\n';
+    actReviseTitle5() <-
+        (IF UNP(ole1()) THEN 'УНП: ' + UNP(ole1()) + '\n' ELSE '') +    
+        (IF nameLegalAddress(ole1()) THEN nameLegalAddress(ole1()) + '\n' ELSE '') + '\n' +
+        'директор      ______________________ (' + gdir() + ')\n\n' +
+        'гл. бухгалтер ______________________ (' + gbux() + ')\n\n' + 
+        '"____" _________________ ' + toChar(extractYear(actReviseDE()),'9999') + 'г.\n\n' + 
+        'В случае невозврата акта сверки в течении 10 дней,\n' +
+        'сальдо считается подтвержденным';
+    actReviseTitle6() <-
+        (IF UNP(ole2()) THEN 'УНП: ' + UNP(ole2()) + '\n' ELSE '') +    
+        (IF nameLegalAddress(ole2()) THEN nameLegalAddress(ole2()) + '\n' ELSE '') + '\n' + 
+        'руководитель  ______________________ (_______________)\n\n' + 
+        'гл. бухгалтер ______________________ (_______________)\n\n' + 
+        '"____" _________________ ' + toChar(extractYear(actReviseDE()),'9999') + 'г.\n';
+    // задолженность на конец
+    actReviseTitle7()   <- 'Задолженность ';  
+    NEW ob = ActReviseTemp {
+       nid(ob)    <- 4;
+       note(ob) <- 'Сальдо исходящие, бел. рубли';
+       IF sdE() - skE() > 0 THEN {
+            debit(ob)  <- round(sdE() - skE(),2);
+            actReviseTitle7() <- 
+                'Задолженность ' + actReviseTitle2() + ' перед ' + actReviseTitle1() + ' составляет ' + trim(toChar(debit(ob),'9999999999.99')) + 
+                ' (' + numSpelledCurrency(debit(ob), '00d', currency(actReviseCN())) + ')';  
+       } ELSE IF sdE() - skE() < 0 THEN {
+            credit(ob) <- round(skE() - sdE(),2);
+            actReviseTitle7() <- 
+                'Задолженность ' + actReviseTitle1() + ' перед ' + actReviseTitle2() + ' составляет ' + trim(toChar(credit(ob),'9999999999.99')) +  
+                ' (' + numSpelledCurrency(credit(ob), '00d', currency(actReviseCN())) + ')';  
+       } ELSE actReviseTitle7() <- 'Задолженности нет'; 
+    }
+    IF actReviseScreen() THEN PRINT reportActRevise; ELSE PRINT reportActRevise XLS;
+    CANCEL; 
+} TOOLBAR ;
+
+
+EXTEND FORM paymentProcessDasboard
+    PROPERTIES onActRevise(p) TOOLBAR 
+;
