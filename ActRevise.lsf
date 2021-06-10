@@ -3,10 +3,13 @@ MODULE ActRevise;
 REQUIRE PaymentProcessDashboardNew, LegalEntityBy, DocWord;
 
 // для формы
-actReviseDS     'Начало периода'                        = DATA LOCAL DATE ();
-actReviseDE     'Конец периода'                         = DATA LOCAL DATE ();
-actReviseCN     'Контракт'                              = DATA LOCAL Contract ();
-actReviseScreen 'Выводить на экран'                     = DATA LOCAL BOOLEAN ();
+actReviseDS     'Начало периода'            = DATA LOCAL DATE ();
+actReviseDE     'Конец периода'             = DATA LOCAL DATE ();
+actReviseCN     'Контракт'                  = DATA LOCAL Contract ();
+actReviseDBSum  'Дебит на начало'           = DATA LOCAL NUMERIC[14,2] (); 
+actReviseCRSum  'Кредит на начало'          = DATA LOCAL NUMERIC[14,2] ();
+actReviseSum    'Учитывать остатки'         = DATA LOCAL BOOLEAN ();
+actReviseScreen 'Выводить отчет на экран'   = DATA LOCAL BOOLEAN ();
 
 // Заголовки и отд. свойства отчета
 actReviseTitle1     '' = DATA LOCAL TEXT          ();    
@@ -23,31 +26,40 @@ CLASS ActReviseTemp;
 nid     'Индекс'    = DATA INTEGER          (ActReviseTemp); 
 number  'Документ'  = DATA STRING[100]      (ActReviseTemp);
 date    'Дата'      = DATA DATE             (ActReviseTemp);
-note    'Примечание'= DATA STRING[100]      (ActReviseTemp);
+note    'Примечание'= DATA TEXT             (ActReviseTemp);
 debit   'Дебет'     = DATA NUMERIC[10,2]    (ActReviseTemp);
 credit  'Кредит'    = DATA NUMERIC[10,2]    (ActReviseTemp);
 
 FORM actRevise 'Акт сверки'
-    OBJECTS ds = DATE PANEL, de = DATE PANEL, le = LegalEntity PANEL, cn = Contract PANEL, pscr1 = YesNo PANEL          
+    OBJECTS ds = DATE PANEL, de = DATE PANEL, 
+            sDBSum = NUMERIC[14,2] PANEL, sCRSum = NUMERIC[14,2] PANEL, 
+            le = LegalEntity PANEL, cn = Contract PANEL          
     PROPERTIES ds 'Дата с' = VALUE(ds), de 'по' = VALUE(de)
     PROPERTIES design1 = name(le) SELECTOR 
     PROPERTIES design2 = number(cn) SELECTOR
     PROPERTIES(cn) READONLY date, nameType
-    PROPERTIES design3 'Выводить отчет на экран ' = staticCaption(pscr1) SELECTOR 
+    PROPERTIES sDBSum 'Дебит' = VALUE(sDBSum), sCRSum 'Кредит' = VALUE(sCRSum), actReviseSum(), actReviseScreen() 
     FILTERS legalEntity(cn) = le
     EVENTS ON INIT {
         SEEK actRevise.ds = toDateFormat('0101' + toChar(extractYear(currentDate()),'9999'), 'DDMMYYYY');
         SEEK actRevise.de = currentDate();
         SEEK actRevise.le = legalEntity(cn);
-        SEEK actRevise.pscr1 = YesNo.no;
+        SEEK actRevise.sDBSum = 0.00;
+        SEEK actRevise.sCRSum = 0.00;
     }
     EVENTS ON OK {
         actReviseDS() <- ds; actReviseDE() <- de; actReviseCN() <- cn; 
-        actReviseScreen() <- IF pscr1 = YesNo.yes THEN TRUE;
+        actReviseDBSum() <- sDBSum;
+        actReviseCRSum() <- sCRSum;
     }
 ;
 
 DESIGN actRevise {
+    TOOLBARBOX {
+        TOOLBARLEFT {
+            MOVE PROPERTY (actReviseScreen()) {marginTop = 8;};
+        }
+    }   
     OBJECTS {
         NEW cntMain {
             type = CONTAINERV;
@@ -68,10 +80,12 @@ DESIGN actRevise {
                 MOVE PROPERTY (date(cn)) {marginLeft = 10;}; 
                 MOVE PROPERTY (nameType(cn)) {marginLeft = 10;}; 
             }
-            NEW cntProp {
-                caption = 'дополнительные свойства';
-                type = CONTAINERV;  
-                MOVE PROPERTY (design3) {charWidth = 3; marginLeft = 5;};                
+            NEW cntSaldo{
+                caption = 'Остатки на начало';
+                type = CONTAINERH;
+                MOVE PROPERTY (sDBSum) ;
+                MOVE PROPERTY (sCRSum) {marginLeft = 10;};
+                MOVE PROPERTY (actReviseSum()) {marginLeft = 10;};
             }
         }
     }    
@@ -99,22 +113,35 @@ onActRevise 'Акт сверки' (Payment o) {
     DIALOG actRevise OBJECTS cn = contract(o);
     IF NOT actReviseCN() THEN RETURN;
     LOCAL sdS, sdE, skS, skE = NUMERIC[14,5] (); // обороты дебет начало-конец, кредит начало-конец
-    sdS() <- GROUP SUM sum(Act a) IF contract(a) = actReviseCN() AND date(a) <  actReviseDS(); 
-    sdS() <- OVERRIDE sdS(), 0.00; 
-    sdE() <- GROUP SUM sum(Act a) IF contract(a) = actReviseCN() AND date(a) <= actReviseDE(); 
-    sdE() <- OVERRIDE sdE(), 0.00;
+    IF actReviseSum() THEN {
+        sdS() <- actReviseDBSum();
+        sdE() <- GROUP SUM sum(Act a) IF contract(a) = actReviseCN() AND date(a) >= actReviseDS() AND date(a) <= actReviseDE(); 
+        sdE() <- sdS() + (OVERRIDE sdE(), 0.00);
+    } ELSE {
+        sdS() <- GROUP SUM sum(Act a) IF contract(a) = actReviseCN() AND date(a) <  actReviseDS(); 
+        sdS() <- OVERRIDE sdS(), 0.00; 
+        sdE() <- GROUP SUM sum(Act a) IF contract(a) = actReviseCN() AND date(a) <= actReviseDE(); 
+        sdE() <- OVERRIDE sdE(), 0.00;
+    }
     FOR (Act a IS Act) AND contract(a) = contract(actReviseCN()) AND (date(a) > actReviseDS() AND date(a) <= actReviseDE()) DO {
         NEW ob = ActReviseTemp {
             nid(ob)     <- 2;
             date(ob)    <- date(a);
             number(ob)  <- number(a);
+            note(ob)    <- text(a);
             debit(ob)   <- round(sum(a),2);
         }
     }  
-    skS() <- GROUP SUM sum(Payment p) IF contract(p) = actReviseCN() AND date(p) <  actReviseDS();
-    skS() <- OVERRIDE skS(), 0.00;
-    skE() <- GROUP SUM sum(Payment p) IF contract(p) = actReviseCN() AND date(p) <= actReviseDE();
-    skE() <- OVERRIDE skE(), 0.00;
+    IF actReviseSum() THEN {
+        skS() <- actReviseCRSum();
+        skE() <- GROUP SUM sum(Payment p) IF contract(p) = actReviseCN() AND date(p) >= actReviseDS() AND date(p) <= actReviseDE(); 
+        skE() <- skS() + (OVERRIDE skE(), 0.00);
+    } ELSE {
+        skS() <- GROUP SUM sum(Payment p) IF contract(p) = actReviseCN() AND date(p) <  actReviseDS();
+        skS() <- OVERRIDE skS(), 0.00;
+        skE() <- GROUP SUM sum(Payment p) IF contract(p) = actReviseCN() AND date(p) <= actReviseDE();
+        skE() <- OVERRIDE skE(), 0.00;
+    }
     FOR (Payment p IS Payment) AND contract(p) = contract(actReviseCN())  AND (date(p) > actReviseDS() AND date(p) <= actReviseDE()) DO {
         NEW ob = ActReviseTemp {
             nid(ob)     <- 2;

@@ -188,14 +188,15 @@ delFoto 'X Фото' (FixedAssets fa) {
     } 
 }
 
-// ----- ФИЛЬТРЫ -----
-filterEmployee = DATA LOCAL Employee();
-nameFilterEmployee 'ФИО МОЛ' () = name(filterEmployee()) CHARWIDTH 40;
-filterYearInputDate 'Год ввода в эксп.' = DATA LOCAL INTEGER() CHARWIDTH 5; 
-filterYearOfDisposal 'Год выбытия' = DATA LOCAL INTEGER() CHARWIDTH 5;
-filterFactYearDisposal 'Год ф/выбытия' = DATA LOCAL INTEGER() CHARWIDTH 5;
-filterStorage = DATA LOCAL DirStorage();
-nameFilterStorage 'Место хранения' () = name(filterStorage()) CHARWIDTH 40;
+// ----- ФИЛЬТРЫ на форме -----
+filterYearInputDate     'Год ввода в эксп.'     = DATA LOCAL INTEGER() CHARWIDTH 5; 
+filterYearOfDisposal    'Год выбытия'           = DATA LOCAL INTEGER() CHARWIDTH 5;
+filterFactYearDisposal  'Год ф/выбытия'         = DATA LOCAL INTEGER() CHARWIDTH 5;
+
+filterEmployee                                  = DATA LOCAL Employee();
+nameFilterEmployee      'ФИО МОЛ' () = name(filterEmployee()) CHARWIDTH 40;
+filterStorage                                   = DATA LOCAL DirStorage();
+nameFilterStorage       'Место хранения' () = name(filterStorage()) CHARWIDTH 40;
 
 // журнал ОС, поля как в ст. картотеке для АВ
 FORM viewFixedAssets 'Журнал основных средств'  
@@ -225,8 +226,7 @@ FORM viewFixedAssets 'Журнал основных средств'
     FILTERS IF filterYearInputDate() > 0 THEN extractYear(inputDate(fa)) = filterYearInputDate() ELSE TRUE
     FILTERS IF filterYearOfDisposal() > 0 THEN extractYear(dateOfDisposal(fa)) = filterYearOfDisposal() ELSE TRUE
     FILTERS IF filterFactYearDisposal() > 0 THEN extractYear(dateFactDisposal(fa)) = filterFactYearDisposal() ELSE TRUE
-    FILTERS IF filterStorage() THEN storage(fa) = nameFilterStorage() ELSE TRUE 
-            
+    FILTERS IF filterStorage() THEN storage(fa)  = nameFilterStorage() ELSE TRUE
 ;
 
 DESIGN viewFixedAssets {
@@ -403,5 +403,27 @@ NAVIGATOR {
             NEW listDirClassifier;
             NEW listDirTypeObjects;       
         } 
+    }
+}
+
+
+filterInStock           'В наличии'             = DATA LOCAL BOOLEAN ();
+filterFree              'Свободные'             = DATA LOCAL BOOLEAN ();
+
+EXTEND FORM viewFixedAssets
+    PROPERTIES filterInStock(), filterFree()
+    FILTERS IF filterInStock() THEN storage(fa) != 'Выбывшие' ELSE TRUE
+    FILTERS IF filterFree() THEN  storage(fa) != 'Выбывшие' AND (NOT fullName(fa) OR fullName(fa) = 'Свободный') ELSE TRUE 
+    EVENTS ON INIT {
+        filterInStock() <- TRUE; 
+    }
+;
+
+DESIGN viewFixedAssets {
+    GROUP (,fa) {
+        cntFlt {
+            MOVE PROPERTY (filterInStock()) {marginLeft = 10; }
+            MOVE PROPERTY (filterFree()) {marginLeft = 10;}
+        }
     }
 }
