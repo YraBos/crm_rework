@@ -412,8 +412,8 @@ filterFree              'Свободные'             = DATA LOCAL BOOLEAN ()
 
 EXTEND FORM viewFixedAssets
     PROPERTIES filterInStock(), filterFree()
-    FILTERS IF filterInStock() THEN storage(fa) != 'Выбывшие' ELSE TRUE
-    FILTERS IF filterFree() THEN  storage(fa) != 'Выбывшие' AND (NOT fullName(fa) OR fullName(fa) = 'Свободный') ELSE TRUE 
+    FILTERS IF filterInStock()  THEN (NOT storage(fa) OR storage(fa) != 'Выбывшие') ELSE TRUE
+    FILTERS IF filterFree()     THEN (NOT storage(fa) OR storage(fa) != 'Выбывшие') AND (NOT fullName(fa) OR fullName(fa) = 'Свободный') ELSE TRUE 
     EVENTS ON INIT {
         filterInStock() <- TRUE; 
     }
