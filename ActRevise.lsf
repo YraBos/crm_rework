@@ -3,17 +3,23 @@ MODULE ActRevise;
 REQUIRE PaymentProcessDashboardNew, LegalEntityBy, DocWord;
 
 // для формы
-actReviseDS     'Начало периода'            = DATA LOCAL DATE ();
-actReviseDE     'Конец периода'             = DATA LOCAL DATE ();
-actReviseCN     'Контракт'                  = DATA LOCAL Contract ();
-actReviseDBSum  'Дебит на начало'           = DATA LOCAL NUMERIC[14,2] (); 
-actReviseCRSum  'Кредит на начало'          = DATA LOCAL NUMERIC[14,2] ();
-actReviseSum    'Учитывать остатки'         = DATA LOCAL BOOLEAN ();
-actReviseScreen 'Выводить отчет на экран'   = DATA LOCAL BOOLEAN ();
+actReviseDS             'Начало периода'                = DATA LOCAL DATE ();
+actReviseDE             'Конец периода'                 = DATA LOCAL DATE ();
+actReviseCN             'Контракт'                      = DATA LOCAL Contract ();
+actReviseDBSum          'Дебит на начало'               = DATA LOCAL NUMERIC[14,2] ();  // Остаток на начало, дебит, акты
+actReviseCRSum          'Кредит на начало'              = DATA LOCAL NUMERIC[14,2] ();  // Остаток на начало, кредит, платежи
+actReviseAllowSum       'Учитывать остатки'             = DATA LOCAL BOOLEAN ();
+actReviseAllowScreen    'Выводить отчет на экран'       = DATA LOCAL BOOLEAN ();
+actReviseAllowEMail     'Отправлять отчет по почте'     = DATA LOCAL BOOLEAN ();
+actReviseAllowEdit      'Редактировать перед отправкой' = DATA LOCAL BOOLEAN ();
 
+actReviseEMail          'Почтовый адрес клиента' (LegalEntity le)   = '' + email(customer(le));
+actReviseNameType       'Тип договора' (Contract c) =  '' + nameType(c); 
+ 
 // Заголовки и отд. свойства отчета
 actReviseTitle1     '' = DATA LOCAL TEXT          ();    
 actReviseTitle2     '' = DATA LOCAL TEXT          ();   
+
 actReviseTitle3     '' = DATA LOCAL TEXT          ();   
 actReviseTitle4     '' = DATA LOCAL TEXT          ();   
 actReviseTitle5     '' = DATA LOCAL TEXT          ();   
@@ -30,6 +36,17 @@ note    'Примечание'= DATA TEXT             (ActReviseTemp);
 debit   'Дебет'     = DATA NUMERIC[10,2]    (ActReviseTemp);
 credit  'Кредит'    = DATA NUMERIC[10,2]    (ActReviseTemp);
 
+onChange '' (BOOLEAN lMail) {
+    IF lMail THEN {
+        actReviseAllowScreen() <- NULL; 
+        actReviseAllowEMail() <- NOT actReviseAllowEMail();
+    } ELSE {
+        actReviseAllowEMail() <- NULL;
+        actReviseAllowEdit() <- NULL;
+        actReviseAllowScreen() <- NOT actReviseAllowScreen();
+    }
+}
+
 FORM actRevise 'Акт сверки'
     OBJECTS ds = DATE PANEL, de = DATE PANEL, 
             sDBSum = NUMERIC[14,2] PANEL, sCRSum = NUMERIC[14,2] PANEL, 
@@ -37,8 +54,12 @@ FORM actRevise 'Акт сверки'
     PROPERTIES ds 'Дата с' = VALUE(ds), de 'по' = VALUE(de)
     PROPERTIES design1 = name(le) SELECTOR 
     PROPERTIES design2 = number(cn) SELECTOR
-    PROPERTIES(cn) READONLY date, nameType
-    PROPERTIES sDBSum 'Дебит' = VALUE(sDBSum), sCRSum 'Кредит' = VALUE(sCRSum), actReviseSum(), actReviseScreen() 
+    PROPERTIES(cn) READONLY date, actReviseNameType
+    PROPERTIES sDBSum 'Дебит' = VALUE(sDBSum), sCRSum 'Кредит' = VALUE(sCRSum), actReviseAllowSum() 
+    PROPERTIES READONLY actReviseEMail(le)
+    PROPERTIES actReviseAllowEdit()
+    PROPERTIES actReviseAllowEMail()  ON CHANGE {onChange(TRUE);}
+    PROPERTIES actReviseAllowScreen() ON CHANGE {onChange(NULL);}
     FILTERS legalEntity(cn) = le
     EVENTS ON INIT {
         SEEK actRevise.ds = toDateFormat('0101' + toChar(extractYear(currentDate()),'9999'), 'DDMMYYYY');
@@ -46,6 +67,8 @@ FORM actRevise 'Акт сверки'
         SEEK actRevise.le = legalEntity(cn);
         SEEK actRevise.sDBSum = 0.00;
         SEEK actRevise.sCRSum = 0.00;
+        actReviseAllowEMail() <- TRUE; 
+        actReviseAllowEdit() <- TRUE;
     }
     EVENTS ON OK {
         actReviseDS() <- ds; actReviseDE() <- de; actReviseCN() <- cn; 
@@ -55,11 +78,9 @@ FORM actRevise 'Акт сверки'
 ;
 
 DESIGN actRevise {
-    TOOLBARBOX {
-        TOOLBARLEFT {
-            MOVE PROPERTY (actReviseScreen()) {marginTop = 8;};
-        }
-    }   
+    TOOLBARLEFT {
+        MOVE PROPERTY (actReviseAllowScreen()) FIRST {marginTop = 8;};
+    }
     OBJECTS {
         NEW cntMain {
             type = CONTAINERV;
@@ -75,17 +96,29 @@ DESIGN actRevise {
             }
             NEW cntCNT {
                 caption = 'выбор договора';
-                type = CONTAINERH;  
-                MOVE PROPERTY (design2);
-                MOVE PROPERTY (date(cn)) {marginLeft = 10;}; 
-                MOVE PROPERTY (nameType(cn)) {marginLeft = 10;}; 
+                type = CONTAINERV;
+                NEW cnt1 {
+                    type = CONTAINERV;
+                    NEW cnt11 {
+                        type = CONTAINERH;
+                        MOVE PROPERTY (design2);
+                        MOVE PROPERTY (date(cn)) {marginLeft = 10;}; 
+                        MOVE PROPERTY (actReviseNameType(cn)) {marginLeft = 10;}; 
+                    } 
+                    NEW cnt12 {
+                        type = CONTAINERV;
+                        MOVE PROPERTY(actReviseEMail(le)); 
+                        MOVE PROPERTY (actReviseAllowEMail());
+                        MOVE PROPERTY (actReviseAllowEdit());
+                    }
+                }  
             }
-            NEW cntSaldo{
+            NEW cntSaldo {
                 caption = 'Остатки на начало';
                 type = CONTAINERH;
                 MOVE PROPERTY (sDBSum) ;
                 MOVE PROPERTY (sCRSum) {marginLeft = 10;};
-                MOVE PROPERTY (actReviseSum()) {marginLeft = 10;};
+                MOVE PROPERTY (actReviseAllowSum()) {marginLeft = 10;};
             }
         }
     }    
@@ -107,13 +140,15 @@ onActReviseCls 'Очистка свойств' () {
     actReviseTitle5() <- NULL; actReviseTitle6() <- NULL; actReviseTitle7() <- NULL; 
 }
 
+toDateISO2 = FORMULA STRING[10] 'to_char(($1),\'YYYY_MM_DD\')';
+
 // расчет акта для печатной формы
 onActRevise 'Акт сверки' (Payment o) {
     onActReviseCls();
     DIALOG actRevise OBJECTS cn = contract(o);
     IF NOT actReviseCN() THEN RETURN;
     LOCAL sdS, sdE, skS, skE = NUMERIC[14,5] (); // обороты дебет начало-конец, кредит начало-конец
-    IF actReviseSum() THEN {
+    IF actReviseAllowSum() THEN {
         sdS() <- actReviseDBSum();
         sdE() <- GROUP SUM sum(Act a) IF contract(a) = actReviseCN() AND date(a) >= actReviseDS() AND date(a) <= actReviseDE(); 
         sdE() <- sdS() + (OVERRIDE sdE(), 0.00);
@@ -132,7 +167,7 @@ onActRevise 'Акт сверки' (Payment o) {
             debit(ob)   <- round(sum(a),2);
         }
     }  
-    IF actReviseSum() THEN {
+    IF actReviseAllowSum() THEN {
         skS() <- actReviseCRSum();
         skE() <- GROUP SUM sum(Payment p) IF contract(p) = actReviseCN() AND date(p) >= actReviseDS() AND date(p) <= actReviseDE(); 
         skE() <- skS() + (OVERRIDE skE(), 0.00);
@@ -211,7 +246,38 @@ onActRevise 'Акт сверки' (Payment o) {
                 ' (' + numSpelledCurrency(credit(ob), '00d', currency(actReviseCN())) + ')';  
        } ELSE actReviseTitle7() <- 'Задолженности нет'; 
     }
-    IF actReviseScreen() THEN PRINT reportActRevise; ELSE PRINT reportActRevise XLS;
+    // вывод (отправка на e-mail) отчета, actReviseCN() - ссылка на контракт
+    IF actReviseAllowScreen() THEN PRINT reportActRevise;
+    ELSE IF NOT actReviseAllowEMail() THEN PRINT reportActRevise XLS;
+    ELSE IF     actReviseAllowEMail() AND NOT actReviseEMail(legalEntity(actReviseCN())) THEN MESSAGE 'Почтовый адрес не заполнен';
+    ELSE IF     actReviseAllowEMail() AND     actReviseEMail(legalEntity(actReviseCN())) THEN { 
+        LOCAL frep, frep2 = FILE(); LOCAL fname = STRING[255]();
+        LOCAL ofrom = Customer();
+        ofrom() <- GROUP MAX (Customer c) IF id(c) = '1';
+        PRINT reportActRevise XLS TO frep;
+        fname() <- 'АктСверки_' + actReviseTitle2() + '_' + toDateISO2(actReviseDE()); 
+        open(frep(),fname());
+        IF actReviseAllowEdit() THEN {
+                ASK 'Переоткрыть Акт с учетом изменений?\n' + '------------------------------------------\n' + fname() DO {
+                INPUT ff = FILE DO frep2() <- ff;
+                IF frep2() THEN frep() <- frep2(); 
+                ELSE MESSAGE 'Версия Акта сверки к отправке\n' + 'без учета сделанных изменений';
+            }
+        }
+        ASK 'Вы действительно хотите отправить\n' + 
+            'Акт сверки на e-mail клиента?\n' +
+            '----------------------------------------\n' +    
+            'отправитель: ' + name(ofrom()) + ', ' + email(ofrom()) + '\n' + 
+            'получатель : ' + name(customer(actReviseCN())) + ', ' + actReviseEMail(legalEntity(actReviseCN()))  DO {
+            EMAIL 
+                FROM email(ofrom())
+                SUBJECT 'Акт сверки'
+                TO  actReviseEMail(legalEntity(actReviseCN()))
+                BODY 'Высылаю во вложении Акт сверки\n' + actReviseTitle3()
+                ATTACH frep(); 
+            MESSAGE 'Акт сверки отправлен';   
+        } 
+    }   
     CANCEL; 
 } TOOLBAR ;
 
