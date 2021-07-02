@@ -1,6 +1,6 @@
 MODULE FixedAssets;
 
-REQUIRE Employee, EVAT, FixedAssetsDirs, Utils, Time;
+REQUIRE Employee, FixedAssetsDirs, Utils, Time;
 
 
 CLASS FixedAssets 'Основные средства';
@@ -394,7 +394,7 @@ EXTEND FORM viewFixedAssets
 
 
 NAVIGATOR {
-    NEW FOLDER FixedAssetsFolder 'ОС' WINDOW toolbar AFTER EVATFolder {
+    NEW FOLDER FixedAssetsFolder 'ОС' WINDOW toolbar BEFORE masterData {
         NEW viewFixedAssets;
         NEW viewFixedAssetsLog;
         NEW FOLDER DirsFolder 'Доп. справочники' {
