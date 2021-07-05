@@ -3,11 +3,13 @@ MODULE RateService;
 REQUIRE  CustomerNew, Act, Currency, Utils, Time, ContractSubject;
 
 // Описание задачи:
-// Остаток на начало считается только по договору типа: Сопровождение. Такой договор у клиента должен быть один. 
+// Остаток на начало считается только по договору типа: Сопровождение.  
 // Для расчета выбирается значения на ближающую дату <= начала расчетного периода (GROUP MAX), при этом:
 // количество - это сумма (quantity), сумма - сумма (sum) % обслуживания, price - это % обслуживания  
 // Для расчета остатка на начало учитывается ближайшая дата на начало расчетного периода из предмета договора
-// относительно договора или соглашения. 
+// относительно договора или соглашения. Так как договоров на сопровождение может быть несколько, то для выделения договора, 
+// в котором предмет договора хранит остатки на начало заполняется признак (markBalance (*)) на уровне договора и 
+// в строках предмета договора (на договор или соглашение (**)), чтобы отделить суммы остатка от прочих сумм. 
 // Строки отчета - это суммы по актам, относящиеся к договорам типа: Сопровождение, Лицензия или Лицензия ТСД. 
 // При этом типы актов должны быть АКТ и АКЛ или только АКТ, взависимости от типа клиента SP или SL 
 // Могут два варианта договоров на Сопровождение: рублевый и валютный. 
@@ -21,16 +23,17 @@ customer    'Клиент'        = DATA Customer         (CustomerExtensions) A
 date        'Дата действия' = DATA DATE             (CustomerExtensions) NONULL;
 rate        'Коэффициент'   = DATA NUMERIC[14,4]    (CustomerExtensions) NONULL;
 
-// признак, что указанные значения являются остатком на начало периода
+// * признак, что договор содержит суммы остатка на начало
+markBalance 'Учитывает в предмете договора остатки по сопровождению' = DATA BOOLEAN (Contract);
+
+// ** признак, что указанные значения являются остатком на начало периода 
 markBalance 'Признак остатка на начало' = DATA BOOLEAN (ContractSubject);
 markBalance 'Признак остатка на начало' = DATA BOOLEAN (AgreementSubject);
 EXTEND FORM contract 
-    PROPERTIES(as) markBalance SHOWIF nameType(o) = 'Сопровождение'
-    PROPERTIES(s)  markBalance SHOWIF nameType(o) = 'Сопровождение'
+    PROPERTIES(as) markBalance SHOWIF nameType(o) = 'Сопровождение' AND markBalance(o)
+    PROPERTIES(s)  markBalance SHOWIF nameType(o) = 'Сопровождение' AND markBalance(o)
+    PROPERTIES(o)  markBalance SHOWIF nameType(o) = 'Сопровождение'
 ;
-
-//rateCureency 'Коэф. USD' (Act a) = 
-//    NUMERIC[10,4](round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(a)),date(a)),4)); 
 
 rateCureency 'Коэф. USD' (Act a) = 
     NUMERIC[10,4](IF shortNameCurrency(contract(a)) = 'BYN' THEN 
@@ -67,7 +70,7 @@ rateCureency2 'Коэф. USD' (Contract c,DATE ds) =
 
 
 // вычисляем ссылку на договор и далее работаем от найденного договора сопровождения по текущей организации
-baseCnt '' (LegalEntity l) = GROUP MAX (Contract c) IF nameType(c) = 'Сопровождение' BY legalEntity(c);
+baseCnt '' (LegalEntity l) = GROUP MAX (Contract c) IF nameType(c) = 'Сопровождение' AND markBalance(c) BY legalEntity(c);
 
 // максимальная дата остатка на начало по договору или соглашению
 dCnt '' (LegalEntity l) = OVERRIDE (GROUP MAX (date(ContractSubject s)) 
