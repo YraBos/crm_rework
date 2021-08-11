@@ -135,3 +135,10 @@ DESIGN dashboardCustomer {
     } 
 }
 
+
+// задача 16612, добавить фильтр
+EXTEND FORM dashboardCustomer
+   FILTERGROUP activeAgreement FILTER 'Активные' NOT dateClosing(ag) DEFAULT 
+;
+
+ 

@@ -73,3 +73,11 @@ nameActTemplateDebt 'Шаблон акта' (Debt d) = nameActTemplate(contract(
 EXTEND FORM debtDashboard
     PROPERTIES(d) nameActTemplateDebt 
 ; 
+
+// RM16613, доб. название валюты, сделал по аналогии с sumDebt 
+nameCurrencyCustomer 'Валюта' (Customer c, ContractType t, DATE d) = 
+    GROUP MAX shortName(currency(Debt dd)) IF date(dd) <= d BY customer(dd), type(contract(dd));
+
+EXTEND FORM debtDashboard
+    PROPERTIES READONLY nameCurrencyCustomer(c, t, dd) 
+;

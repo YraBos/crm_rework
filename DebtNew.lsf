@@ -1,0 +1,86 @@
+MODULE DebtNew;
+
+REQUIRE Debt;
+
+CLASS MonthCurrency 'Месяца и валюты';
+month '' = DATA Month (MonthCurrency);
+number 'Номер месяца' = DATA INTEGER (MonthCurrency);
+nameMonth 'Месяц' = DATA BPISTRING[100] (MonthCurrency) CHARWIDTH 10;
+currency 'ID валюты' = DATA Currency (MonthCurrency);
+nameCurrency 'Валюта' = DATA STRING (MonthCurrency) CHARWIDTH 3;
+
+// справочник месяцев и валют: каждому месяцу принадлежит свой набор валют
+// данные не сохраняются и пересоздаются при входе (init формы) 
+onFill () {
+    FOR (Month m IS Month) DO {
+        FOR (Currency c IS Currency) DO {
+            NEW mc = MonthCurrency {
+                month(mc) <- m;
+                number(mc) <- number(m);
+                nameMonth(mc) <- staticCaption(m);
+                currency(mc) <- c;
+                nameCurrency(mc) <- shortName(c); 
+            }
+        }         
+    }
+}
+
+sumDebt2 'Сумма задолженности' (INTEGER y, MonthCurrency mc) = 
+    GROUP SUM sum(Debt d) IF extractMonth(date(d)) = month(mc) AND currency(d) = currency(mc) BY extractYear(date(d));
+
+sumDebt2 'Сумма задолженности' (INTEGER y, ContractType t, MonthCurrency mc) = 
+    GROUP SUM sum(Debt d) IF extractMonth(date(d)) = month(mc) AND currency(d) = currency(mc) BY extractYear(date(d)), type(contract(d));
+
+sumDebt2 'Сумма задолженности' (INTEGER y, ContractType t) = 
+    GROUP SUM sum(Debt d) BY extractYear(date(d)), type(contract(d));
+
+paid2 'Оплачено' (INTEGER y, MonthCurrency mc) = 
+    GROUP SUM sum(Payment p) 
+    IF NOT skipReceipt(legalEntity(p)) AND extractMonth(date(p)) = month(mc) AND currency(p) = currency(mc) BY extractYear(date(p));
+
+
+FORM debtsPlan2 'План платежей в разрезе валют'
+
+    OBJECTS y = INTEGER PANEL 
+    PROPERTIES y 'Год' = VALUE (y)
+
+    OBJECTS t = ContractType
+    OBJECTS mc = MonthCurrency 
+
+    PROPERTIES READONLY number(mc), nameMonth(mc), nameCurrency(mc), sumDebt2(y,mc), sumDebt2(y,t,mc)
+        COLUMNS  (t) HEADER name(t), paid2(y,mc)
+    ORDERS number(mc)
+    FILTERS  sumDebt2(y, t), sumDebt2(y,mc)
+
+    OBJECTS d = Debt
+    PROPERTIES (d) READONLY date, numberContract, nameContract, nameContractType, nameCustomer, nameLegalEntity, shortNameCurrency, sumCurrency, sum, dateCurrency, note
+    ORDERS date(d)
+    FILTERS extractMonth(date(d)) == month(mc), extractYear(date(d)) == y, currency(d) = currency(mc)
+
+    OBJECTS p = Payment
+    PROPERTIES (p) READONLY id, nameLegalEntity, nameCustomer, nameCompany, number, date, monthNumber, nameType, sum, shortNameCurrency, sumCurrency, note
+    ORDERS date(p)
+    FILTERS extractMonth(date(p)) == month(mc), extractYear(date(p)) == y, currency(d) = currency(mc) 
+
+    EVENTS ON INIT {
+        SEEK debtsPlan2.y = extractYear(currentDate());
+        onFill();
+    }
+;
+
+DESIGN debtsPlan2 {
+    OBJECTS {
+        NEW tab AFTER BOX (mc) {
+            type = TABBED;
+            fill = 1;
+            MOVE BOX (d);
+            MOVE BOX (p) { caption = 'Платежи'; }
+        }
+    }
+}
+
+NAVIGATOR {
+    dashboard {
+        NEW debtsPlan2 AFTER debtsPlan;
+    }
+}
