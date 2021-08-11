@@ -62,3 +62,8 @@ EXTEND FORM EVATs
     PROPERTIES(d) onEditDetailName
 ;
 
+DESIGN EVATs {
+    BOX(dates) {
+        type = CONTAINERH ;
+    }
+}

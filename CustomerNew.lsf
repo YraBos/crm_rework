@@ -356,20 +356,19 @@ DESIGN customers {
                 MOVE PROPERTY (calcInfo(o));
             }
             NEW cnt10 {
-                type = COLUMNS ; 
+                type = CONTAINERH ; 
                 NEW cnt2 {
-                    caption = 'параметры сверки';
                     type = CONTAINERH ;
+                    caption = 'параметры сверки';
                     MOVE PROPERTY (delimiter()) {charHeight = 1;};
                     MOVE PROPERTY (onCalc());
                     MOVE PROPERTY (onCustomerReports(o));
                 }
                 // cnt3, см. RateService
                 NEW cnt4 {
-                    marginLeft = 10;
-                    caption = 'дополнительно'; 
-                    columns = 4;
                     type = CONTAINERH ;
+                    caption = 'дополнительно'; 
+                    marginLeft = 10;
                     MOVE PROPERTY (onStaticClientType());
                     MOVE PROPERTY (onCustomerDashboard(o));
                 }
