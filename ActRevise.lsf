@@ -222,7 +222,7 @@ onActRevise 'Акт сверки' (Payment o) {
         'гл. бухгалтер ______________________ (' + gbux() + ')\n\n' + 
         '"____" _________________ ' + toChar(extractYear(actReviseDE()),'9999') + 'г.\n\n' + 
         'В случае невозврата акта сверки в течении 10 дней,\n' +
-        'сальдо считается подтвержденным';
+        'сальдо считается подтвержденным\n';
     actReviseTitle6() <-
         (IF UNP(ole2()) THEN 'УНП: ' + UNP(ole2()) + '\n' ELSE '') +    
         (IF nameLegalAddress(ole2()) THEN nameLegalAddress(ole2()) + '\n' ELSE '') + '\n' + 
@@ -238,7 +238,7 @@ onActRevise 'Акт сверки' (Payment o) {
             debit(ob)  <- round(sdE() - skE(),2);
             actReviseTitle7() <- 
                 'Задолженность ' + actReviseTitle2() + ' перед ' + actReviseTitle1() + ' составляет ' + trim(toChar(debit(ob),'9999999999.99')) + 
-                ' (' + numSpelledCurrency(debit(ob), '00d', currency(actReviseCN())) + ')';  
+                ' (' + numSpelledCurrency(debit(ob), '00d', currency(actReviseCN())) + ')' + '\n';  
        } ELSE IF sdE() - skE() < 0 THEN {
             credit(ob) <- round(skE() - sdE(),2);
             actReviseTitle7() <- 
