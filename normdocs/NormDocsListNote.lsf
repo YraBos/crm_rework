@@ -1,0 +1,90 @@
+MODULE NormDocsListNote;
+
+REQUIRE NormDocsLink, Time;
+
+NAMESPACE NormDocs;
+
+CLASS NormDocListNote 'Лист замечаний';
+TABLE normdoclistnote (NormDocListNote);
+normdoclink 'ID' = DATA NormDocLink (NormDocListNote) INDEXED AUTOSET ;
+createDate 'Создал замечание' = DATA DATE (NormDocListNote);
+employee 'ID, кто создал замечание' = DATA Employee (NormDocListNote);
+nameCreate 'Автор замечания' (NormDocListNote n) = '' + name(employee(n));
+nameAuthor 'Автор документа' (NormDocListNote n) =  '' + author(normdoclink((n)));
+nameDoc 'Название документа' (NormDocListNote n) =  '' + name(normdoclink((n)));
+note 'Замечания' = DATA TEXT (NormDocListNote);
+mark 'Исполнил' = DATA BOOLEAN (NormDocListNote);
+markDate 'Дата' = DATA DATE (NormDocListNote);
+emailFlag 'Почта' = DATA BOOLEAN (NormDocListNote);
+
+// ограничение редактирования отметки: администратор может все, только автор
+ruleNote(NormDocListNote o) = IF normDocAdmin(currentUser()) THEN TRUE ELSE IF nameAuthor(o) = name(currentUser()) THEN TRUE ELSE NULL;  
+CONSTRAINT CHANGED(mark(NormDocListNote o)) AND NOT SET(o IS NormDocListNote) AND NOT ruleNote(o) MESSAGE 'Отметка: только автор документа';
+
+// событие: изменение значений отметки об исправлении
+WHEN NOT DROPPED(NormDocListNote o IS NormDocListNote) AND NOT SET(o IS NormDocListNote) AND
+    CHANGED(mark(o)) DO IF mark(o) THEN markDate(o) <- currentDate(); ELSE markDate(o) <- NULL; 
+
+// Кнопка на форме (normorg.lsf): сообщить автору об замечаниях 
+onSendMailListNote 'Оповестить автора' (NormDocLink l) {
+    LOCAL body = TEXT (); 
+    LOCAL next = BOOLEAN (); 
+    LOCAL from, to = STRING ();
+    LOCAL customer = Customer ();
+    body() <- 'Здравствуйте,' + name(employee(l)) + '!\n\n';
+    body() <- body() + 'По разрабатываему вами документу\n"' + name(l) + '"\n';
+    body() <- body() + 'просьба обратить внимание на список замечаний:\n';
+    FOR (NormDocListNote n IS NormDocListNote) AND normdoclink(n) = l AND NOT emailFlag(n) ORDER nameCreate(n), createDate(n) DO {
+        next() <- TRUE;
+        emailFlag(n) <- TRUE;
+        body() <- body() + 'от ' + toDateDDMMYY(createDate(n)) + ', сотрудник: ' + nameCreate(n) + '\n';
+    }
+    IF NOT next() THEN {
+        MESSAGE 'Список замечаний для отправки автору пуст'; RETURN ;
+    }
+    customer() <- GROUP MAX (Customer c) IF id(c) = '1';
+    body() <- body() + '\nС уважением,\nАдминистрация: ' + name(customer());
+    EMAIL FROM email(customer()) SUBJECT 'НД, Список замечаний' TO  email(employee(l)) BODY body();
+    MESSAGE 'Актуальные замечания отправлены';
+    APPLY; 
+}
+
+// проверка на создание новых записей
+chNewNote '' (NormDocLink l) = 
+    IF (GROUP MAX (NormDocListCoordination o) IF employee(o) = currentUser() AND normdoclink(o) = l) THEN TRUE ELSE NULL;
+
+FORM editNormDocListNote 'Редактирование замечаний'
+    OBJECTS n = NormDocListNote PANEL
+    PROPERTIES (n) READONLY nameDoc, nameAuthor, createDate, nameCreate 
+    PROPERTIES (n) note
+    EDIT NormDocListNote OBJECT n  
+    EVENTS ON INIT {
+        IF NOT employee(n) THEN {
+            employee(n) <- GROUP MAX (Employee e) IF name(e) = name(currentUser());
+            createDate(n) <- currentDate();
+        } 
+    }
+; 
+
+DESIGN editNormDocListNote {
+    BOX (n) {
+        NEW cntMain {
+            type = CONTAINERV ;
+            fill = 1;
+            NEW cnt1 {
+                caption = 'Дополнительная информация';
+                type = CONTAINERV ;
+                MOVE PROPERTY (createDate(n));
+                MOVE PROPERTY (nameCreate(n));
+                MOVE PROPERTY (nameDoc(n));
+                MOVE PROPERTY (nameAuthor(n));
+            }
+            NEW cnt2 {
+                type = CONTAINERH ;
+                fill = 1;
+                caption = 'Замечания к версии документа';
+                MOVE PROPERTY (note(n)) {caption = ''; charHeight = 10;}
+            }
+        }
+    }
+}

@@ -1,0 +1,44 @@
+MODULE NormDocsType;
+
+REQUIRE NormDocsMenu, EmployeeNew;
+
+NAMESPACE NormDocs;
+
+CLASS NormDocType 'Типы нормативных документов';
+TABLE normdoctype (NormDocType);
+
+name 'Наименование документа' = DATA ISTRING[100] (NormDocType) NONULL;
+
+FORM editNormDocType 'Типы нормативных документов'
+    OBJECTS t = NormDocType PANEL 
+    PROPERTIES (t) name
+    EDIT NormDocType OBJECT t
+;
+
+FORM viewNormDocType 'Типы нормативных документов'
+    OBJECTS t = NormDocType
+    PROPERTIES (t) READONLY name
+    PROPERTIES (t) SHOWIF normDocAdmin(currentUser()) NEWSESSION NEW, EDIT, DELETE
+; 
+ 
+FORM listNormDocType 'Справочник типов'
+    OBJECTS t = NormDocType
+    PROPERTIES (t) READONLY name
+    LIST NormDocType OBJECT t
+; 
+
+DESIGN editNormDocType {
+    BOX(t) {
+        NEW cnt {
+            fill = 1;
+            type = CONTAINERH ;
+            MOVE PROPERTY (name(t));
+        }
+    }
+}
+
+NAVIGATOR {
+    NormDocsFolderDirs {
+        NEW viewNormDocType;
+    }
+}

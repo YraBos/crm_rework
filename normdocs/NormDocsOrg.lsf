@@ -1,0 +1,15 @@
+MODULE NormDocsOrg;
+
+NAMESPACE NormDocs;
+
+CLASS NormDocOrg 'Структура';
+TABLE normdocorg (NormDocOrg);
+
+name 'Наименование структуры'   = DATA ISTRING[100] (NormDocOrg) NONULL ;
+quantityState 'По штату'        = DATA INTEGER (NormDocOrg); 
+
+FORM editNormDocOrg 'Элемент структуры'
+    OBJECTS o = NormDocOrg PANEL
+    PROPERTIES (o) name, quantityState 
+    EDIT NormDocOrg OBJECT o
+;

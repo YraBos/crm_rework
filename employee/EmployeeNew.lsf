@@ -1,0 +1,49 @@
+MODULE EmployeeNew;
+
+REQUIRE Employee, Qualification;
+
+NAMESPACE Contact;
+
+dateBirthday 'Дата рожд.' = DATA DATE (Employee);
+showMsgBirthdayStarted 'Показывать поздравления сотрудников при старте' = DATA BOOLEAN (Employee);
+dayDelta 'Диапазон дней (-/+) для отображения ДР относит. даты' = DATA INTEGER (Employee);
+normDocAdmin 'Администратор нормативных документов' = DATA BOOLEAN (Employee);
+normDocCoordination 'Согласование нормативных документов' = DATA BOOLEAN (Employee);
+
+// форма отображения
+EXTEND FORM employees
+    PROPERTIES(o) READONLY dateBirthday, lstQualification, normDocAdmin, normDocCoordination  
+; 
+
+// форма редактирования
+EXTEND FORM employee
+    PROPERTIES(o)   dateBirthday, showMsgBirthdayStarted, dayDelta, onGetQualification, 
+                    normDocAdmin, normDocCoordination
+    PROPERTIES(o) READONLY lstQualification
+; 
+
+DESIGN employee {
+    OBJECTS {
+        NEW dop2 AFTER dop {
+            caption = 'Дни рождения';
+            type = CONTAINERH; 
+            MOVE PROPERTY (dateBirthday(o));  
+            MOVE PROPERTY (showMsgBirthdayStarted(o)) {marginLeft = 10;} 
+            MOVE PROPERTY (dayDelta(o)) {marginLeft = 10;}
+        }
+        dop {
+            NEW cntdop {
+                type = CONTAINERH ;
+                fill=1;
+                MOVE PROPERTY (lstQualification(o)) {charWidth=10;};
+                MOVE PROPERTY (onGetQualification(o));
+            }
+            NEW cntdop2 {
+                type = CONTAINERH ;
+                fill=1;
+                MOVE PROPERTY (normDocAdmin(o));
+                MOVE PROPERTY (normDocCoordination(o));
+            } 
+        }     
+    }
+}

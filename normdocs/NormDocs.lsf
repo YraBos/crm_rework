@@ -1,0 +1,179 @@
+MODULE NormDocs;
+
+REQUIRE Hierarchy,  
+        NormDocsOrg, NormDocsStaff, NormDocsStaff, NormDocsLink, NormDocsMenu, NormDocsListNote, Utils;
+
+NAMESPACE NormDocs;
+
+// динамически рассчитываем количество работающих сотрудников
+quantityFact 'Факт.' (NormDocOrg o) = GROUP SUM 1 BY normdocorg(NormDocStaff s);
+
+@defineHierarchy(o,NormDocOrg) ;
+
+allLink 'Без привязки' = DATA LOCAL BOOLEAN ();
+archive 'Док. в архиве' = DATA LOCAL BOOLEAN ();
+
+onReLink 'Переместить' (NormDocOrg o, NormDocLink l) {
+    ASK 'Вы действительно хотите переместить документ?' DO {
+        normdocorg(l) <- o;
+        APPLY; 
+    }
+}
+
+FORM viewNormDocOrg 'Нормативные документы'
+    TREE to o = NormDocOrg PARENT parent(o)
+    PROPERTIES (o) READONLY name, quantityState, quantityFact
+    PROPERTIES (o) SHOWIF normDocAdmin(currentUser()) NEWSESSION NEW, EDIT, DELETE   
+    
+    OBJECTS s = NormDocStaff
+    PROPERTIES (s) READONLY nameEmployee, phoneEmployee, emailEmployee, skypeEmployee
+    PROPERTIES (s) SHOWIF (quantityState(o) AND normDocAdmin(currentUser())) NEWSESSION NEW, EDIT, DELETE
+    FILTERS normdocorg(s) = o
+
+    OBJECTS s2 = NormDocStaff PANEL 
+    PROPERTIES (s2) READONLY namePosition, lstQualification
+    FILTERS s2 = s
+    
+    OBJECTS l = NormDocLink
+    PROPERTIES (l) GRID BACKGROUND color(l) READONLY date,dateChange,dateEnd,nameNormDocStatus,nameNormDocType,name,author //,normdocorg 
+    PROPERTIES (l) onOpenFileLink TOOLBAR SHOWIF file(l)
+    PROPERTIES (l) NEWSESSION NEW
+    PROPERTIES (l) SHOWIF (normDocAdmin(currentUser()) OR name(currentUser()) = author(l)) NEWSESSION EDIT
+    PROPERTIES (l) SHOWIF normDocAdmin(currentUser()) NEWSESSION DELETE
+    PROPERTIES () allLink, archive
+    PROPERTIES onReLink(o, l) SHOWIF normDocAdmin(currentUser())
+    FILTERS IF NOT allLink() THEN normdocorg(l) = o ELSE TRUE, 
+            IF NOT archive() THEN NOT nameNormDocStatus(l) = 'Архив' ELSE TRUE   
+
+    OBJECTS log = NormDocLinkLog  
+    PROPERTIES (log) GRID BACKGROUND color(log) READONLY date,dateChange,dateEnd,nameNormDocStatus,nameNormDocType,name,author
+    PROPERTIES (log) onOpenFileLog TOOLBAR SHOWIF file(log)
+    FILTERS normdoclink(log) = l AND NOT delete(log)
+
+    OBJECTS del = NormDocLinkLog  
+    PROPERTIES (del) GRID BACKGROUND color(del) READONLY date,dateChange,dateEnd,nameNormDocStatus,nameNormDocType,name,author
+    PROPERTIES (del) onOpenFileLog TOOLBAR SHOWIF file(del)
+    FILTERS delete(del)
+    
+    OBJECTS lc = NormDocListCoordination 
+    PROPERTIES (lc) SHOWIF nameNormDocStatus(l) = 'На согласовании' mark
+    PROPERTIES (lc) READONLY markDate, nameEmployee, namePosition
+    PROPERTIES      SHOWIF nameNormDocStatus(l) = 'На согласовании' onMailCoordination(l) // передача на mail, см. NormDocsLink 
+    FILTERS normdoclink(lc) = l
+    
+    OBJECTS n = NormDocListNote
+    PROPERTIES (n) READONLY createDate,nameCreate
+    PROPERTIES (n) mark
+    PROPERTIES (n) READONLY markDate, emailFlag
+    PROPERTIES (n) SHOWIF chNewNote(l) NEWSESSION NEW
+    PROPERTIES (n) SHOWIF employee(n) = currentUser() NEWSESSION EDIT, DELETE
+    PROPERTIES     SHOWIF chNewNote(l) onSendMailListNote(l)
+    FILTERS normdoclink(n) = l
+    
+    OBJECTS n1 = NormDocListNote PANEL
+    PROPERTIES (n1) READONLY note
+    FILTERS n1 = n
+        
+    OBJECTS lr = NormDocListReference 
+    PROPERTIES (lr) SHOWIF nameNormDocStatus(l) = 'Опубликован' mark 
+    PROPERTIES (lr) READONLY markDate, nameEmployee, namePosition
+    PROPERTIES      SHOWIF nameNormDocStatus(l) = 'Опубликован' onMailReference(l) // передача на mail, см. NormDocsLink
+    FILTERS normdoclink(lr) = l
+;
+
+DESIGN viewNormDocOrg {
+    OBJECTS {
+        NEW cntMain {
+            type = CONTAINERV;
+            fill = 1;
+            NEW cntPartAB {
+                type = CONTAINERH;
+                fill = 1;
+                NEW cntPartA {
+                    fill = 1;
+                    MOVE BOX(TREE to) {caption='Структура';};
+                }
+                NEW cntPartB {
+                    fill = 1;
+                    type = CONTAINERV; 
+                    caption = 'Персонал';
+                    NEW cntB {
+                        type = CONTAINERH;
+                        MOVE PROPERTY (namePosition(s2)) {charWidth=30;};
+                        MOVE PROPERTY (lstQualification(s2)) {charWidth=60;};
+                    }
+                    MOVE BOX(s) {caption='';}; 
+                }
+            }
+            NEW cntPartCT {
+                type = TABBED;
+                fill = 1;
+                NEW cntPartLink {
+                    fill = 1;
+                    caption = 'Текущие документы';
+                    type = CONTAINERH; 
+                    MOVE BOX (l) ;
+                    TOOLBARRIGHT (l) {
+                        MOVE PROPERTY (onReLink(o,l));
+                        MOVE PROPERTY (allLink()) FIRST {marginTop = 3;};
+                        MOVE PROPERTY (archive()) FIRST {marginTop = 3;};
+                    }
+                }
+                NEW cntPartCoordination {
+                    fill = 1;
+                    caption = 'Лист согласований';
+                    type = CONTAINERH;
+                    NEW cntLC {
+                        fill = 1;
+                        MOVE BOX (lc) {
+                            PROPERTY (mark(lc)) {caption = 'Cогласовано'; charWidth = 14; alignment = CENTER;}
+                            TOOLBARRIGHT (lc) {MOVE PROPERTY (onMailCoordination(l));}
+                        }
+                    }
+                    NEW cntLN {
+                        fill = 1;
+                        type = SPLITV ;
+                        MOVE BOX(n) {
+                            fill = 4;
+                            PROPERTY (createDate(n)) {caption='Замечение\nсоздано'; charWidth='11';alignment=CENTER;}
+                            PROPERTY (mark(n)) {caption='Исполнил\n(автор)'; charWidth='11';alignment=CENTER;}
+                            PROPERTY (emailFlag(n)) {caption='Отправлено\nна email';charWidth=12;alignment=CENTER;}
+                            TOOLBARRIGHT (n) {
+                                MOVE PROPERTY (onSendMailListNote(l)) FIRST ;
+                            }
+                        }
+                        MOVE PROPERTY (note(n1)) {caption = '';};
+                    }
+                }
+                NEW cntPartReference {
+                    fill = 1;
+                    caption = 'Лист ознакомлений';
+                    type = CONTAINERH; 
+                    MOVE BOX (lr) {
+                        PROPERTY (mark(lr)) {caption = 'Ознакомлен'; charWidth = 14; alignment = CENTER;}
+                    }
+                    TOOLBARRIGHT (lr) {MOVE PROPERTY (onMailReference(l));}
+                }
+                NEW cntPartLog {
+                    fill = 1;
+                    caption = 'История изменений';
+                    type = CONTAINERH; 
+                    MOVE BOX (log);
+                }
+                NEW cntPartDel {
+                    fill = 1;
+                    caption = 'Удаленные документы';
+                    type = CONTAINERH; 
+                    MOVE BOX (del);
+                }
+            } 
+        } 
+    }       
+}
+
+
+NAVIGATOR {
+    NormDocsFolderWork {
+        NEW viewNormDocOrg FIRST;
+    }
+}

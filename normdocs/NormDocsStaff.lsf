@@ -1,0 +1,38 @@
+MODULE NormDocsStaff;
+
+REQUIRE EmployeeNew, NormDocsOrg, Qualification;
+
+NAMESPACE NormDocs;
+
+CLASS NormDocStaff 'Персонал';
+TABLE staff (NormDocStaff);
+
+normdocorg 'Organization'       = DATA NormDocOrg (NormDocStaff) INDEXED AUTOSET;
+employee 'Employee'             = DATA Employee (NormDocStaff);
+
+nameEmployee        'Сотрудник'     (NormDocStaff s) = name(employee(s));
+phoneEmployee       'Телефон'       (NormDocStaff s) = phone(employee(s));
+emailEmployee       'Почта'         (NormDocStaff s) = email(employee(s));
+skypeEmployee       'Скайп'         (NormDocStaff s) = skype(employee(s));
+namePosition        'Должность'     (NormDocStaff s) = namePosition(employee(s)) + '';
+lstQualification    'Квалификация'  (NormDocStaff s) = lstQualification(employee(s)) + ''; 
+
+// контроль на внесение сотрудников (чтобы не добавляли одних и тех же)
+qstaff '' = GROUP SUM 1 BY normdocorg(NormDocStaff s),employee(s) ; 
+CONSTRAINT qstaff(normdocorg(NormDocStaff s),employee(s)) > 1 MESSAGE 'Сотрудник уже внесен';
+
+FORM editNormDocStaff 'Персонал'
+    OBJECTS s = NormDocStaff PANEL
+    PROPERTIES (s) nameEmployee ON CHANGE {DIALOG dialogEmployees OBJECTS o INPUT DO employee(s) <- o;}
+    EDIT NormDocStaff OBJECT s
+;
+
+DESIGN editNormDocStaff {
+    BOX(s) {
+        NEW cnt {
+            fill = 1;
+            type = CONTAINERH;
+            MOVE PROPERTY (nameEmployee(s));
+        }
+    }
+}

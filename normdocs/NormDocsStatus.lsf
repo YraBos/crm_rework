@@ -1,0 +1,76 @@
+MODULE NormDocsStatus;
+
+REQUIRE NormDocsMenu, EmployeeNew;
+
+NAMESPACE NormDocs;
+
+// только, как статический класс, так как имена статусов имеют управляющие значение
+CLASS NormDocStatus 'Статусы документа' {
+    p1 'Новый', p2 'В работе', p3 'На согласовании', p4 'Опубликован', p5 'Готов', p6 'Архив'
+}
+
+color       'Цвет' = DATA COLOR (NormDocStatus);
+tempMail    'Шаблон письма' = DATA TEXT (NormDocStatus);
+tempLabel   '' = DATA LOCAL STRING ();
+
+FORM editNormDocStatus 'Редактировать'
+    OBJECTS o = NormDocStatus PANEL
+    PROPERTIES (o) READONLY staticCaption
+    PROPERTIES (o) color, tempMail
+    PROPERTIES READONLY tempLabel()
+    EDIT NormDocStatus OBJECT o  
+    EVENTS ON INIT  {
+        tempLabel() <- 'Значения, используемые в шаблоне: doc - название документа; author - автор документа';
+    }
+;
+
+DESIGN editNormDocStatus {
+    OBJECTS {
+        NEW cnt {
+            type = CONTAINERV;
+            fill = 1;
+            NEW cnt1 {
+                MOVE PROPERTY (staticCaption(o)) {caption='Статус документа';}
+                MOVE PROPERTY (color(o));
+            } 
+            NEW cnt2 {
+                type = CONTAINERV ;
+                showIf = (staticCaption(o) = 'На согласовании' OR staticCaption(o) ='Опубликован');
+                fill = 1;
+                MOVE PROPERTY (tempLabel());
+                MOVE PROPERTY (tempMail(o)) {charHeight=10;};
+            }
+        }
+    }
+}
+
+FORM viewNormDocStatus 'Справочник статусов документа'
+    OBJECTS o = NormDocStatus
+    PROPERTIES (o) READONLY staticCaption, color 
+    PROPERTIES (o) READONLY staticName SHOWIF NULL
+    PROPERTIES (o) SHOWIF normDocAdmin(currentUser()) EDIT 
+    ORDERS staticName(o)
+;
+
+FORM lstNormDocStatus 'Выбор статуса документа'
+    OBJECTS o = NormDocStatus
+    PROPERTIES (o) READONLY staticCaption
+    PROPERTIES (o) READONLY staticName SHOWIF NULL
+    LIST NormDocStatus OBJECT o
+    ORDERS staticName(o)
+;
+
+DESIGN lstNormDocStatus {
+    PROPERTY (staticCaption(o)) {caption = 'Статус документа';}
+}
+
+DESIGN viewNormDocStatus {
+    PROPERTY (staticCaption(o)) {caption = 'Статус документа';}
+}
+
+
+NAVIGATOR {
+    NormDocsFolderDirs {
+        NEW viewNormDocStatus;
+    }
+}

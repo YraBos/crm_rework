@@ -1,0 +1,13 @@
+MODULE NormDocsMenu;
+
+REQUIRE MasterData;
+
+NAMESPACE NormDocs;
+
+NAVIGATOR {
+    NEW FOLDER NormDocsFolder 'НД' WINDOW toolbar BEFORE masterData {
+        NEW FOLDER NormDocsFolderWork 'Журналы';
+        NEW FOLDER NormDocsFolderDirs 'Справочники';
+    }
+}
+    

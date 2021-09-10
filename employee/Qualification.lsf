@@ -1,0 +1,68 @@
+MODULE Qualification;
+
+REQUIRE Employee;
+
+NAMESPACE Contact;
+
+CLASS Qualification 'Квалификация';
+TABLE qualification (Qualification);
+
+name    'Квалификация'  = DATA STRING[100] (Qualification) NONULL;
+level   'Уровень'       = DATA LOCAL STRING[1] (Qualification); 
+
+lstQualification 'Квалификация' = DATA STRING (Employee);
+
+FORM editQualification 'Редактирование'
+    OBJECTS q = Qualification PANEL
+    PROPERTIES (q) name 
+    EDIT Qualification OBJECT q 
+;
+
+FORM viewQualification 'Справочник квалификаций'
+    OBJECTS q = Qualification
+    PROPERTIES (q) READONLY name
+    PROPERTIES (q) NEWSESSION NEW, EDIT, DELETE 
+    ORDERS name(q)
+;
+
+FORM listQualification 'Справочник квалификаций'
+    OBJECTS q = Qualification
+    PROPERTIES (q) level 
+    PROPERTIES (q) READONLY name
+    ORDERS name(q)
+    LIST Qualification OBJECT q
+;
+
+DESIGN listQualification {
+    PROPERTY (level(q)) {charWidth = 7;}
+}
+
+NAVIGATOR {
+    employeeFolder {
+        NEW FORM viewQualification AFTER employees;
+    }
+}
+
+onGetQualification 'Выбрать' (Employee o) {
+    LOCAL cpart1 = STRING (); 
+    LOCAL cpart2 = STRING[1] ();
+    LOCAL oq = Qualification();
+    level(Qualification q) <- NULL;
+    IF lstQualification(o) THEN {
+        FOR iterate(INTEGER i,1,wordCount(lstQualification(o),',')) DO {
+            cpart1() <- getWord(lstQualification(o),',',i);
+            cpart2() <- left(getWord(cpart1(),'(',2),1);
+            cpart1() <- getWord(cpart1(),'(',1);    
+            oq() <- GROUP MAX (Qualification q) IF trim(name(q)) = cpart1();
+            level(oq()) <- cpart2(); 
+        }    
+    }
+    DIALOG listQualification;
+    lstQualification(o) <- NULL; 
+    FOR (Qualification q IS Qualification) IF level(q) ORDER name(q) DO {
+        lstQualification(o) <- IF lstQualification(o) THEN lstQualification(o) + ','  ELSE '';
+        lstQualification(o) <- lstQualification(o) + trim(name(q));
+        IF level(q) THEN lstQualification(o) <- lstQualification(o) + '(' + level(q) + ')';
+    }   
+    level(Qualification q) <- NULL;
+}
