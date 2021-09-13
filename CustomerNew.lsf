@@ -1,0 +1,498 @@
+MODULE CustomerNew;
+
+REQUIRE Customer, CustomerAttachment, CustomerDashboard, TempClassReports, 
+        StaticClientType, Equipment, Utils, Time;
+
+calcInfo 'Данные сверки' = DATA LOCAL TEXT (Customer);
+delimiter 'Разделитель' = DATA LOCAL STRING[10] () CHARWIDTH 10; 
+clientType 'Тип клиента' = DATA STRING[50] (Customer) CHARWIDTH 50; 
+clientTypeInfo 'Описание типа клиента' = DATA TEXT (Customer);
+inReport 'Отм.' = DATA LOCAL BOOLEAN (Customer);
+
+onCalc 'Обновить' () {
+    calcInfo(Customer c) <- '';
+    FOR (Customer o IS Customer) AND isSubstring(info(o),delimiter()) DO {
+        FOR iterate(INTEGER i, 2, wordCount(info(o),delimiter())) ORDER i DO {
+            calcInfo(o) <- calcInfo(o) + getWord(getWord(info(o),delimiter(),i),'\n',1) + '\n';
+        }  
+    }
+}
+
+// статический справочник отчетов
+CLASS EnumNameReports 'Отчеты по сверке' {
+    p1 ' 1. Cверка по ТО - тип S1',  p2 ' 2. Ежемесячная сверка - тип S1M', p3 ' 3. Сверка по месяцу N - тип S1N',
+    p4 ' 4. Cверка по ТСД - тип S2' 
+}
+
+FORM listEnumNameReports ''
+    OBJECTS ob = EnumNameReports
+    PROPERTIES(ob) READONLY staticCaption 
+    ORDERS staticCaption(ob)
+; 
+
+// заголовки отчета
+date = DATA LOCAL DATE (); title = DATA LOCAL TEXT (); 
+
+FORM repReviseTO 'Сверка торговых объектов'
+  PROPERTIES() date, title PANEL  
+  OBJECTS o1 = TempClassReports
+  PROPERTIES(o1) pi,ps,pc,p1,p2,p3,p4,p6,pn
+  ORDERS pi(o1), ps(o1)   
+;
+
+FORM repReviseTSD 'Печатная форма 3 пары'
+  PROPERTIES() date, title PANEL  
+  OBJECTS o1 = TempClassReports
+  PROPERTIES(o1) pi,ps,pc,p1,p2,p3,p4,p5,p6,p8,pn
+  ORDERS pi(o1), ps(o1)   
+;
+
+// Максимальная дата отчета для сверки
+maxDate(Customer c,STRING rname) = GROUP MAX date(Attachment o) IF customer(o) = c AND name(type(o)) = rname; 
+
+retInteger '' = DATA LOCAL INTEGER ();
+onRetInteger2 '' (STRING cs) {
+    retInteger() <- NULL;
+    IF cs THEN {
+        IF strpos(cs,'.') > 0 THEN {
+            retInteger() <- toInteger(substr(cs,1,strpos(cs,'.')-1));
+        } ELSE IF strpos(cs,',') > 0 THEN {
+            retInteger() <- toInteger(substr(cs,1,strpos(cs,',')-1));
+        } ELSE {
+            retInteger() <- toInteger(cs);
+        }
+    }
+    IF NOT retInteger() THEN retInteger() <- 0;
+}
+
+onRetInteger '' (STRING c1, c2) {
+    LOCAL r1, r2 = INTEGER ();
+    onRetInteger2(c1); r1() <- retInteger();
+    onRetInteger2(c2); r2() <- retInteger();
+    retInteger() <- r1() + r2();
+}
+
+// 2. Cверка по ТО - тип S1 (S1M, S1N) по отдельному клиенту
+// 'Список лицензий','Список объектов'
+onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, cRepName2, cFDelimiter) {
+    LOCAL frep = FILE(); 
+    LOCAL pnote, UNP1, UNP2 = TEXT(); UNP1() <- ''; UNP2() <- ''; 
+    LOCAL ox1, ox2 = Attachment();
+    LOCAL ks1,ks2,ks6,iks1,iks2,iks3,iks6 = INTEGER (); iks3() <- 0;   
+    LOCAL onlyClient = BOOLEAN ();
+    LOCAL nob,imax = INTEGER(); nob() <- 0; imax() <- 0;  
+    LOCAL colA1,colB1,colC1,colD1,colB2,colC2,colD2,colF2,colH2,colG2 = BPSTRING[50] (INTEGER);
+    LOCAL c1 = TEXT(); 
+    ox1() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName1 AND date(a) = maxDate(c, cRepName1);
+    IF ox1() THEN {
+        p1(oRep) <- toDateDDMMYY(date(ox1()));
+        // обработка документов, лицензии: организация, унп, магазины, склады
+        // если будет найден любой пустой УНП, то будем обрабатывать без учета УНП
+        // при этом рассчитаем общий итог заранее, так как не знаем, где встретиться пустой УНП
+        IMPORT XLS FROM file(ox1()) AS FILE TO colA1=A,colB1=B,colC1=C,colD1=D;
+        FOR imported(INTEGER i) ORDER i DO {
+            colA1(i) <- trim(OVERRIDE colA1(i),''); colB1(i) <- OVERRIDE colB1(i),''; 
+            colC1(i) <- OVERRIDE colC1(i),''; colD1(i) <- OVERRIDE colD1(i),'';
+            IF i > 0 THEN {
+                IF length(colA1(i)) > 0 THEN {
+                    IF NOT isISubstring(colA1(i),'Лицензи') THEN {
+                        onRetInteger(colC1(i),colD1(i)); iks3() <- iks3() + retInteger(); 
+                        IF length(colB1(i)) = 0 THEN onlyClient() <- TRUE;
+                        imax() <- i; 
+                        UNP1() <- UNP1() + ',' + colB1(i);    // список УНП для сравнения (прописанные в списке лицензий)  
+                    } ELSE BREAK; 
+                } ELSE BREAK; 
+            }    
+        } 
+    } ELSE  {
+        pnote() <- cRepName1; onlyClient() <- TRUE;    
+    }
+    IF onlyClient() THEN {
+        imax() <- 1; colA1(1) <- '* ' + name(c); UNP1() <- '';
+    }
+    // обработка документов, объекты: адрес, унп, продажи
+    ox2() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2 AND date(a) = maxDate(c, cRepName2);
+    IF ox2() THEN {
+        p3(oRep) <- toDateDDMMYY(date(ox2()));
+        IMPORT XLS FROM file(ox2()) AS FILE TO colB2=B, colC2=C, colD2=D, colF2=F, colG2=G, colH2=H;          
+        iks1() <- 0; iks2() <- 0; iks6() <- 0; 
+        FOR iterate(INTEGER i1,1,imax()) ORDER i1 DO {
+            IF onlyClient() THEN ks1() <- iks3(); ELSE {
+                onRetInteger(colC1(i1), colD1(i1)); ks1() <- retInteger();                
+            } 
+            NEW ob = TempClassReports {
+                pi(ob) <- ind; ps(ob) <- 2; pc(ob) <- '   ' + colA1(i1);     // организация клиента
+                ks2() <- 0; ks6() <- 0; 
+                FOR imported(INTEGER i2) AND i2 > 0 ORDER i2 DO {
+                    colB2(i2) <- OVERRIDE colB2(i2),''; colC2(i2) <- OVERRIDE trim(colC2(i2)),'';
+                    colD2(i2) <- OVERRIDE trim(colD2(i2)),''; colG2(i2) <- OVERRIDE colG2(i2),'';
+                    colF2(i2) <- OVERRIDE trim(colF2(i2)), ''; colH2(i2) <- OVERRIDE colH2(i2), '';
+                    IF onlyClient() OR trim(colB1(i1)) = colD2(i2) THEN {
+                        onRetInteger(colG2(i2),NULL);
+                        IF retInteger() > 0 THEN ks2() <- ks2() + 1;
+                        onRetInteger(colH2(i2),NULL);
+                        IF colF2(i2) = 'Скл.' AND retInteger() > 0 THEN ks6() <- ks6() + 1;
+                    }  
+                    IF NOT onlyClient() AND NOT isISubstring(colD2(i2),'УНП') THEN {
+                    // Обработка ситуации, что УНП не прописан в списке лицензий, но присутствует в списке объектов
+                        IF  NOT isISubstring(UNP1(), colD2(i2)) AND 
+                            NOT isISubstring(UNP2(), colD2(i2)) THEN {
+                                IF length(UNP2()) > 0 THEN UNP2() <- UNP2() + '; ';
+                                UNP2() <- UNP2() + colC2(i2) + ', ' + colD2(i2);
+                        }
+                    } 
+                }
+                iks1() <- iks1() + ks1(); iks2() <- iks2() + ks2(); iks6() <- iks6() + ks6();
+                p2(ob) <- ks1(); p4(ob) <- ks2(); p6(ob) <- ks6();                                      // итог по организации клиента
+            }
+        }   
+        p2(oRep) <- iks1(); p4(oRep) <- iks2(); p6(oRep) <- iks6();                                        // итог по клиенту
+    } ELSE {
+        IF ox1() THEN p2(oRep) <- iks3();
+        IF pnote() THEN pnote() <- pnote() + ', ';
+        pnote() <- (OVERRIDE pnote(),'') + cRepName2;
+    }
+    IF pnote() THEN pnote() <- '* док. не найдены: ' + pnote() + '\n'; ELSE pnote() <- '';  
+    IF length(UNP2()) > 0 THEN pnote() <- pnote() + 'Список УНП не найденых в "Списке лицензий":\n' + UNP2() + '\n';  
+    // обработка разделителя (по клиенту)
+    FOR iterate(INTEGER i, 2, wordCount(info(c),cFDelimiter)) ORDER i DO {
+        c1() <- OVERRIDE getWord(getWord(info(c),cFDelimiter,i),'\n',1), '';
+        c1() <- OVERRIDE getWord(c1(),'///',2), '';
+        IF length(c1()) > 0 THEN pnote() <- pnote() + trim(c1());
+    }    
+   pn(oRep) <- pnote();
+}
+
+// 3. сверка по ТСД и работающим ТСД (если есть), тип S2 по отдельному клиенту
+// Обрабатываемые XLS документы: Список лицензий ТСД, Список выданных ключей ТСД, Список работающих ТСД
+onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, cRepName2, cRepName3, cFDelimiter) {
+    LOCAL frep = FILE();  
+    LOCAL pnote,pnote3, pnote4, c1 = TEXT(); 
+    LOCAL ox1, ox2, ox3 = Attachment();
+    LOCAL value1,value2 = BPSTRING[50] (INTEGER);
+    LOCAL colE2, colG2 = STRING (INTEGER);
+    LOCAL err31, err32 = BOOLEAN();
+    LOCAL n3, n4, imax2 = INTEGER();
+    ox1() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName1 AND date(a) = maxDate(c, cRepName1);
+    IF ox1() THEN {
+        p1(oRep) <- toDateDDMMYY(date(ox1()));
+        IMPORT XLS NOHEADER FROM file(ox1()) AS FILE TO value1 = A;
+        onRetInteger(value1(0),NULL); p2(oRep) <- retInteger();
+    } ELSE pnote() <- cRepName1;
+    ox2() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2 AND date(a) = maxDate(c, cRepName2);
+    IF ox2() THEN {
+        p3(oRep) <- toDateDDMMYY(date(ox2()));
+        IMPORT XLS NOHEADER FROM file(ox2()) AS FILE TO value2 = A, colE2 = E, colG2 = G;
+        onRetInteger(value2(0),NULL); p4(oRep) <- retInteger();
+        FOR imported(INTEGER i2) DO {
+            imax2() <- imax2() (+) 1;
+            colE2(i2) <- upper(trim(OVERRIDE colE2(i2), '')); 
+            colG2(i2) <- upper(trim(OVERRIDE colG2(i2), '')); 
+        }
+    } ELSE {
+        IF pnote() THEN pnote() <- pnote() + ', ';
+        pnote() <- (OVERRIDE pnote(),'') + cRepName2;
+    }
+    // дополнительная сверка по работающим у клиента ТСД (Список работающих ТСД)
+    ox3() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName3 AND date(a) = maxDate(c, cRepName3);
+    IF ox3() THEN {
+        p5(oRep) <- toDateDDMMYY(date(ox3()));
+        LOCAL colC3 = STRING (INTEGER); 
+        IMPORT XLS NOHEADER FROM file(ox3()) AS FILE TO colC3 = C;
+        FOR imported(INTEGER i) AND i > 1 ORDER i DO {
+            colC3(i) <- upper(trim(OVERRIDE colC3(i), '')); 
+            IF length(colC3(i)) > 0 THEN {
+                p6(oRep) <- p6(oRep) + 1;
+                // ищем работающие ключи в Список выданных ключей ТСД и замененные, которых не должно быть
+                err31() <- TRUE; err32() <- NULL; 
+                FOR iterate(INTEGER i2,1,imax2()) DO {
+                    IF colE2(i2) = colC3(i) THEN {
+                        err31() <- NULL; // работающий ТСД найден в списке выданных ТСД
+                        IF length(colG2(i2)) > 0 THEN err32() <- TRUE; // содержит информацию о замене, так не должно быть
+                        BREAK;
+                    }
+                }
+                IF err31() THEN {
+                    IF pnote3() THEN pnote3() <- pnote3() + ', '; ELSE pnote3() <- '';
+                    pnote3() <- pnote3() + colC3(i);
+                    n3() <- n3() (+) 1;
+                }
+                IF err32() THEN {
+                    IF pnote4() THEN pnote4() <- pnote4() + ', '; ELSE pnote4() <- '';
+                    pnote4() <- pnote4() + colC3(i);
+                    n4() <- n4() (+) 1;
+                }
+            }
+        }
+    } ELSE {
+        IF pnote() THEN pnote() <- pnote() + ', ';
+        pnote() <- (OVERRIDE pnote(),'') + cRepName3;
+    }
+    IF pnote() THEN pnote() <- '* док. не найдены: ' + pnote() + '\n'; ELSE pnote() <- '';
+    IF pnote3() OR pnote4() THEN {
+        IF length(pnote()) > 0 THEN pnote() <- pnote() + '\n';
+            IF pnote3() THEN pnote() <- pnote() + '* не выданы ключи на ТСД по серийным номерам, всего ' + trim(toChar(n3(),'99999')) + ':\n' + pnote3() + '\n';        
+            IF pnote4() THEN pnote() <- pnote() + '* замененные  серийные номера, всего ' + trim(toChar(n4(),'99999')) + ':\n' + pnote4() + '\n';
+}  
+    // обработка разделителя по клиенту
+    IF cFDelimiter THEN {
+        FOR iterate(INTEGER i, 2, wordCount(info(c),cFDelimiter)) ORDER i DO {
+            c1() <- OVERRIDE getWord(getWord(info(c),cFDelimiter,i),'\n',1), '';
+            c1() <- OVERRIDE getWord(c1(),'///',2), '';
+            IF length(c1()) > 0 THEN pnote() <- pnote() + '* ' + trim(c1());
+        }    
+    }
+   pn(oRep) <- pnote();
+}
+
+// общий метод сверки
+// тип отчета, заголовок отчета, док1, док2, значение атрибута в тип клиента, доп. разделитель
+onRevise '' (INTEGER ntype, STRING cRepName1,cRepName2,cFilter,cDelimiter) {
+    LOCAL cmsg,c1 = TEXT (); 
+    LOCAL ind = INTEGER (); ind() <- 0;
+    inReport(Customer c) <- NULL;
+    FOR [FILTER customers.o](Customer c) DO inReport(c) <- TRUE; 
+    FOR (Customer c IS Customer) AND isSubstring(clientType(c),cFilter) AND inReport(c) ORDER name(c) NEW ob = TempClassReports DO {
+        pc(ob) <- name(c); ind() <- ind() + 1; pi(ob) <- ind(); ps(ob) <- 1;   
+        p2(ob) <- 0; p4(ob) <- 0; p6(ob) <- 0; p8(ob) <- 0; 
+        IF ntype = 2 THEN 
+            onRevise2(ind(),ob,c,cRepName1,cRepName2,cDelimiter);
+        ELSE IF ntype = 3 THEN 
+            onRevise3(ind(),ob,c,cRepName1,cRepName2,'Список работающих ТСД',cDelimiter);
+    }  
+}
+
+FORM  input 'Ввод значения'
+    OBJECTS o = (qmes = INTEGER) PANEL 
+    PROPERTIES 'Введите номер месяца' = VALUE(qmes)
+; 
+
+// Обработка формы: меню с отчетамми
+onCustomerReports 'Отчеты' (Customer c) {
+    LOCAL enum  = EnumNameReports();
+    LOCAL ps    = STRING[3] ();
+    DIALOG listEnumNameReports OBJECTS ob INPUT DO { enum() <- ob; }
+    IF NOT enum() THEN RETURN;
+    ps() <- substr(staticCaption(enum()),1,3);
+    date() <- currentDate();
+    IF ps() = ' 1.' THEN {
+        newTempClassReports();
+        title() <- 'Отчет по сверке торговых объектов';    
+        onRevise(2,'Список лицензий','Список объектов','S1','###');
+        PRINT repReviseTO XLS;//XLS;
+    }
+    ELSE IF ps() = ' 2.' THEN {
+        newTempClassReports();    
+        title() <- 'Ежемесячный отчет по сверке торговых объектов';    
+        onRevise(2,'Список лицензий','Список объектов','S1M','###');
+        PRINT repReviseTO XLS;//XLS;
+    }    
+    ELSE IF ps() = ' 3.' THEN {
+        LOCAL nmes = INTEGER (); nmes() <- extractMonthNumber(currentDate()); 
+        DIALOG input OBJECTS qmes = nmes() INPUT DO { nmes() <- qmes; }
+        IF nmes() < 1 OR nmes() > 12 THEN MESSAGE 'Месяц сверки вне диапазона 1..12';
+        ELSE {
+        newTempClassReports();    
+            title() <- 'Отчет по сверке торговых объектов за ' + nmes() + ' месяц';    
+            onRevise(2,'Список лицензий','Список объектов','S1' + nmes(),'###');
+            PRINT repReviseTO XLS;
+            }    
+    }    
+    ELSE IF ps() = ' 4.' THEN {
+        newTempClassReports();    
+        title() <- 'Отчет по сверке выданных лицензий ТСД';
+        onRevise(3,'Список лицензий ТСД','Список выданных ключей ТСД','S2','*#*');
+        PRINT repReviseTSD XLS; // XLS;
+    } 
+    CANCEL; 
+}
+
+
+// вызов статического класса для выбора установки фильтров, см. определение в StaticClientType.lsf
+onStaticClientType 'Фильтр: Тип клиента' () {
+    onClsClientTypeProp(NULL);
+    DIALOG listEnumAtr ; 
+    onSetClientTypeProp();
+}
+
+onCustomerDashboard 'Работа с клиентами' (Customer o) {
+    show(o);
+}
+
+EXTEND FORM customers
+    PROPERTIES onCalc(), delimiter(), onCustomerReports(o), onStaticClientType(), onCustomerDashboard(o) 
+    PROPERTIES(o) READONLY clientType AFTER nameGroup(o)
+    PROPERTIES(o) PANEL READONLY calcInfo
+    EVENTS ON INIT {
+        delimiter() <- '###';
+    }  
+    FILTERS IF fltClientType(0) THEN isSubstring(clientType(o) + ',', fltClientType(0)) ELSE TRUE
+    FILTERS IF fltClientType(1) THEN isSubstring(clientType(o) + ',', fltClientType(1)) ELSE TRUE 
+    FILTERS IF fltClientType(2) THEN isSubstring(clientType(o) + ',', fltClientType(2)) ELSE TRUE 
+    FILTERS IF fltClientType(3) THEN isSubstring(clientType(o) + ',', fltClientType(3)) ELSE TRUE 
+    FILTERS IF fltClientType(4) THEN isSubstring(clientType(o) + ',', fltClientType(4)) ELSE TRUE 
+    FILTERS IF fltClientType(5) THEN isSubstring(clientType(o) + ',', fltClientType(5)) ELSE TRUE 
+    FILTERS IF fltClientType(6) THEN isSubstring(clientType(o) + ',', fltClientType(6)) ELSE TRUE 
+    FILTERS IF fltClientType(7) THEN isSubstring(clientType(o) + ',', fltClientType(7)) ELSE TRUE 
+    FILTERS IF fltClientType(8) THEN isSubstring(clientType(o) + ',', fltClientType(8)) ELSE TRUE 
+    FILTERS IF fltClientType(9) THEN isSubstring(clientType(o) + ',', fltClientType(9)) ELSE TRUE 
+;
+
+EXTEND FORM customer
+    PROPERTIES(o) clientType 
+;
+
+EXTEND FORM dialogCustomers
+    PROPERTIES(o) READONLY clientType AFTER nameGroup(o)
+;
+
+DESIGN customers {
+    PANEL {
+        NEW cntInfo {
+            type = CONTAINERV; 
+            fill = 1;
+            NEW cnt1 {
+                fill = 1;
+                MOVE PROPERTY (calcInfo(o));
+            }
+            NEW cnt10 {
+                type = CONTAINERH ; 
+                NEW cnt2 {
+                    type = CONTAINERH ;
+                    caption = 'параметры сверки';
+                    MOVE PROPERTY (delimiter()) {charHeight = 1;};
+                    MOVE PROPERTY (onCalc());
+                    MOVE PROPERTY (onCustomerReports(o));
+                }
+                // cnt3, см. RateService
+                NEW cnt4 {
+                    type = CONTAINERH ;
+                    caption = 'дополнительно'; 
+                    marginLeft = 10;
+                    MOVE PROPERTY (onStaticClientType());
+                    MOVE PROPERTY (onCustomerDashboard(o));
+                }
+           } 
+        }
+    }
+}
+
+// редактирование признаков клиента: заполнение свойства clientType
+onSetLabelsClientType '' (Customer c,STRING[50] olab) {
+    LOCAL tlabs = STRING[50]();
+    FOR (EnumProducts ep IS EnumProducts) AND mark(ep) ORDER staticName(ep) DO {
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + 
+            substr(staticCaption(ep),1,strpos(staticCaption(ep),':')-1);
+    }
+    FOR (EnumRevise er IS EnumRevise) AND mark(er) ORDER staticName(er) DO { 
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + 
+            substr(staticCaption(er),1,strpos(staticCaption(er),':')-1); 
+    }      
+    FOR (EnumContract ec IS EnumContract) AND mark(ec) ORDER staticName(ec) DO { 
+        IF cdop(ec) THEN IF length(trim(cdop(ec))) = 0 THEN cdop(ec) <- NULL;  
+        tlabs() <- (IF tlabs() THEN tlabs() + ',' ELSE '') + 
+            substr(staticCaption(ec),1,strpos(staticCaption(ec),':')-1) + IF cdop(ec) THEN '(' + trim(cdop(ec)) + ')' ELSE '';
+    }
+    IF tlabs() THEN clientType(c) <- tlabs() + IF olab THEN ',' + olab ELSE '';          
+} 
+
+
+// редактирование признаков клиента: чтение свойства clientType 
+// и установка поля mark статических классов EnumProducts, EnumRevise, EnumContract 
+onGetLabelsClientType 'Выбор Типов клиента' (Customer c) {
+    LOCAL ep = EnumProducts(); LOCAL er = EnumRevise(); LOCAL ec = EnumContract(); 
+    LOCAL olab, cpart, cpart2 = STRING(); 
+    mark(EnumProducts o1) <- NULL; mark(EnumRevise o2) <- NULL; mark(EnumContract o3) <- NULL; cdop(EnumContract o3) <- NULL;
+    IF clientType(c) THEN {
+        FOR iterate(INTEGER i,1,wordCount(clientType(c),',')) DO {
+            cpart() <- getWord(clientType(c),',',i); cpart2() <- NULL;
+            IF isSubstring(cpart(),'(') THEN {
+                cpart2() <- getWord(cpart(),'(',2);
+                cpart2() <- getWord(cpart2(),')',1);
+                cpart()  <- getWord(cpart(),'(',1);
+            } 
+            ep() <- GROUP MAX (EnumProducts o1) IF isSubstring(staticCaption(o1),cpart() + ':');
+            IF ep() THEN {mark(ep()) <- TRUE;} ELSE {
+                er() <- GROUP MAX (EnumRevise o2) IF isSubstring(staticCaption(o2),cpart() + ':');
+                IF er() THEN {mark(er()) <- TRUE;} ELSE {
+                    ec() <- GROUP MAX (EnumContract o3) IF isSubstring(staticCaption(o3),cpart() + ':');
+                    IF ec() THEN {mark(ec()) <- TRUE; cdop(ec()) <- cpart2();} ELSE 
+                        olab() <- (IF olab() THEN olab() + ',' ELSE '') + cpart(); // неизвестный признак
+                }    
+            }  
+        }
+    } 
+    // новый заголовок окна
+    captionStaticClientType() <- 'Установка Типа клиента. ' + IF olab() THEN 'Отдельные типы:  ' + olab() ELSE '';
+    DIALOG listEnumAtr;
+    IF eventStaticClientType() THEN onSetLabelsClientType(c, olab());
+    captionStaticClientType() <- NULL;
+}
+
+// добавление одного значения в свойство clientTypeInfo
+onAddClientTypeInfo '' (Customer c, STRING clabel, STRING ctext) {
+    clientTypeInfo(c) <- (IF clientTypeInfo(c) THEN clientTypeInfo(c) + ';* ' ELSE '') + clabel + ': ' + trim(getWord(ctext,':',2)); 
+} 
+
+// запись расшифровки по клиенту в свойство clientTypeInfo
+onSaveClientTypeInfo '' (Customer c) {
+    LOCAL ep = EnumProducts(); LOCAL er = EnumRevise(); LOCAL ec = EnumContract(); 
+    LOCAL olab, cpart, cpart2, cpart3 = STRING(); 
+    clientTypeInfo(c) <- NULL;
+    IF clientType(c) THEN {
+        FOR iterate(INTEGER i,1,wordCount(clientType(c),',')) DO {
+            cpart() <- getWord(clientType(c),',',i); 
+            cpart2() <- NULL; cpart3() <- cpart();
+            IF isSubstring(cpart(),'(') THEN {
+                cpart2() <- getWord(cpart(),'(',2);
+                cpart2() <- getWord(cpart2(),')',1);
+                cpart()  <- getWord(cpart(),'(',1);
+            } 
+            ep() <- GROUP MAX (EnumProducts o1) IF isSubstring(staticCaption(o1),cpart() + ':');
+            IF ep() THEN {onAddClientTypeInfo(c, cpart3(), staticCaption(ep()));} ELSE {
+                er() <- GROUP MAX (EnumRevise o2) IF isSubstring(staticCaption(o2),cpart() + ':');
+                IF er() THEN {onAddClientTypeInfo(c, cpart3(), staticCaption(er()));} ELSE {
+                    ec() <- GROUP MAX (EnumContract o3) IF isSubstring(staticCaption(o3),cpart() + ':');
+                    IF ec() THEN {onAddClientTypeInfo(c, cpart3(), staticCaption(ec()));} ELSE 
+                        olab() <- (IF olab() THEN olab() + ',' ELSE '') + cpart(); // неизвестный признак
+                }    
+            } 
+        }
+        IF olab() THEN onAddClientTypeInfo(c, olab(), ': дополнительные типы'); 
+    }
+}
+
+// кнопка на форме редактирования для установки признаков клиента
+EXTEND FORM customer
+    PROPERTIES(o) onGetLabelsClientType AFTER clientType(o)
+    EVENTS ON OK onSaveClientTypeInfo(o)
+;
+
+// расширенное описание типа клиента, запись расширенного описания при сохранении формы
+EXTEND FORM customers
+    PROPERTIES(o) PANEL READONLY clientTypeInfo
+;
+
+// в тч, nameGroup(o) hide - скрываем свойство, RM 15119, 05.03.2021
+DESIGN customers {
+    PROPERTY (nameGroup(o)) {hide = TRUE;}  
+    cnt1 {
+        type = CONTAINERH; 
+        MOVE PROPERTY (clientTypeInfo(o)) {
+            caption = 'Тип клиента';
+            fill=3;
+        }
+        PROPERTY (calcInfo(o)) {
+            caption = 'Сверка';
+            fill=1;
+        }
+    }
+}
+
+DESIGN customer {
+    PROPERTY (nameGroup(o)) {hide = TRUE;} 
+}
+
+DESIGN dialogCustomers {
+    PROPERTY (nameGroup(o)) {hide = TRUE;} 
+}

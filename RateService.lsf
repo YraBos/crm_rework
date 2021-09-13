@@ -1,0 +1,187 @@
+MODULE RateService;
+
+REQUIRE  CustomerNew, Act, Currency, Utils, Time, ContractSubject;
+
+// Описание задачи:
+// Остаток на начало считается только по договору типа: Сопровождение.  
+// Для расчета выбирается значения на ближающую дату <= начала расчетного периода (GROUP MAX), при этом:
+// количество - это сумма (quantity), сумма - сумма (sum) % обслуживания, price - это % обслуживания  
+// Для расчета остатка на начало учитывается ближайшая дата на начало расчетного периода из предмета договора
+// относительно договора или соглашения. Так как договоров на сопровождение может быть несколько, то для выделения договора, 
+// в котором предмет договора хранит остатки на начало заполняется признак (markBalance (*)) на уровне договора и 
+// в строках предмета договора (на договор или соглашение (**)), чтобы отделить суммы остатка от прочих сумм. 
+// Строки отчета - это суммы по актам, относящиеся к договорам типа: Сопровождение, Лицензия или Лицензия ТСД. 
+// При этом типы актов должны быть АКТ и АКЛ или только АКТ, взависимости от типа клиента SP или SL 
+// Могут два варианта договоров на Сопровождение: рублевый и валютный. 
+// В валютном договоре значения колонок рублевых и в USD совпадают  
+// Остаток на конец по колонкам формируется в Jasper Report
+
+CLASS CustomerExtensions 'Расширение клиента';
+TABLE customerExtensions(CustomerExtensions);
+
+customer    'Клиент'        = DATA Customer         (CustomerExtensions) AUTOSET;
+date        'Дата действия' = DATA DATE             (CustomerExtensions) NONULL;
+rate        'Коэффициент'   = DATA NUMERIC[14,4]    (CustomerExtensions) NONULL;
+
+// * признак, что договор содержит суммы остатка на начало
+markBalance 'Учитывает в предмете договора остатки по сопровождению' = DATA BOOLEAN (Contract);
+
+// ** признак, что указанные значения являются остатком на начало периода 
+markBalance 'Признак остатка на начало' = DATA BOOLEAN (ContractSubject);
+markBalance 'Признак остатка на начало' = DATA BOOLEAN (AgreementSubject);
+EXTEND FORM contract 
+    PROPERTIES(as) markBalance SHOWIF nameType(o) = 'Сопровождение' AND markBalance(o)
+    PROPERTIES(s)  markBalance SHOWIF nameType(o) = 'Сопровождение' AND markBalance(o)
+    PROPERTIES(o)  markBalance SHOWIF nameType(o) = 'Сопровождение'
+;
+
+rateCureency 'Коэф. USD' (Act a) = 
+    NUMERIC[10,4](IF shortNameCurrency(contract(a)) = 'BYN' THEN 
+        round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(contract(a)),date(a)),4) ELSE 1); 
+
+dateStart 'Период с'      = DATA LOCAL DATE ();
+dateEnd   'по'            = DATA LOCAL DATE ();
+extReport 'Расшир. отчет' = DATA LOCAL BOOLEAN ();
+
+// правило, связанное с наличием строк расширения для клиента 
+permRule(Act a) = GROUP MAX CustomerExtensions e IF date(e) <= date(a) AND customer(e)=customer(a);
+// расчет % за обслуживания с учетом правил permRule 
+rateService 'Проц. обслуживания' (Act a) = OVERRIDE rate(permRule(a)), 0.0125;
+
+// типы актов, которые могут участвовать в формировании отчета
+chkNameType (Act a) = 
+    IF isWordInCSV('SP', clientType(customer(a))) THEN isWordInCSV(nameType(a),'АКТ,АКЛ') ELSE
+    IF isWordInCSV('SL', clientType(customer(a))) THEN nameType(a) = 'АКЛ'; 
+
+sumRate 'Сумма за обсл.' (Act a) = NUMERIC[14,2](round2( sum(a) * rateService(a) ));
+sumRateCurrency 'Сумма за обсл. USD' (Act a) = NUMERIC[14,2](round2( sumRate(a) / rateCureency(a) ));
+sumAct 'Сумма акта' (Act a) = NUMERIC[14,2](round2(sum(a)));
+sumActCurrency 'Сумма акта, USD' (Act a) = NUMERIC[14,2](round2( sumAct(a) / rateCureency(a) ));
+
+// основное условие включения данных в отчет 
+exprAct '' (Act a) = 
+    IF chkNameType(a) AND   
+    ( nameType(contract(a)) = 'Лицензия' OR nameType(contract(a)) = 'Лицензия ТСД' OR nameType(contract(a)) = 'Сопровождение' ) 
+    THEN TRUE;
+
+rateCureency2 'Коэф. USD' (Contract c,DATE ds) = 
+    NUMERIC[10,4](IF shortNameCurrency(c) = 'BYN' THEN 
+        round4(1 / OVERRIDE rateOn(defaultTypeExchange(),currency(c),ds),4) ELSE 1); 
+
+
+// вычисляем ссылку на договор и далее работаем от найденного договора сопровождения по текущей организации
+baseCnt '' (LegalEntity l) = GROUP MAX (Contract c) IF nameType(c) = 'Сопровождение' AND markBalance(c) BY legalEntity(c);
+
+// максимальная дата остатка на начало по договору или соглашению
+dCnt '' (LegalEntity l) = OVERRIDE (GROUP MAX (date(ContractSubject s)) 
+        IF contract(s) = baseCnt(l) AND markBalance(s) AND date(s) <= dateStart()), 1900_01_01;               
+dAgr '' (LegalEntity l) = OVERRIDE (GROUP MAX (date(AgreementSubject s)) 
+        IF contract(agreement(s)) = baseCnt(l) AND markBalance(s) AND date(s) <= dateStart()), 1900_01_02;               
+
+// вычисляем ссылку на остаток в предмете договора по договору и в предмете договора по соглашению
+cidCnt '' (LegalEntity l) = GROUP MAX (ContractSubject s)  
+        IF contract(s) = baseCnt(l) AND date(s) = dCnt(legalEntity(contract(s)));
+cidAgr '' (LegalEntity l) = GROUP MAX (AgreementSubject s)  
+        IF contractAgreement(s) = baseCnt(l) AND date(s) = dAgr(legalEntity(contractAgreement(s)));
+
+
+// в рублях на начало расчетного периода
+
+s11 '' (LegalEntity l) = 
+    IF dCnt(l) > dAgr(l) THEN 
+        quantity(cidCnt(l)) * (IF inCurrency(baseCnt(l)) THEN rateCureency2(baseCnt(l),dCnt(l)) ELSE 1)
+    ELSE 
+        quantity(cidAgr(l)) * (IF inCurrency(baseCnt(l)) THEN rateCureency2(baseCnt(l),dAgr(l)) ELSE 1);
+         
+s12 '' (LegalEntity l) = 
+    IF dCnt(l) > dAgr(l) THEN  
+        IF cidCnt(l) AND s11(l) THEN s11(l) * price(cidCnt(l)) ELSE 0.00
+    ELSE         
+        IF cidAgr(l) AND s11(l) THEN s11(l) * price(cidAgr(l)) ELSE 0.00;
+
+// в USD на начало расчетного периода
+s21 '' (LegalEntity l) =
+    IF dCnt(l) > dAgr(l) THEN  
+        quantity(cidCnt(l)) / (IF inCurrency(contract(cidCnt(l))) THEN 1 ELSE rateCureency2(baseCnt(l),dCnt(l)))
+    ELSE    
+        quantity(cidAgr(l)) / (IF inCurrency(contract(cidCnt(l))) THEN 1 ELSE rateCureency2(baseCnt(l),dAgr(l)));
+
+s22 '' (LegalEntity l) = 
+    IF dCnt(l) > dAgr(l) THEN  
+        IF cidCnt(l) AND s21(l) THEN s21(l) * price(cidCnt(l)) ELSE 0.00
+    ELSE         
+        IF cidAgr(l) AND s21(l) THEN s21(l) * price(cidAgr(l)) ELSE 0.00;
+     
+sb      'BYN'       (LegalEntity l) = NUMERIC[14,2](round2( IF s11(l) THEN s11(l) ELSE 0.00 ));
+sbr     'BYN(%)'    (LegalEntity l) = NUMERIC[14,2](round2( IF s12(l) THEN s12(l) ELSE 0.00 ));
+sc      'USD'       (LegalEntity l) = NUMERIC[14,2](round2( IF s21(l) THEN s21(l) ELSE 0.00 ));
+scr     'USD(%)'    (LegalEntity l) = NUMERIC[14,2](round2( IF s22(l) THEN s22(l) ELSE 0.00));
+
+// заголовки для отчета 
+title1 '' = DATA LOCAL TEXT ();  title2 '' = DATA LOCAL TEXT (); title3 '' = DATA LOCAL TEXT ();
+
+FORM repProcService 'Отчет процент за обслуживание'
+    OBJECTS c = Customer PROPERTIES title1(), title2(), title3() PANEL
+    OBJECTS l = LegalEntity PROPERTIES(l) name, sb, sbr, sc, scr, dCnt, dAgr, cidCnt, cidAgr PANEL
+    OBJECTS d = Contract PROPERTIES(d) numberContract, dateContract, name  PANEL
+    OBJECTS a = Act PROPERTIES(a) number, date, name, nameType, sumAct, rateService, sumRate, rateCureency, sumActCurrency, sumRateCurrency
+    FILTERS customer(l) = c, legalEntity(d) = l, contract(a) = d
+    FILTERS IF extReport() THEN date(a) <= dateEnd() ELSE date(a) >= dateStart() AND date(a) <= dateEnd()  
+    FILTERS exprAct(a)
+    ORDERS date(a)
+;
+
+dateToStr = FORMULA STRING[8] 'to_char(($1),\'DD-MM-YYYY\')';
+onRepProcent 'Отчет %' (Customer c) {
+    LOCAL frep = FILE();
+    LOCAL fname = STRING[100] ();
+    fname() <- trim(name(c)) + '_' + dateToStr(dateStart()) + '_' + dateToStr(dateEnd());
+    title1() <- 'Расчет процентов за обслуживание';
+    title2() <- 'за период с ' + toDateDDMMYY(dateStart()) + ' по '  + toDateDDMMYY(dateEnd()) + 'г.';
+    title3() <- 'клиент: ' + trim(name(c));
+    PRINT repProcService OBJECTS c = c XLS TO frep; 
+    open(frep(), fname() + '.xls');                         
+//    PRINT repProcService OBJECTS c = c; // отладка
+}; 
+
+
+FORM editCustomerExtensions
+    OBJECTS ce = CustomerExtensions PANEL
+    PROPERTIES(ce) date, rate
+    EDIT CustomerExtensions OBJECT ce
+;
+
+
+EXTEND FORM customers
+    PROPERTIES(o) onRepProcent
+    PROPERTIES() dateStart, dateEnd, extReport 
+    EVENTS ON INIT {
+        dateStart() <- currentDate();
+        dateEnd() <- currentDate();
+//        dateStart() <- 2020_11_01;            // отладка
+//        dateEnd() <- 2020_11_30;
+    }
+   OBJECTS ce = CustomerExtensions
+   PROPERTIES(ce) READONLY date, rate
+   PROPERTIES(ce) NEWSESSION NEW, DELETE, EDIT 
+   ORDERS date(ce)
+   FILTERS customer(ce) = o 
+//   FILTERS name(o) = 'Санта' OR name(o) = 'Узбекистан' OR name(o) = 'Гиппо'             // Отладка, Санта  
+;
+
+DESIGN customers {
+    BOX(ce) {
+        flex = 0.1;
+    }
+    cnt10 {
+        NEW cnt3 {
+            marginLeft = 10;
+            caption = '% обслуживания'; 
+            type = CONTAINERH ;
+            MOVE PROPERTY (dateStart());
+            MOVE PROPERTY (dateEnd());
+            MOVE PROPERTY (extReport());
+            MOVE PROPERTY (onRepProcent(o));
+        }
+    }
+}
