@@ -1,17 +1,12 @@
 MODULE NormDocs;
 
-REQUIRE Hierarchy,  
-        NormDocsOrg, NormDocsStaff, NormDocsStaff, NormDocsLink, NormDocsMenu, NormDocsListNote, Utils;
+REQUIRE NormDocsOrg, NormDocsStaff, NormDocsStaff, NormDocsLink, NormDocsMenu, NormDocsListNote, Utils, ServiceCatalog;
 
 NAMESPACE NormDocs;
 
 // динамически рассчитываем количество работающих сотрудников
-quantityFact 'Факт.' (NormDocOrg o) = GROUP SUM 1 BY normdocorg(NormDocStaff s);
-
-@defineHierarchy(o,NormDocOrg) ;
-
-allLink 'Без привязки' = DATA LOCAL BOOLEAN ();
-archive 'Док. в архиве' = DATA LOCAL BOOLEAN ();
+//quantityFact 'Факт.' (NormDocOrg o) = GROUP SUM 1 BY normdocorg(NormDocStaff s);
+quantityFact 'Факт.' (NormDocOrg o) = GROUP SUM 1 IF level(normdocorg(NormDocStaff s), o);
 
 onReLink 'Переместить' (NormDocOrg o, NormDocLink l) {
     ASK 'Вы действительно хотите переместить документ?' DO {
@@ -20,15 +15,20 @@ onReLink 'Переместить' (NormDocOrg o, NormDocLink l) {
     }
 }
 
+canName (NormDocStaff s) = canonicalName(normdocorg(s)); // для сортировки с условием ветки дерева + ФИО
+
 FORM viewNormDocOrg 'Нормативные документы'
     TREE to o = NormDocOrg PARENT parent(o)
     PROPERTIES (o) READONLY name, quantityState, quantityFact
+    PROPERTIES (o) READONLY canonicalName SHOWIF NULL
     PROPERTIES (o) SHOWIF normDocAdmin(currentUser()) NEWSESSION NEW, EDIT, DELETE   
     
     OBJECTS s = NormDocStaff
     PROPERTIES (s) READONLY nameEmployee, phoneEmployee, emailEmployee, skypeEmployee
     PROPERTIES (s) SHOWIF (quantityState(o) AND normDocAdmin(currentUser())) NEWSESSION NEW, EDIT, DELETE
-    FILTERS normdocorg(s) = o
+    PROPERTIES (s) canName SHOWIF NULL
+    FILTERS level(normdocorg(s), o)
+    ORDERS canName(s), nameEmployee(s)
 
     OBJECTS s2 = NormDocStaff PANEL 
     PROPERTIES (s2) READONLY namePosition, lstQualification
@@ -40,10 +40,12 @@ FORM viewNormDocOrg 'Нормативные документы'
     PROPERTIES (l) NEWSESSION NEW
     PROPERTIES (l) SHOWIF (normDocAdmin(currentUser()) OR name(currentUser()) = author(l)) NEWSESSION EDIT
     PROPERTIES (l) SHOWIF normDocAdmin(currentUser()) NEWSESSION DELETE
-    PROPERTIES () allLink, archive
     PROPERTIES onReLink(o, l) SHOWIF normDocAdmin(currentUser())
-    FILTERS IF NOT allLink() THEN normdocorg(l) = o ELSE TRUE, 
-            IF NOT archive() THEN NOT nameNormDocStatus(l) = 'Архив' ELSE TRUE   
+    FILTERGROUP byNormDocOrg
+        FILTER ' Док. в структуре ' level(normdocorg(l), o) DEFAULT 
+    FILTERGROUP byArc
+        FILTER ' Текущие док. ' NOT nameNormDocStatus(l) = 'Архив' DEFAULT
+
 
     OBJECTS log = NormDocLinkLog  
     PROPERTIES (log) GRID BACKGROUND color(log) READONLY date,dateChange,dateEnd,nameNormDocStatus,nameNormDocType,name,author
@@ -115,8 +117,6 @@ DESIGN viewNormDocOrg {
                     MOVE BOX (l) ;
                     TOOLBARRIGHT (l) {
                         MOVE PROPERTY (onReLink(o,l));
-                        MOVE PROPERTY (allLink()) FIRST {marginTop = 3;};
-                        MOVE PROPERTY (archive()) FIRST {marginTop = 3;};
                     }
                 }
                 NEW cntPartCoordination {

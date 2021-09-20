@@ -5,11 +5,21 @@ NAMESPACE NormDocs;
 CLASS NormDocOrg 'Структура';
 TABLE normdocorg (NormDocOrg);
 
-name 'Наименование структуры'   = DATA ISTRING[100] (NormDocOrg) NONULL ;
-quantityState 'По штату'        = DATA INTEGER (NormDocOrg); 
+id 'Код' = DATA STRING[5] (NormDocOrg) IN base;
+normdocID = GROUP AGGR NormDocOrg o BY id(o);
+name 'Наименование структуры' = DATA ISTRING[100] (NormDocOrg) NONULL ;
+parent 'Родитель' = DATA NormDocOrg (NormDocOrg);
+nameParent 'Родитель' (NormDocOrg o) = name(parent(o)) IN base;
+level 'Уровень' (NormDocOrg child,NormDocOrg parent) = 
+        RECURSION 1l IF child IS NormDocOrg AND parent=child STEP 2l IF parent = parent($parent) MATERIALIZED;
+// это необходимо только для сортировки от уровня дерева сотрудников по ФИО         
+canonicalName (NormDocOrg o) = 
+    ISTRING[255]((GROUP CONCAT name(NormDocOrg parent), ' / ' ORDER DESC level(o, parent))) CHARWIDTH 50 MATERIALIZED;
+
+quantityState 'По штату' = DATA INTEGER (NormDocOrg); 
 
 FORM editNormDocOrg 'Элемент структуры'
     OBJECTS o = NormDocOrg PANEL
-    PROPERTIES (o) name, quantityState 
+    PROPERTIES (o) name, nameParent, quantityState 
     EDIT NormDocOrg OBJECT o
 ;
