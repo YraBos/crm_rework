@@ -42,7 +42,7 @@ FORM viewNormDocOrg 'Нормативные документы'
     PROPERTIES (l) SHOWIF normDocAdmin(currentUser()) NEWSESSION DELETE
     PROPERTIES onReLink(o, l) SHOWIF normDocAdmin(currentUser())
     FILTERGROUP byNormDocOrg
-        FILTER ' Док. в структуре ' level(normdocorg(l), o) DEFAULT 
+        FILTER ' Привязка к структуре ' level(normdocorg(l), o) DEFAULT 
     FILTERGROUP byArc
         FILTER ' Текущие док. ' NOT nameNormDocStatus(l) = 'Архив' DEFAULT
 
