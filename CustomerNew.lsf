@@ -47,9 +47,6 @@ FORM repReviseTSD 'Печатная форма 3 пары'
   ORDERS pi(o1), ps(o1)   
 ;
 
-// Максимальная дата отчета для сверки
-maxDate(Customer c,STRING rname) = GROUP MAX date(Attachment o) IF customer(o) = c AND name(type(o)) = rname; 
-
 retInteger '' = DATA LOCAL INTEGER ();
 onRetInteger2 '' (STRING cs) {
     retInteger() <- NULL;
@@ -72,9 +69,14 @@ onRetInteger '' (STRING c1, c2) {
     retInteger() <- r1() + r2();
 }
 
+// Максимальная дата отчета для сверки
+// maxDate(Customer c,STRING rname) = GROUP MAX date(Attachment o) IF customer(o) = c AND nameType(o) = rname; 
+maxDate(Customer c,AttachmentType t) = GROUP MAX date(Attachment o) IF customer(o) = c AND type(o) = t; 
+
 // 2. Cверка по ТО - тип S1 (S1M, S1N) по отдельному клиенту
 // 'Список лицензий','Список объектов'
 onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, cRepName2, cFDelimiter) {
+    LOCAL ot = AttachmentType ();
     LOCAL frep = FILE(); 
     LOCAL pnote, UNP1, UNP2 = TEXT(); UNP1() <- ''; UNP2() <- ''; 
     LOCAL ox1, ox2 = Attachment();
@@ -83,7 +85,8 @@ onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
     LOCAL nob,imax = INTEGER(); nob() <- 0; imax() <- 0;  
     LOCAL colA1,colB1,colC1,colD1,colB2,colC2,colD2,colF2,colH2,colG2 = BPSTRING[50] (INTEGER);
     LOCAL c1 = TEXT(); 
-    ox1() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName1 AND date(a) = maxDate(c, cRepName1);
+    ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName1;
+    ox1() <- GROUP MAX (Attachment a) IF customer(a) = c AND type(a) = ot() AND date(a) = maxDate(c, ot());
     IF ox1() THEN {
         p1(oRep) <- toDateDDMMYY(date(ox1()));
         // обработка документов, лицензии: организация, унп, магазины, склады
@@ -111,7 +114,8 @@ onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
         imax() <- 1; colA1(1) <- '* ' + name(c); UNP1() <- '';
     }
     // обработка документов, объекты: адрес, унп, продажи
-    ox2() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2 AND date(a) = maxDate(c, cRepName2);
+    ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName2;
+    ox2() <- GROUP MAX (Attachment a) IF customer(a) = c AND type(a) = ot() AND date(a) = maxDate(c,ot());
     IF ox2() THEN {
         p3(oRep) <- toDateDDMMYY(date(ox2()));
         IMPORT XLS FROM file(ox2()) AS FILE TO colB2=B, colC2=C, colD2=D, colF2=F, colG2=G, colH2=H;          
@@ -166,20 +170,23 @@ onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
 // 3. сверка по ТСД и работающим ТСД (если есть), тип S2 по отдельному клиенту
 // Обрабатываемые XLS документы: Список лицензий ТСД, Список выданных ключей ТСД, Список работающих ТСД
 onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, cRepName2, cRepName3, cFDelimiter) {
-    LOCAL frep = FILE();  
+    LOCAL ot = AttachmentType ();
+    LOCAL frep = FILE();
     LOCAL pnote,pnote3, pnote4, c1 = TEXT(); 
     LOCAL ox1, ox2, ox3 = Attachment();
     LOCAL value1,value2 = BPSTRING[50] (INTEGER);
     LOCAL colE2, colG2 = STRING (INTEGER);
     LOCAL err31, err32 = BOOLEAN();
     LOCAL n3, n4, imax2 = INTEGER();
-    ox1() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName1 AND date(a) = maxDate(c, cRepName1);
+    ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName1;
+    ox1() <- GROUP MAX (Attachment a) IF customer(a) = c AND type(a) = ot() AND date(a) = maxDate(c,ot());
     IF ox1() THEN {
         p1(oRep) <- toDateDDMMYY(date(ox1()));
         IMPORT XLS NOHEADER FROM file(ox1()) AS FILE TO value1 = A;
         onRetInteger(value1(0),NULL); p2(oRep) <- retInteger();
     } ELSE pnote() <- cRepName1;
-    ox2() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName2 AND date(a) = maxDate(c, cRepName2);
+    ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName2;
+    ox2() <- GROUP MAX (Attachment a) IF customer(a) = c AND type(a) = ot() AND date(a) = maxDate(c, ot());
     IF ox2() THEN {
         p3(oRep) <- toDateDDMMYY(date(ox2()));
         IMPORT XLS NOHEADER FROM file(ox2()) AS FILE TO value2 = A, colE2 = E, colG2 = G;
@@ -192,9 +199,11 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
     } ELSE {
         IF pnote() THEN pnote() <- pnote() + ', ';
         pnote() <- (OVERRIDE pnote(),'') + cRepName2;
+        
     }
     // дополнительная сверка по работающим у клиента ТСД (Список работающих ТСД)
-    ox3() <- GROUP MAX Attachment a IF customer(a) = c AND name(type(a)) = cRepName3 AND date(a) = maxDate(c, cRepName3);
+    ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName3;
+    ox3() <- GROUP MAX (Attachment a) IF customer(a) = c AND type(a) = ot() AND date(a) = maxDate(c, ot());
     IF ox3() THEN {
         p5(oRep) <- toDateDDMMYY(date(ox3()));
         LOCAL colC3 = STRING (INTEGER); 
