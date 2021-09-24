@@ -21,41 +21,9 @@ nameNormDocType 'Тип' (object l) =  name(normdoctype(l)) CHARWIDTH 20;
 color 'Цвет' (object l) = color(normdocstatus(l));
 END
 
-@NewNormDocLinkDoc(NormDocLink, normdoclink, 'Текущие документы'){
-CLASS NormDocLink 'Текущие документы';
-TABLE normdoclink (NormDocLink);
-normdocorg ''               = DATA NormDocOrg (NormDocLink) INDEXED AUTOSET;
-date 'Создан'               = DATA DATE (NormDocLink) ;
-dateEnd 'Действует'         = DATA DATE (NormDocLink);
-dateChange 'Изменен'        = DATA DATETIME (NormDocLink);
-name 'Название документа'   = DATA ISTRING[200] (NormDocLink);   
-employee 'Employee'         = DATA Employee (NormDocLink);
-normdocstatus 'Status'      = DATA NormDocStatus (NormDocLink);
-normdoctype 'Type'          = DATA NormDocType (NormDocLink);
-file 'Файл'                 = DATA FILE (NormDocLink);
-author 'Автор' (NormDocLink l) = name(employee(l));
-nameNormDocStatus 'Статус' (NormDocLink l) = staticCaption(normdocstatus(l)) CHARWIDTH 20;
-nameNormDocType 'Тип' (NormDocLink l) =  name(normdoctype(l)) CHARWIDTH 20;
-color 'Цвет' (NormDocLink l) = color(normdocstatus(l));
-};
+@NewNormDocLinkDoc(NormDocLink, normdoclink, 'Текущие документы');
 
-@NewNormDocLinkDoc(NormDocLinkLog, normdoclinklog, 'Архив изменений'){
-CLASS NormDocLinkLog 'Архив изменений';
-TABLE normdoclinklog (NormDocLinkLog);
-normdocorg ''               = DATA NormDocOrg (NormDocLinkLog) INDEXED AUTOSET;
-date 'Создан'               = DATA DATE (NormDocLinkLog) ;
-dateEnd 'Действует'         = DATA DATE (NormDocLinkLog);
-dateChange 'Изменен'        = DATA DATETIME (NormDocLinkLog);
-name 'Название документа'   = DATA ISTRING[200] (NormDocLinkLog);   
-employee 'Employee'         = DATA Employee (NormDocLinkLog);
-normdocstatus 'Status'      = DATA NormDocStatus (NormDocLinkLog);
-normdoctype 'Type'          = DATA NormDocType (NormDocLinkLog);
-file 'Файл'                 = DATA FILE (NormDocLinkLog);
-author 'Автор' (NormDocLinkLog l) = name(employee(l));
-nameNormDocStatus 'Статус' (NormDocLinkLog l) = staticCaption(normdocstatus(l)) CHARWIDTH 20;
-nameNormDocType 'Тип' (NormDocLinkLog l) =  name(normdoctype(l)) CHARWIDTH 20;
-color 'Цвет' (NormDocLinkLog l) = color(normdocstatus(l));
-};
+@NewNormDocLinkDoc(NormDocLinkLog, normdoclinklog, 'Архив изменений');
 
 normdoclink '' = DATA NormDocLink (NormDocLinkLog);
 delete '' = DATA BOOLEAN (NormDocLinkLog);
@@ -136,99 +104,11 @@ onMail##atrName 'Оповестить сотрудников' (NormDocLink o) {
 }
 END 
 
-@NewNormDocListDoc(NormDocListCoordination, normdoclistcoordination, Coordination, 'Лист согласований'){
-CLASS NormDocListCoordination 'Лист согласований';
-TABLE normdoclistcoordination (NormDocListCoordination); 
-normdoclink 'ID' = DATA NormDocLink (NormDocListCoordination) INDEXED AUTOSET;
-mark 'Ознакомлен' = DATA BOOLEAN (NormDocListCoordination);
-markDate 'Дата' = DATA DATE (NormDocListCoordination);
-employee 'ID' = DATA Employee (NormDocListCoordination);
-nameEmployee 'Сотрудник' (NormDocListCoordination d) = name(employee(d));
-namePosition 'Должность' (NormDocListCoordination d) = namePosition(employee(d));
-// событие: изменение значений отметки об согласовании (ознакомлении)
-WHEN NOT DROPPED(NormDocListCoordination o IS NormDocListCoordination) AND NOT SET(o IS NormDocListCoordination) AND
-    CHANGED(mark(o)) DO IF mark(o) THEN markDate(o) <- currentDate(); ELSE markDate(o) <- NULL; 
-// ограничение редактирования отметки: администратор может все, пользователь только свою отметку, если она не была установлена
-ruleCoordination(NormDocListCoordination o) = IF normDocAdmin(currentUser()) THEN TRUE ELSE IF nameEmployee(o) = name(currentUser()) THEN mark(o) ELSE NULL;  
-CONSTRAINT CHANGED(mark(NormDocListCoordination o)) AND NOT SET(o IS NormDocListCoordination) AND NOT ruleCoordination(o) MESSAGE 'Нет прав на исправление';
-// передача на почту
-onMailCoordination 'Оповестить сотрудников' (NormDocLink o) {
-    LOCAL body = TEXT ();
-    LOCAL ob = NormDocStatus ();
-    IF NOT email(employee(o)) THEN { MESSAGE 'Почтовый адрес отправителя не заполнен'; RETURN; } // email автора
-    ob() <- GROUP MAX (NormDocStatus ns) IF ns = normdocstatus(o);
-    IF NOT tempMail(ob()) THEN {
-        body() <- 'Здравствуйте!\n\nВам необходимо ' + 
-            (IF nameNormDocStatus(o) = 'На согласовании' THEN 'согласовать документ:' ELSE 'ознакомиться с документом:') + '\n\n' +
-            '"' + name(o) + '".' + '\n\n' + 'Не забудьте в картотеке "Нормативные документы",\nвкладка ' + 
-            (IF nameNormDocStatus(o) = 'На согласовании' THEN '"Лист согласований"' ELSE '"Лист ознакомлений"') + ', ' + 
-            'отметить связанное действие.\n\nС уважением,\n' + author(o); 
-    } ELSE {
-        body() <- tempMail(ob());
-        body() <- replace(body(),'doc',name(o));
-        body() <- replace(body(),'author',author(o));
-    }
-    FOR (NormDocListCoordination ob IS NormDocListCoordination) AND normdoclink(ob) = o AND NOT mark(ob) DO onSendMail(employee(ob),o,body(),email(employee(o)));
-    MESSAGE 'Рассылка выполнена';
-}
-};
+@NewNormDocListDoc(NormDocListCoordination, normdoclistcoordination, Coordination, 'Лист согласований');
 
-@NewNormDocListDoc(NormDocListReference, normdoclistreference, Reference, 'Лист ознакомлений'){
-CLASS NormDocListReference 'Лист ознакомлений';
-TABLE normdoclistreference (NormDocListReference); 
-normdoclink 'ID' = DATA NormDocLink (NormDocListReference) INDEXED AUTOSET;
-mark 'Ознакомлен' = DATA BOOLEAN (NormDocListReference);
-markDate 'Дата' = DATA DATE (NormDocListReference);
-employee 'ID' = DATA Employee (NormDocListReference);
-nameEmployee 'Сотрудник' (NormDocListReference d) = name(employee(d));
-namePosition 'Должность' (NormDocListReference d) = namePosition(employee(d));
-// событие: изменение значений отметки об согласовании (ознакомлении)
-WHEN NOT DROPPED(NormDocListReference o IS NormDocListReference) AND NOT SET(o IS NormDocListReference) AND
-    CHANGED(mark(o)) DO IF mark(o) THEN markDate(o) <- currentDate(); ELSE markDate(o) <- NULL; 
-// ограничение редактирования отметки: администратор может все, пользователь только свою отметку, если она не была установлена
-ruleReference(NormDocListReference o) = IF normDocAdmin(currentUser()) THEN TRUE ELSE IF nameEmployee(o) = name(currentUser()) THEN mark(o) ELSE NULL;  
-CONSTRAINT CHANGED(mark(NormDocListReference o)) AND NOT SET(o IS NormDocListReference) AND NOT ruleReference(o) MESSAGE 'Нет прав на исправление';
-// передача на почту
-onMailReference 'Оповестить сотрудников' (NormDocLink o) {
-    LOCAL body = TEXT ();
-    LOCAL ob = NormDocStatus ();
-    IF NOT email(employee(o)) THEN { MESSAGE 'Почтовый адрес отправителя не заполнен'; RETURN; } // email автора
-    ob() <- GROUP MAX (NormDocStatus ns) IF ns = normdocstatus(o);
-    IF NOT tempMail(ob()) THEN {
-        body() <- 'Здравствуйте!\n\nВам необходимо ' + 
-            (IF nameNormDocStatus(o) = 'На согласовании' THEN 'согласовать документ:' ELSE 'ознакомиться с документом:') + '\n\n' +
-            '"' + name(o) + '".' + '\n\n' + 'Не забудьте в картотеке "Нормативные документы",\nвкладка ' + 
-            (IF nameNormDocStatus(o) = 'На согласовании' THEN '"Лист согласований"' ELSE '"Лист ознакомлений"') + ', ' + 
-            'отметить связанное действие.\n\nС уважением,\n' + author(o); 
-    } ELSE {
-        body() <- tempMail(ob());
-        body() <- replace(body(),'doc',name(o));
-        body() <- replace(body(),'author',author(o));
-    }
-    FOR (NormDocListReference ob IS NormDocListReference) AND normdoclink(ob) = o AND NOT mark(ob) DO onSendMail(employee(ob),o,body(),email(employee(o)));
-    MESSAGE 'Рассылка выполнена';
-}
-};
+@NewNormDocListDoc(NormDocListReference, normdoclistreference, Reference, 'Лист ознакомлений');
 
-// добавляем сотрудника с проверкой, что бы не вносили сотрудников дважды в листы ознакомления или согласования
-// можно было через CONSTRAINT, но это не удобно, так как сработает только на сохранении данных 
-onAddEmployee '' (NormDocLink l,INTEGER p) {
-    LOCAL yesp = BOOLEAN ();
-    DIALOG employees OBJECTS o INPUT DO {
-        IF p = 1 THEN {
-            IF (GROUP MAX (NormDocListCoordination ox)  IF employee(ox) = o  AND normdoclink(ox) = l) THEN yesp() <- TRUE;
-        } ELSE {
-            IF (GROUP MAX (NormDocListReference ox)  IF employee(ox) = o  AND normdoclink(ox) = l) THEN yesp() <- TRUE;
-        }
-        IF yesp() THEN {
-            MESSAGE 'Сотрудник уже присутствует в списке'; RETURN;
-        } 
-        IF p = 1 THEN NEW ob = NormDocListCoordination {normdoclink(ob) <- l; employee(ob) <- o;}
-        ELSE NEW ob = NormDocListReference {normdoclink(ob) <- l; employee(ob) <- o;}
-    }    
-} 
-
-onAddEmployeeListCoordination 'Добавить списком' (NormDocLink l) {
+onAddEmployeeListCoordination 'Добавить сотрудников списком' (NormDocLink l) {
     FOR (Employee e IS Employee) AND normDocCoordination(e) DO {
         IF NOT (GROUP MAX (NormDocListCoordination r) IF employee(r) = e AND normdoclink(r) = l) THEN {
             NEW ob = NormDocListCoordination {
@@ -239,7 +119,7 @@ onAddEmployeeListCoordination 'Добавить списком' (NormDocLink l) 
     }
 }
 
-onAddEmployeeListReference 'Добавить списком' (NormDocLink l) {
+onAddEmployeeListReference 'Добавить сотрудников списком' (NormDocLink l) {
     LOCAL cnt = INTEGER (); 
     FOR (NormDocStaff s IS NormDocStaff) AND normdocorg(s) = normdocorg(l) DO {
         IF NOT (GROUP MAX (NormDocListReference r) IF employee(s) = employee(r) AND normdoclink(r) = l) THEN {
@@ -251,8 +131,36 @@ onAddEmployeeListReference 'Добавить списком' (NormDocLink l) {
     }        
 }
 
-onAddLC 'Добавить сотрудника' (NormDocLink l) {onAddEmployee(l,1);}
-onAddLR 'Добавить сотрудника' (NormDocLink l) {onAddEmployee(l,2);}
+// добавление произвольного списка сотрудников по отметке
+in 'Отм.' = DATA LOCAL BOOLEAN (Employee);
+EXTEND FORM employees PROPERTIES (o) in FIRST;
+
+META onActionAddEmploees(onAction, object)
+onAction 'Добавить сотрудников' (NormDocLink l) {
+    LOCAL oe = Employee ();
+    LOCAL ncnt = INTEGER ();
+    in(Employee e) <- NULL;
+    DIALOG employees OBJECTS o INPUT DO {
+        ncnt() <- 0;
+        FOR (Employee e IS Employee) AND in(e) DO {
+            oe() <- e;
+            IF NOT (GROUP MAX (object lo) IF ##employee(lo) = oe() AND ##normdoclink(lo)=l) THEN {
+                NEW ob = object {
+                    ##normdoclink(ob) <- l;
+                    ##employee(ob) <- oe();
+                    ncnt() <- ncnt() + 1;
+                }
+            }
+        }
+    }
+    IF ncnt() = 0 THEN 
+        MESSAGE 'Данные не добавлены!\nили вы не использовали отметку в справочнике сотрудников\nили данные были добавлены ранее';
+}
+END 
+
+@onActionAddEmploees(onAddLC,NormDocListCoordination);
+@onActionAddEmploees(onAddLR,NormDocListReference);
+
 
 FORM editNormDocLink 'Текущие документы'
     OBJECTS l = NormDocLink PANEL 
@@ -268,12 +176,14 @@ FORM editNormDocLink 'Текущие документы'
     PROPERTIES (lc) DELETE 
     PROPERTIES onAddLC(l), onAddEmployeeListCoordination(l)
     FILTERS normdoclink(lc) = l
+    ORDERS nameEmployee(lc)
     
     OBJECTS lr = NormDocListReference 
     PROPERTIES (lr) READONLY nameEmployee, namePosition
     PROPERTIES (lr) DELETE
     PROPERTIES onAddLR(l), onAddEmployeeListReference(l)
     FILTERS normdoclink(lr) = l
+    ORDERS nameEmployee(lr)
         
     EDIT NormDocLink OBJECT l
  
