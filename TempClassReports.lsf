@@ -11,9 +11,11 @@ p4 'значение 2' = DATA LOCAL INTEGER        (TempClassReports);
 p5 'дата 3'     = DATA LOCAL STRING[10]     (TempClassReports);
 p6 'значение 3' = DATA LOCAL INTEGER        (TempClassReports);
 p8 'значение 4' = DATA LOCAL INTEGER        (TempClassReports);
+t1 'значение 5' = DATA LOCAL STRING         (TempClassReports);
+t2 'значение 6' = DATA LOCAL STRING         (TempClassReports);
 pn 'примечание' = DATA LOCAL TEXT           (TempClassReports);
 
 newTempClassReports '' () {
-    DELETE TempClassReports o1 WHERE o1 IS TempClassReports;   // очищаем предыдущий результат
+    DELETE TempClassReports  o1 WHERE o1 IS TempClassReports;    // очищаем предыдущий результат
 }
 

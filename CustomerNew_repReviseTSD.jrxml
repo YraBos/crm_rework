@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.12.2.final using JasperReports Library version 6.12.2-75c5e90a222ab406e416cbf590a5397028a52de3  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CustomerNew.repReviseTSD" pageWidth="920" pageHeight="595" orientation="Landscape" columnWidth="880" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="cde6d016-1467-46f1-a561-ba6cd9f5ac1f">
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="CustomerNew.repReviseTSD" pageWidth="1200" pageHeight="595" orientation="Landscape" columnWidth="1160" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="cde6d016-1467-46f1-a561-ba6cd9f5ac1f">
 	<property name="net.sf.jasperreports.export.xls.print.page.width" value="842"/>
 	<property name="net.sf.jasperreports.export.xls.print.page.height" value="595"/>
 	<style name="DefaultStyle" isDefault="true" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
@@ -38,6 +38,9 @@
 	<field name="p5(o1)" class="java.lang.String"/>
 	<field name="p6(o1)" class="java.lang.Integer"/>
 	<field name="pn(o1)" class="java.lang.String"/>
+	<field name="t1(o1)" class="java.lang.String"/>
+	<field name="t2(o1)" class="java.lang.String"/>
+	<field name="showTsdOtherCol()" class="java.lang.Integer"/>
 	<title>
 		<band height="50" splitType="Prevent">
 			<property name="com.jaspersoft.studio.unit.height" value="px"/>
@@ -153,6 +156,22 @@
 				<textElement textAlignment="Center"/>
 				<text><![CDATA[примечание]]></text>
 			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="880" y="0" width="159" height="30" backcolor="#DDD9C3" uuid="9f8abdb5-b6e5-4e3c-958b-a4dac81872e7">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<printWhenExpression><![CDATA[$F{showTsdOtherCol()} == 1]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[не выданный ключ]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="1039" y="0" width="85" height="30" backcolor="#DDD9C3" uuid="d079bf0b-9af9-4c1c-965d-03c80b151a6b">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<printWhenExpression><![CDATA[$F{showTsdOtherCol()} == 1]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[дата использования]]></text>
+			</staticText>
 		</band>
 	</pageHeader>
 	<detail>
@@ -212,6 +231,20 @@
 				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="580" y="0" width="300" height="18" uuid="9be6e94b-2d40-4d96-b9cb-fee8de4522b9"/>
 				<textElement textAlignment="Left"/>
 				<textFieldExpression><![CDATA[$F{pn(o1)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="880" y="0" width="159" height="18" uuid="9848b57b-cca9-4eab-8627-ec3c12a8d601">
+					<printWhenExpression><![CDATA[$F{showTsdOtherCol()} == 1]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{t1(o1)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="1039" y="0" width="85" height="18" uuid="a939cdf5-81b7-4c4d-bec5-533b67573364">
+					<printWhenExpression><![CDATA[$F{showTsdOtherCol()} == 1]]></printWhenExpression>
+				</reportElement>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{t2(o1)}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>

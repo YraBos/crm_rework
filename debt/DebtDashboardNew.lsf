@@ -1,6 +1,6 @@
 MODULE DebtDashboardNew;
 
-REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew, AgreementNew;
+REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew, AgreementNew, DocsInWork;
 
 filterSumDebt 'Размер задолженности' = DATA LOCAL INTEGER ();
 
@@ -53,6 +53,7 @@ EXTEND FORM debtDashboard
     PROPERTIES READONLY clientType(c) AFTER name(c)
     OBJECTS le = LegalEntity
     PROPERTIES filterSumDebt(), onReport(c, dd)
+//    PROPERTIES onRepDocsInWork()                                // Документы в работе
     EVENTS ON INIT {
         filterSumDebt() <- 100;
     }
@@ -65,6 +66,7 @@ DESIGN debtDashboard {
         caption = 'Фильтры и отчеты';
         MOVE PROPERTY (filterSumDebt()) {marginLeft = 10;};
         MOVE PROPERTY (onReport(c, dd));
+//        MOVE PROPERTY (onRepDocsInWork());                      // Документы в работе
     }
 }
 

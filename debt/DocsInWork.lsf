@@ -1,0 +1,30 @@
+MODULE DocsInWork;
+// RM 16467, документы в работе - договора, дсг, прт не закрытые актом
+REQUIRE Contract, Agreement, Act;
+
+CLASS tmpDocsInWork 'TMP документы в работе';
+contract    'ID контракт'   = DATA Contract (tmpDocsInWork);
+agreement   'ID соглашение' = DATA Agreement (tmpDocsInWork); 
+numberCnt   'Номер договора' (tmpDocsInWork t) = number(contract(t)); 
+dateCnt     'Дата договора'  (tmpDocsInWork t) = date(contract(t)); 
+nameTypeCnt 'Тип'            (tmpDocsInWork t) = nameType(contract(t));        
+
+FORM viewtmpDocsInWork 'Документы в работе'
+    OBJECTS t = tmpDocsInWork
+    PROPERTIES (t) READONLY numberCnt, dateCnt, nameTypeCnt
+;
+
+onRepDocsInWork 'Документы в работе' () {
+    LOCAL agr = Agreement ();
+    LOCAL act = Act ();
+    FOR (Contract cnt IS Contract) AND NOT dateClosing(cnt) DO { 
+        agr() <- GROUP MAX (Agreement a) IF contract(a) = cnt AND NOT dateClosing(a);
+        IF NOT agr() THEN { // 
+            act() <- GROUP MAX (Act a) IF contract(a) = cnt AND NOT dateClosing(a);
+            IF NOT act() THEN NEW ob = tmpDocsInWork {
+                contract(ob) <- cnt;
+            }    
+        }    
+    } 
+    SHOW viewtmpDocsInWork DOCKED;   
+}

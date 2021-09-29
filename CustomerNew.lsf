@@ -9,6 +9,8 @@ clientType 'Тип клиента' = DATA STRING[50] (Customer) CHARWIDTH 50;
 clientTypeInfo 'Описание типа клиента' = DATA TEXT (Customer);
 inReport 'Отм.' = DATA LOCAL BOOLEAN (Customer);
 
+showTsdOtherCol 'Показать не выданные ТСД в отдельной колонке' = DATA LOCAL INTEGER ();
+
 onCalc 'Обновить' () {
     calcInfo(Customer c) <- '';
     FOR (Customer o IS Customer) AND isSubstring(info(o),delimiter()) DO {
@@ -43,7 +45,8 @@ FORM repReviseTO 'Сверка торговых объектов'
 FORM repReviseTSD 'Печатная форма 3 пары'
   PROPERTIES() date, title PANEL  
   OBJECTS o1 = TempClassReports
-  PROPERTIES(o1) pi,ps,pc,p1,p2,p3,p4,p5,p6,p8,pn
+  PROPERTIES(o1) pi,ps,pc,p1,p2,p3,p4,p5,p6,p8,pn,t1,t2
+  PROPERTIES () showTsdOtherCol
   ORDERS pi(o1), ps(o1)   
 ;
 
@@ -199,7 +202,6 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
     } ELSE {
         IF pnote() THEN pnote() <- pnote() + ', ';
         pnote() <- (OVERRIDE pnote(),'') + cRepName2;
-        
     }
     // дополнительная сверка по работающим у клиента ТСД (Список работающих ТСД)
     ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName3;
@@ -207,23 +209,23 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
     IF ox3() THEN {
         p5(oRep) <- toDateDDMMYY(date(ox3()));
         LOCAL colC3 = STRING (INTEGER); 
-        IMPORT XLS NOHEADER FROM file(ox3()) AS FILE TO colC3 = C;
+        LOCAL colE3 = STRING (INTEGER);
+        IMPORT XLS NOHEADER FROM file(ox3()) AS FILE TO colC3 = C,colE3 = E;
         FOR imported(INTEGER i) AND i > 1 ORDER i DO {
             colC3(i) <- upper(trim(OVERRIDE colC3(i), '')); 
+            colE3(i) <- OVERRIDE colE3(i), ''; 
             IF length(colC3(i)) > 0 THEN {
                 p6(oRep) <- p6(oRep) + 1;
                 // ищем работающие ключи в Список выданных ключей ТСД и замененные, которых не должно быть
                 err31() <- TRUE; err32() <- NULL; 
-                FOR iterate(INTEGER i2,1,imax2()) DO {
-                    IF colE2(i2) = colC3(i) THEN {
-                        err31() <- NULL; // работающий ТСД найден в списке выданных ТСД
-                        IF length(colG2(i2)) > 0 THEN err32() <- TRUE; // содержит информацию о замене, так не должно быть
-                        BREAK;
-                    }
+                FOR iterate(INTEGER i2,1,imax2()) AND colE2(i2) = colC3(i) DO {
+                    err31() <- NULL; // работающий ТСД найден в списке выданных ТСД
+                    IF length(colG2(i2)) > 0 THEN err32() <- TRUE; // содержит информацию о замене, так не должно быть
                 }
                 IF err31() THEN {
-                    IF pnote3() THEN pnote3() <- pnote3() + ', '; ELSE pnote3() <- '';
+                    IF pnote3() THEN pnote3() <- pnote3() + ','; ELSE pnote3() <- '';
                     pnote3() <- pnote3() + colC3(i);
+                    t1(oRep) <- (OVERRIDE t1(oRep),'') + colC3(i) + '=' + colE3(i) + '\n';
                     n3() <- n3() (+) 1;
                 }
                 IF err32() THEN {
@@ -257,17 +259,39 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
 // общий метод сверки
 // тип отчета, заголовок отчета, док1, док2, значение атрибута в тип клиента, доп. разделитель
 onRevise '' (INTEGER ntype, STRING cRepName1,cRepName2,cFilter,cDelimiter) {
-    LOCAL cmsg,c1 = TEXT (); 
+    LOCAL cmsg,c1, c2, cd, ck = TEXT (); 
     LOCAL ind = INTEGER (); ind() <- 0;
     inReport(Customer c) <- NULL;
+    IF ntype = 3 THEN {
+        showTsdOtherCol() <- 0;
+        ASK 'Показать не выданные ТСД\nотдельной колонкой в отчете?' DO showTsdOtherCol() <- 1;    
+    }
     FOR [FILTER customers.o](Customer c) DO inReport(c) <- TRUE; 
     FOR (Customer c IS Customer) AND isSubstring(clientType(c),cFilter) AND inReport(c) ORDER name(c) NEW ob = TempClassReports DO {
         pc(ob) <- name(c); ind() <- ind() + 1; pi(ob) <- ind(); ps(ob) <- 1;   
         p2(ob) <- 0; p4(ob) <- 0; p6(ob) <- 0; p8(ob) <- 0; 
         IF ntype = 2 THEN 
             onRevise2(ind(),ob,c,cRepName1,cRepName2,cDelimiter);
-        ELSE IF ntype = 3 THEN 
+        ELSE IF ntype = 3 THEN {
             onRevise3(ind(),ob,c,cRepName1,cRepName2,'Список работающих ТСД',cDelimiter);
+            c1() <- t1(ob); t1(ob) <- '';
+            IF showTsdOtherCol() = 1 THEN {
+                FOR iterate(INTEGER i,0,wordCount(c1(),'\n')) ORDER i DO {
+                    c2() <- getWord(c1(),'\n',i);
+                    ck() <- getWord(c2(),'=',1);
+                    cd() <- getWord(c2(),'=',2);
+                    IF ck() THEN {
+                        NEW ob2 = TempClassReports {
+                            pc(ob2) <- name(c);
+                            pi(ob2) <- pi(ob);
+                            ps(ob2) <- 2;
+                            t1(ob2) <- ck();
+                            t2(ob2) <- cd();
+                        }
+                    }    
+                }
+            }
+        }
     }  
 }
 
