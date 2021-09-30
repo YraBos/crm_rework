@@ -101,9 +101,12 @@ onFullCreateDebts 'Создать задолженности' () {
     LOCAL cmsg, emsg = STRING();
     SHOW setProperties;
     inFilter(Contract o1) <- NULL;
-    IF qMonth() = 0 THEN {MESSAGE 'Выполнение отменено'; RETURN;}
+    IF qMonth() = 0 THEN {
+        MESSAGE 'Выполнение отменено'; 
+        RETURN;
+    }
     FOR [FILTER contractDashboard.o](Contract o2) DO inFilter(o2) <- TRUE;
-    FOR (Contract c IS Contract) AND inFilter(c) AND nameType(c) = 'Сопровождение' DO {
+    FOR (Contract c IS Contract) AND inFilter(c) AND nameType(c) = 'Сопровождение' AND NOT dateTo(c)  DO {
         iAll() <- iAll() (+) 1;
         onFillCreateDebts(c);
         IF NOT oK() THEN {

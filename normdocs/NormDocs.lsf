@@ -31,7 +31,7 @@ FORM viewNormDocOrg 'Нормативные документы'
     ORDERS canName(s), nameEmployee(s)
 
     OBJECTS s2 = NormDocStaff PANEL 
-    PROPERTIES (s2) READONLY namePosition, lstQualification
+    PROPERTIES (s2) READONLY namePosition, lstQualification, canName
     FILTERS s2 = s
     
     OBJECTS l = NormDocLink
@@ -103,6 +103,10 @@ DESIGN viewNormDocOrg {
                         type = CONTAINERH;
                         MOVE PROPERTY (namePosition(s2)) {charWidth=30;};
                         MOVE PROPERTY (lstQualification(s2)) {charWidth=60;};
+                    }
+                    NEW cntC {
+                        type = CONTAINERH;
+                        MOVE PROPERTY (canName(s2)) {caption = 'Место в структуре';};
                     }
                     MOVE BOX(s) {caption='';}; 
                 }
