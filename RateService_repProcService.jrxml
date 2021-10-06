@@ -235,6 +235,7 @@
 				<reportElement style="GroupCellStyle4" positionType="Float" stretchType="RelativeToBandHeight" x="0" y="36" width="395" height="18" uuid="d7824260-2224-432f-8be8-047fc0fde968">
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
 				</reportElement>
 				<box>
 					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>

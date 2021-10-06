@@ -139,8 +139,8 @@ onRepProcent 'Отчет %' (Customer c) {
     title1() <- 'Расчет процентов за обслуживание';
     title2() <- 'за период с ' + toDateDDMMYY(dateStart()) + ' по '  + toDateDDMMYY(dateEnd()) + 'г.';
     title3() <- 'клиент: ' + trim(name(c));
-    PRINT repProcService OBJECTS c = c XLS TO frep; 
-    open(frep(), fname() + '.xls');                         
+    PRINT repProcService OBJECTS c = c XLS; // TO frep; 
+//    open(frep(), fname() + '.xls');                         
 //    PRINT repProcService OBJECTS c = c; // отладка
 }; 
 
