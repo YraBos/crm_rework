@@ -21,7 +21,8 @@ FORM viewNormDocOrg 'Нормативные документы'
     TREE to o = NormDocOrg PARENT parent(o)
     PROPERTIES (o) READONLY name, quantityState, quantityFact
     PROPERTIES (o) READONLY canonicalName SHOWIF NULL
-    PROPERTIES (o) SHOWIF normDocAdmin(currentUser()) NEWSESSION NEW, EDIT, DELETE   
+    PROPERTIES (o) SHOWIF normDocAdmin(currentUser()) NEWSESSION NEW, EDIT, DELETE 
+    ORDERS name(o)   
     
     OBJECTS s = NormDocStaff
     PROPERTIES (s) READONLY nameEmployee, phoneEmployee, emailEmployee, skypeEmployee
@@ -81,6 +82,22 @@ FORM viewNormDocOrg 'Нормативные документы'
     PROPERTIES (lr) READONLY markDate, nameEmployee, namePosition
     PROPERTIES      SHOWIF nameNormDocStatus(l) = 'Опубликован' onMailReference(l) // передача на mail, см. NormDocsLink
     FILTERS normdoclink(lr) = l
+    
+    EVENTS ON INIT {
+//        LOCAL o4 = NormDocOrg(); 
+//        FOR (NormDocOrg o3 IS NormDocOrg) ORDER level(o3,parent(o3)) DO {
+//            EXPAND UP viewNormDocOrg.o OBJECTS o = o3;
+//            IF NOT o4() THEN o4() <- o3;     
+//        }
+//        IF o4() THEN SEEK viewNormDocOrg.o = o4();
+        LOCAL ob = NormDocStaff ();
+        ob() <- GROUP MAX (NormDocStaff sf) IF employee(sf) = currentUser();
+        IF normdocorg(ob()) THEN {
+            EXPAND UP viewNormDocOrg.o OBJECTS o = normdocorg(ob());
+            SEEK viewNormDocOrg.o = normdocorg(ob());
+            SEEK viewNormDocOrg.s = ob();
+        }   
+    }
 ;
 
 DESIGN viewNormDocOrg {

@@ -54,9 +54,9 @@ WHEN NOT DROPPED(NormDocLink l IS NormDocLink) AND NOT SET(l IS NormDocLink) AND
         (CHANGED(date(l)) OR CHANGED(dateEnd(l)) OR CHANGED(normdoctype(l)) OR CHANGED(name(l)) OR 
         CHANGED(employee(l)) OR CHANGED(normdocstatus(l)) OR CHANGED(file(l))) DO onChanged(l,NULL); 
 
-onLoadFile 'Загрузить документ' (NormDocLink l) {INPUT f = FILE DO file(l) <- f;}
-onOpenFileLink 'Открыть документ' (NormDocLink l) {open(file(l));}
-onOpenFileLog 'Открыть документ' (NormDocLinkLog l) {open(file(l));}
+onLoadFile 'Загрузить документ' (NormDocLink l) {
+    INPUT f = FILE DO file(l) <- f;
+}
 
 // передача на почту (mail)
 onSendMail '' (Employee e, NormDocLink o,TEXT body,STRING from) {
@@ -107,6 +107,27 @@ END
 @NewNormDocListDoc(NormDocListCoordination, normdoclistcoordination, Coordination, 'Лист согласований');
 
 @NewNormDocListDoc(NormDocListReference, normdoclistreference, Reference, 'Лист ознакомлений');
+
+// открывает текущий связанный документ
+onOpenFileLink 'Открыть документ' (NormDocLink l) {
+    LOCAL uReference = NormDocListReference ();
+    LOCAL uCoordination = NormDocListCoordination ();
+    uReference() <- GROUP MAX (NormDocListReference r) IF normdoclink(r) = l AND employee(r) = currentUser();
+    uCoordination() <- GROUP MAX (NormDocListCoordination c) IF normdoclink(c) = l AND employee(c) = currentUser();
+    IF normDocAdmin(currentUser()) OR author(l) = name(currentUser()) OR uReference() OR uCoordination() THEN 
+        open(file(l));   
+    ELSE 
+        MESSAGE 'Документ временно не доступен\nОбратитесь к администратору';
+}
+
+// открывает документ в логах
+onOpenFileLog 'Открыть документ' (NormDocLinkLog l) {
+    IF normDocAdmin(currentUser()) OR author(l) = name(currentUser()) THEN 
+        open(file(l));
+    ELSE 
+        MESSAGE 'Документ временно не доступен\nОбратитесь к администратору';
+}
+
 
 onAddEmployeeListCoordination 'Добавить сотрудников списком' (NormDocLink l) {
     FOR (Employee e IS Employee) AND normDocCoordination(e) DO {
