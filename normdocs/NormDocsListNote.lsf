@@ -56,7 +56,7 @@ chNewNote '' (NormDocLink l) =
 FORM editNormDocListNote 'Редактирование замечаний'
     OBJECTS n = NormDocListNote PANEL
     PROPERTIES (n) READONLY nameDoc, nameAuthor, createDate, nameCreate 
-    PROPERTIES (n) note
+    PROPERTIES (n) note READONLYIF NOT employee(n) = currentUser() 
     EDIT NormDocListNote OBJECT n  
     EVENTS ON INIT {
         IF NOT employee(n) THEN {
@@ -65,6 +65,11 @@ FORM editNormDocListNote 'Редактирование замечаний'
         } 
     }
 ; 
+
+FORM showNote 'Замечание'
+    OBJECTS n = NormDocListNote
+    PROPERTIES (n) READONLY note
+;
 
 DESIGN editNormDocListNote {
     BOX (n) {
@@ -82,7 +87,7 @@ DESIGN editNormDocListNote {
             NEW cnt2 {
                 type = CONTAINERH ;
                 fill = 1;
-                caption = 'Замечания к версии документа';
+                caption = 'Замечания к версии документа, режим: ' + IF employee(n) = currentUser() THEN 'редактирование' ELSE 'просмотр';
                 MOVE PROPERTY (note(n)) {caption = ''; charHeight = 10;}
             }
         }

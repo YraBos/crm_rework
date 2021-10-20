@@ -7,8 +7,8 @@ NAMESPACE Contact;
 CLASS Qualification 'Квалификация';
 TABLE qualification (Qualification);
 
-name    'Квалификация'  = DATA STRING[100] (Qualification) NONULL;
-level   'Уровень'       = DATA LOCAL STRING[1] (Qualification); 
+name 'Квалификация'  = DATA STRING[100] (Qualification) NONULL;
+mark 'Отм' = DATA LOCAL BOOLEAN (Qualification) CHARWIDTH 5;
 
 lstQualification 'Квалификация' = DATA STRING (Employee);
 
@@ -27,15 +27,11 @@ FORM viewQualification 'Справочник квалификаций'
 
 FORM listQualification 'Справочник квалификаций'
     OBJECTS q = Qualification
-    PROPERTIES (q) level 
+    PROPERTIES (q) mark
     PROPERTIES (q) READONLY name
     ORDERS name(q)
     LIST Qualification OBJECT q
 ;
-
-DESIGN listQualification {
-    PROPERTY (level(q)) {charWidth = 7;}
-}
 
 NAVIGATOR {
     employeeFolder {
@@ -44,25 +40,20 @@ NAVIGATOR {
 }
 
 onGetQualification 'Выбрать' (Employee o) {
-    LOCAL cpart1 = STRING (); 
-    LOCAL cpart2 = STRING[1] ();
+    LOCAL cpart = STRING (); 
     LOCAL oq = Qualification();
-    level(Qualification q) <- NULL;
+    mark(Qualification o1) <- NULL; 
     IF lstQualification(o) THEN {
         FOR iterate(INTEGER i,1,wordCount(lstQualification(o),',')) DO {
-            cpart1() <- getWord(lstQualification(o),',',i);
-            cpart2() <- left(getWord(cpart1(),'(',2),1);
-            cpart1() <- getWord(cpart1(),'(',1);    
-            oq() <- GROUP MAX (Qualification q) IF trim(name(q)) = cpart1();
-            level(oq()) <- cpart2(); 
+            cpart() <- trim(getWord(lstQualification(o),',',i));
+            oq() <- GROUP MAX (Qualification o2) IF name(o2) = cpart();
+            mark(oq()) <- TRUE;
         }    
     }
     DIALOG listQualification;
-    lstQualification(o) <- NULL; 
-    FOR (Qualification q IS Qualification) IF level(q) ORDER name(q) DO {
-        lstQualification(o) <- IF lstQualification(o) THEN lstQualification(o) + ','  ELSE '';
+    lstQualification(o) <- NULL; // поле в сотруднике с перечислением квалификаций
+    FOR (Qualification q IS Qualification) AND mark(q) ORDER name(q) DO {
+        lstQualification(o) <- IF lstQualification(o) THEN lstQualification(o) + ', '  ELSE '';
         lstQualification(o) <- lstQualification(o) + trim(name(q));
-        IF level(q) THEN lstQualification(o) <- lstQualification(o) + '(' + level(q) + ')';
     }   
-    level(Qualification q) <- NULL;
 }

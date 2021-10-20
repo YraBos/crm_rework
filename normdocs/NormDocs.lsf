@@ -47,7 +47,10 @@ FORM viewNormDocOrg 'Нормативные документы'
     FILTERGROUP byArc
         FILTER ' Текущие док. ' NOT nameNormDocStatus(l) = 'Архив' DEFAULT
 
-
+    OBJECTS l2 = NormDocLink PANEL
+    PROPERTIES (l2) READONLY name
+    FILTERS l2 = l
+    
     OBJECTS log = NormDocLinkLog  
     PROPERTIES (log) GRID BACKGROUND color(log) READONLY date,dateChange,dateEnd,nameNormDocStatus,nameNormDocType,name,author
     PROPERTIES (log) onOpenFileLog TOOLBAR SHOWIF file(log)
@@ -68,8 +71,8 @@ FORM viewNormDocOrg 'Нормативные документы'
     PROPERTIES (n) READONLY createDate,nameCreate
     PROPERTIES (n) mark
     PROPERTIES (n) READONLY markDate, emailFlag
-    PROPERTIES (n) SHOWIF chNewNote(l) NEWSESSION NEW
-    PROPERTIES (n) SHOWIF employee(n) = currentUser() NEWSESSION EDIT, DELETE
+    PROPERTIES (n) SHOWIF chNewNote(l) NEWSESSION NEW, EDIT
+    PROPERTIES (n) SHOWIF employee(n) = currentUser() NEWSESSION DELETE
     PROPERTIES     SHOWIF chNewNote(l) onSendMailListNote(l)
     FILTERS normdoclink(n) = l
     
@@ -189,6 +192,9 @@ DESIGN viewNormDocOrg {
                 }
             } 
         } 
+    }
+    TOOLBARRIGHT {
+        MOVE PROPERTY (name(l2)) FIRST {caption = ''; background = RGB(206,255,206); fontStyle = 'bold'; };
     }       
 }
 
