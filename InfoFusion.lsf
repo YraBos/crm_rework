@@ -76,11 +76,10 @@ FORM editInfoFusionResource 'Редактирование'
 DESIGN editInfoFusionResource {
     OBJECTS {
         NEW cnt1 {
-            type = CONTAINERV;
             fill = 1;
             MOVE PROPERTY (date(r)) {caption = 'Дата создания ресурса';};
             NEW cnt2 {
-                type = CONTAINERH;
+                horizontal = TRUE;
                 MOVE PROPERTY (nameType(r));
                 MOVE PROPERTY (onRedMine(r));
             }
@@ -160,10 +159,8 @@ edit (InfoFusion i) + {
 DESIGN editInfoFusion {
     OBJECTS {
         NEW cntMain {
-            type = CONTAINERV; 
             fill = 1;
             NEW cnt1 {
-                type = CONTAINERV ;
                 MOVE PROPERTY (date(o));
                 MOVE PROPERTY (lession(o));
                 MOVE PROPERTY (guru(o));
@@ -172,7 +169,7 @@ DESIGN editInfoFusion {
                 MOVE PROPERTY (nameCustomer(o));
             }
             NEW cnt2 {
-                type = CONTAINERH;
+                horizontal = TRUE;
                 fill = 1;
                 caption = 'Описание темы';
                 MOVE PROPERTY (description(o)) {caption = '';} 
@@ -184,7 +181,7 @@ DESIGN editInfoFusion {
 DESIGN viewInfoFusion {
     PANEL {
         NEW tablo {
-            type = CONTAINERH;
+            horizontal = TRUE;
             fill = 1;
             caption = 'Описание темы';
             MOVE PROPERTY (descriptionText()) {caption = '';}
@@ -192,16 +189,14 @@ DESIGN viewInfoFusion {
     }
     OBJECTS {
         NEW cntV {
-            type = CONTAINERV;
             fill = 1;
             NEW cnt1 {
-                type = SPLITH;
                 fill = 5;
                 MOVE BOX(t);
                 MOVE BOX(o) {fill = 6;}
             }
             NEW cnt2 {
-                type = CONTAINERH;
+                horizontal = TRUE;
                 fill = 1;
                 MOVE BOX(r);
             }
@@ -213,4 +208,5 @@ NAVIGATOR {
     dashboard {
         NEW viewInfoFusion;
     }
-}   
+} 
+  

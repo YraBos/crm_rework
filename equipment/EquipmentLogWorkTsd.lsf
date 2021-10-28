@@ -1,0 +1,229 @@
+MODULE EquipmentLogWorkTsd;
+
+REQUIRE CustomerNew, EquipmentDashboardNew, Time;
+
+NAMESPACE Equipment;
+
+fltS2 'Клиенты ТСД (S2)'    = DATA LOCAL BOOLEAN ();
+fltQrep 'Кол. мест > 1'     = DATA LOCAL BOOLEAN ();
+fltAttention 'Внимание(!)'  = DATA LOCAL BOOLEAN ();
+
+CLASS HWorkTsd 'Лог работающих ТСД';
+customer '' = DATA Customer (HWorkTsd);
+number 'Номер ТСД' = DATA ISTRING[250] (HWorkTsd) CHARWIDTH 20;
+qrep 'Кол. мест' = DATA INTEGER (HWorkTsd);
+atr '!' = DATA STRING[1] (HWorkTsd);
+
+CLASS LWorkTsd 'Лог работающих ТСД';
+customer '' = DATA Customer (LWorkTsd);
+number 'Номер ТСД' = DATA ISTRING[250] (LWorkTsd); //
+date 'Дата' = DATA DATE (LWorkTsd);
+time 'Время' = DATA TIME (LWorkTsd);
+user 'Пользователь' = DATA ISTRING[250] (LWorkTsd);
+place 'Место использования' = DATA ISTRING[250] (LWorkTsd);
+ipAddress 'IP адрес' = DATA STRING[20] (LWorkTsd);
+idApp 'ID приложения' = DATA STRING[20] (LWorkTsd);
+atr '!' = DATA STRING[1] (LWorkTsd);
+
+
+
+upDateXlsTsd 'Дата обнов. лога' = DATA DATE (Customer) CHARWIDTH 12; 
+
+onUpdateLog 'Обновить Лог по клиенту' (Customer c) {
+    LOCAL ob = Attachment();
+    LOCAL cname = STRING(); cname() <- 'Список всех подключений ТСД'; 
+    LOCAL colB, colE, colF = STRING[250](INTEGER);
+    LOCAL colC = DATETIME(INTEGER);
+    LOCAL colD = DATE(INTEGER);
+    LOCAL colG, colH = STRING[20](INTEGER);
+    LOCAL cserial, cplace = STRING(); cserial() <- ''; cplace() <- '';
+    LOCAL nrep = INTEGER();
+    LOCAL date2 = DATE(); LOCAL place2 = STRING();
+    LOCAL oh2 = HWorkTsd(); 
+    ob() <- GROUP MAX (Attachment a) IF customer(a) = c AND nameType(a) = cname();
+    IF NOT ob() THEN {
+        MESSAGE 'XLS документ: ' + cname() + ' не найден\nСм. Работа с клиентом, Документы\nОперация отменена';
+        RETURN; 
+    }
+    DELETE HWorkTsd l1 WHERE l1 IS HWorkTsd AND customer(l1) = c;
+    DELETE LWorkTsd l2 WHERE l2 IS LWorkTsd AND customer(l2) = c;
+    IMPORT XLS NOHEADER FROM file(ob()) AS FILE TO colB = B, colC = C, colD = D, colE = E, colF = F, colG = G, colH = H;
+    FOR imported(INTEGER i) AND i > 1 ORDER colB(i),colF(i) DO {
+        colB(i) <- trim(OVERRIDE colB(i),'');
+        IF length(colB(i)) > 0 THEN {
+            NEW lo = LWorkTsd {
+                customer(lo) <- c;
+                number(lo) <- colB(i);
+                time(lo) <- toTime(colC(i));
+                date(lo) <- colD(i);
+                user(lo) <- colE(i);
+                place(lo) <- colF(i);
+                ipAddress(lo) <- colG(i);
+                idApp(lo) <- colH(i);
+            }
+            IF cserial() = colB(i) THEN {
+                IF NOT cplace() = colF(i) THEN { 
+                    nrep() <- nrep() + 1; 
+                    cplace() <- colF(i);
+                    qrep(oh2()) <- nrep();
+                }        
+            } ELSE {
+                cserial() <- colB(i);
+                cplace() <- colF(i);
+                nrep() <- 1;
+                NEW oh = HWorkTsd {
+                    oh2() <- oh;
+                    customer(oh) <- c;
+                    number(oh) <- colB(i);
+                    qrep(oh) <- nrep();
+                }
+            } // else
+        } // if
+    }  // for  
+    FOR (HWorkTsd h IS HWorkTsd) AND customer(h) = c AND qrep(h) > 1 DO {
+        date2() <- NULL; place2() <- NULL;
+        FOR (LWorkTsd l IS LWorkTsd) AND customer(l) = c AND number(l) = number(h) ORDER date(l),place(l),time(l) DO {
+            IF NOT date2() THEN date2() <- date(l); IF NOT place2() THEN place2() <- place(l);
+            IF date2() = date(l) AND NOT place2() = place(l) THEN {
+                atr(l) <- '*'; atr(h) <- '*';    
+            }
+            date2() <- date(l); place2() <- place(l);
+        }
+    }         
+    upDateXlsTsd(c) <- date(ob());
+    apply();
+    fltS2() <- TRUE;
+}
+
+onOpenXLS 'Открыть XLS' (Customer c) {
+    LOCAL ot = Attachment ();
+    ot() <- GROUP MAX Attachment a IF customer(a) = c AND nameType(a) = 'Список всех подключений ТСД';
+    IF NOT ot() THEN {
+        MESSAGE 'Не найден документ:\nСписок всех подключений ТСД';
+        RETURN; 
+    }
+    open(file(ot()));
+}
+
+FORM viewTSD 'Журнал Fusion ТСД'
+    OBJECTS o = Customer
+    PROPERTIES (o) READONLY name, upDateXlsTsd
+
+    OBJECTS c = Customer PANEL
+    PROPERTIES (c) READONLY calcInfo, clientTypeInfo
+    FILTERS c = o
+    
+    OBJECTS h = HWorkTsd
+    PROPERTIES (h) READONLY BACKGROUND (IF atr(h) THEN RGB(235,215,255)) atr, number, qrep
+    FILTERS customer(h) = o
+    FILTERS IF fltQrep() THEN qrep(h) > 1 ELSE TRUE  
+    FILTERS IF fltAttention() THEN atr(h) = '*' ELSE TRUE
+    
+    OBJECTS l = LWorkTsd
+    PROPERTIES (l) READONLY BACKGROUND (IF atr(l) THEN RGB(235,215,255)) atr,date, time, place, ipAddress,  user, idApp, number
+    FILTERS customer(l) = o AND number(l) = number(h)
+    ORDERS date(l), place(l), time(l)
+    
+    PROPERTIES  delimiter(), onCalc(), onCustomerDashboard(c), fltS2(), fltQrep(), fltAttention(),
+                onStaticClientType(), onUpdateLog(o), onCustomerReports(o), onOpenXLS(o)
+    
+    EVENTS ON INIT {
+        delimiter() <- '###';
+        fltS2() <- TRUE;
+    }  
+    
+    FILTERGROUP active FILTER 'Активные' NOT inactive(o) DEFAULT
+    
+    FILTERS IF fltS2() THEN isISubstring(clientType(o),'S2') ELSE TRUE // по дефолту S2  
+    FILTERS IF fltClientType(0) THEN isSubstring(clientType(o) + ',', fltClientType(0)) ELSE TRUE
+    FILTERS IF fltClientType(1) THEN isSubstring(clientType(o) + ',', fltClientType(1)) ELSE TRUE 
+    FILTERS IF fltClientType(2) THEN isSubstring(clientType(o) + ',', fltClientType(2)) ELSE TRUE 
+    FILTERS IF fltClientType(3) THEN isSubstring(clientType(o) + ',', fltClientType(3)) ELSE TRUE 
+    FILTERS IF fltClientType(4) THEN isSubstring(clientType(o) + ',', fltClientType(4)) ELSE TRUE 
+    FILTERS IF fltClientType(5) THEN isSubstring(clientType(o) + ',', fltClientType(5)) ELSE TRUE 
+    FILTERS IF fltClientType(6) THEN isSubstring(clientType(o) + ',', fltClientType(6)) ELSE TRUE 
+    FILTERS IF fltClientType(7) THEN isSubstring(clientType(o) + ',', fltClientType(7)) ELSE TRUE 
+    FILTERS IF fltClientType(8) THEN isSubstring(clientType(o) + ',', fltClientType(8)) ELSE TRUE 
+    FILTERS IF fltClientType(9) THEN isSubstring(clientType(o) + ',', fltClientType(9)) ELSE TRUE 
+ ;
+
+inReport '' = DATA LOCAL BOOLEAN (HWorkTsd);
+
+FORM printTSD 'Отчет'
+    OBJECTS o = Customer PANEL 
+    PROPERTIES (o) READONLY name, upDateXlsTsd
+    OBJECTS h = HWorkTsd
+    PROPERTIES (h) READONLY BACKGROUND (IF atr(h) THEN RGB(235,215,255)) atr, number, qrep
+    FILTERS customer(h) = o
+    OBJECTS l = LWorkTsd
+    PROPERTIES (l) READONLY BACKGROUND (IF atr(l) THEN RGB(235,215,255)) atr,date, time, place, ipAddress,  user, idApp
+    FILTERS customer(l) = o AND number(l) = number(h)
+    FILTERS inReport(h)
+    ORDERS date(l), place(l), time(l)
+; 
+
+onPrint 'Отчет ТСД' (Customer c) {
+    inReport(HWorkTsd h) <- NULL;
+    FOR [FILTER viewTSD.h](HWorkTsd h) DO inReport(h) <- TRUE;
+    PRINT printTSD OBJECTS o = c XLS; 
+}
+
+EXTEND FORM viewTSD PROPERTIES onPrint(o);
+
+DESIGN viewTSD {
+    OBJECTS { horizontal = TRUE ; }
+    OBJECTS {
+        BOX(o) {fill=1;}
+        BOX(h) {fill=1;}
+        BOX(l) {fill=5;}
+    }
+    PANEL {
+        NEW cntHPanel {
+            fill = 1;
+            NEW cntInfo {
+                horizontal = TRUE;
+                fill = 1; 
+                NEW cntInfo1 {
+                    fill = 1;
+                    MOVE PROPERTY (calcInfo(c)) {caption = 'Сверка';};
+                }
+                NEW cntInfo2 {
+                    fill = 2;
+                    MOVE PROPERTY (clientTypeInfo(c)) {caption = 'Тип клиента';};
+                }
+            }    
+            NEW cntAction {
+                horizontal = TRUE ;
+                NEW cntAction1 {
+                    horizontal = TRUE ;
+                    caption = 'параметры сверки';                
+                    MOVE PROPERTY (delimiter());
+                    MOVE PROPERTY (onCalc()) {marginLeft=5;};
+                    MOVE PROPERTY (onCustomerReports(o)){marginLeft=5;};
+                }
+                NEW cntAction2 {
+                    horizontal = TRUE ;
+                    caption = 'фильтры';                
+                    MOVE PROPERTY (fltS2());
+                    MOVE PROPERTY (onStaticClientType()) {marginLeft=5;};
+                    MOVE PROPERTY (fltAttention()) {marginLeft=5;};
+                    MOVE PROPERTY (fltQrep()) {marginLeft=5;};
+                }
+                NEW cntAction3{
+                    horizontal = TRUE ;
+                    caption = 'дополнительно';                
+                    MOVE PROPERTY (onPrint(o));
+                    MOVE PROPERTY (onOpenXLS(o));
+                    MOVE PROPERTY (onCustomerDashboard(c));
+                }    
+            }
+        }   
+    }  
+    TOOLBARRIGHT (o) {MOVE PROPERTY (onUpdateLog(o));} 
+}
+
+NAVIGATOR {
+    dashboard {
+        NEW viewTSD AFTER equipmentDashboard;
+    }
+} 

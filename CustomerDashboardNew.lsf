@@ -34,7 +34,7 @@ DESIGN dashboardCustomer {
     issues {
         MOVE BOX (is) {
             NEW dateFilter FIRST {
-                type = CONTAINERH; 
+                horizontal = TRUE;
                 MOVE PROPERTY(inSData()); 
                 MOVE PROPERTY(inEData());
                 MOVE PROPERTY(onSetDateFilter()); 

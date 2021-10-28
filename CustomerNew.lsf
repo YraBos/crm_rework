@@ -382,16 +382,15 @@ EXTEND FORM dialogCustomers
 DESIGN customers {
     PANEL {
         NEW cntInfo {
-            type = CONTAINERV; 
             fill = 1;
             NEW cnt1 {
                 fill = 1;
                 MOVE PROPERTY (calcInfo(o));
             }
             NEW cnt10 {
-                type = CONTAINERH ; 
+                horizontal = TRUE ;
                 NEW cnt2 {
-                    type = CONTAINERH ;
+                    horizontal = TRUE ;
                     caption = 'параметры сверки';
                     MOVE PROPERTY (delimiter()) {charHeight = 1;};
                     MOVE PROPERTY (onCalc());
@@ -399,7 +398,7 @@ DESIGN customers {
                 }
                 // cnt3, см. RateService
                 NEW cnt4 {
-                    type = CONTAINERH ;
+                    horizontal = TRUE ;
                     caption = 'дополнительно'; 
                     marginLeft = 10;
                     MOVE PROPERTY (onStaticClientType());

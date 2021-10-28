@@ -106,10 +106,9 @@ FORM viewNormDocOrg 'Нормативные документы'
 DESIGN viewNormDocOrg {
     OBJECTS {
         NEW cntMain {
-            type = CONTAINERV;
             fill = 1;
             NEW cntPartAB {
-                type = CONTAINERH;
+                horizontal = TRUE;
                 fill = 1;
                 NEW cntPartA {
                     fill = 1;
@@ -117,27 +116,26 @@ DESIGN viewNormDocOrg {
                 }
                 NEW cntPartB {
                     fill = 1;
-                    type = CONTAINERV; 
                     caption = 'Персонал';
                     NEW cntB {
-                        type = CONTAINERH;
+                        horizontal = TRUE;
                         MOVE PROPERTY (namePosition(s2)) {charWidth=30;};
                         MOVE PROPERTY (lstQualification(s2)) {charWidth=60;};
                     }
                     NEW cntC {
-                        type = CONTAINERH;
+                        horizontal = TRUE;
                         MOVE PROPERTY (canName(s2)) {caption = 'Место в структуре';};
                     }
                     MOVE BOX(s) {caption='';}; 
                 }
             }
             NEW cntPartCT {
-                type = TABBED;
+                tabbed = TRUE ;
                 fill = 1;
                 NEW cntPartLink {
                     fill = 1;
                     caption = 'Текущие документы';
-                    type = CONTAINERH; 
+                    horizontal = TRUE;
                     MOVE BOX (l) ;
                     TOOLBARRIGHT (l) {
                         MOVE PROPERTY (onReLink(o,l));
@@ -146,7 +144,7 @@ DESIGN viewNormDocOrg {
                 NEW cntPartCoordination {
                     fill = 1;
                     caption = 'Лист согласований';
-                    type = CONTAINERH;
+                    horizontal = TRUE;
                     NEW cntLC {
                         fill = 1;
                         MOVE BOX (lc) {
@@ -156,7 +154,6 @@ DESIGN viewNormDocOrg {
                     }
                     NEW cntLN {
                         fill = 1;
-                        type = SPLITV ;
                         MOVE BOX(n) {
                             fill = 4;
                             PROPERTY (createDate(n)) {caption='Замечение\nсоздано'; charWidth='11';alignment=CENTER;}
@@ -172,7 +169,7 @@ DESIGN viewNormDocOrg {
                 NEW cntPartReference {
                     fill = 1;
                     caption = 'Лист ознакомлений';
-                    type = CONTAINERH; 
+                    horizontal = TRUE;
                     MOVE BOX (lr) {
                         PROPERTY (mark(lr)) {caption = 'Ознакомлен'; charWidth = 14; alignment = CENTER;}
                     }
@@ -181,13 +178,13 @@ DESIGN viewNormDocOrg {
                 NEW cntPartLog {
                     fill = 1;
                     caption = 'История изменений';
-                    type = CONTAINERH; 
+                    horizontal = TRUE;
                     MOVE BOX (log);
                 }
                 NEW cntPartDel {
                     fill = 1;
                     caption = 'Удаленные документы';
-                    type = CONTAINERH; 
+                    horizontal = TRUE; 
                     MOVE BOX (del);
                 }
             } 
