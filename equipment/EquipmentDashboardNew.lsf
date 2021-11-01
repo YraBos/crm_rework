@@ -72,8 +72,11 @@ onXlsDataLoad 'Импорт данных' (Equipment e,SubjectType t) {
     ps() <- substr(staticCaption(ov()),1,3);
     // -------------------------------------------------------------------------------
     IF ps() = ' 1.' THEN {
-        IF NOT name(t) = 'LST ТСД' THEN { PRINT repOutSerials OBJECTS c = customer(e),t = t XLS; RETURN; } // просто отобразим отчет и выйдем
+        IF NOT name(t) = 'LST ТСД' THEN { // просто отобразим отчет и выйдем 
+            PRINT repOutSerials OBJECTS c = customer(e),t = t XLS; RETURN; 
+        } 
         PRINT repOutSerials OBJECTS c = customer(e),t = t XLS TO frep; 
+        open(frep());
         cNameType() <- 'Список выданных ключей ТСД';
     } 
     // -------------------------------------------------------------------------------

@@ -232,7 +232,7 @@ FORM viewFixedAssets 'Журнал основных средств'
 DESIGN viewFixedAssets {
     OBJECTS {
         NEW cntFlt {
-            type = CONTAINERH;
+            horizontal = TRUE;
             caption = 'Фильтры';
             MOVE PROPERTY(nameFilterEmployee());
             MOVE PROPERTY(filterYearInputDate());
@@ -241,24 +241,23 @@ DESIGN viewFixedAssets {
             MOVE PROPERTY(nameFilterStorage());            
         }
         MOVE BOX(ft1) {
-            type = CONTAINERV;
+            horizontal = FALSE;
             MOVE PROPERTY(other(ft1)) {background=#F4FFF4;}; 
             MOVE PROPERTY(note(ft1)) {background=#EEF7F7;fontSize=9;};
         }
         NEW cnt1 {
-            type = CONTAINERH ; 
-            type = SPLITH;  
+            horizontal = TRUE;
             fill = 1;
             NEW cnt2 {
-                type = CONTAINERV;
+                horizontal = FALSE;
                 fill = 1;
                 MOVE BOX(dc) {
                     TOOLBARSYSTEM(dc) { 
-                        showGroupChange = FALSE;
+//                        showGroupChange = FALSE;
                         showGroup = FALSE;
                         showCountQuantity = FALSE;
                         showCalculateSum = FALSE;
-                        showPrintGroup = FALSE;
+//                        showPrintGroup = FALSE;
                         showPrintGroupXls = FALSE;
                         showSettings = FALSE;
                     }    
@@ -277,7 +276,7 @@ DESIGN viewFixedAssetsLog {
     PANEL {
         MOVE BOX(p); 
         BOX(p) {
-            type = CONTAINERV;
+            horizontal = FALSE ;
             MOVE PROPERTY(other(p)) {background=#F4FFF4;}; 
             MOVE PROPERTY(note(p)) {background=#EEF7F7;};
         }
@@ -301,7 +300,7 @@ FORM editFixedAssets 'Журнал основных средств'
 DESIGN editFixedAssets {
     OBJECTS {
         NEW cntA {
-            type = CONTAINERH; 
+            horizontal = TRUE;
             caption = 'Характеристика ОС';
             NEW cnt1a {
                 fill = 1;
@@ -333,14 +332,14 @@ DESIGN editFixedAssets {
             }
         }
         NEW cntB {
-            type = CONTAINERV;
+            horizontal = FALSE;
             caption = 'Примечания';
             fill = 1;
             MOVE PROPERTY(other(fa)) {background=#F4FFF4;}; 
             MOVE PROPERTY(note(fa)) {background=#EEF7F7;fontSize=9;};
    }
         NEW cntC {
-            type = CONTAINERH; 
+            horizontal = TRUE;
             NEW cnt3 {
                 caption = 'Создал данные';
                 MOVE PROPERTY(userName(fa)) {background = #D5D5FF;}            
