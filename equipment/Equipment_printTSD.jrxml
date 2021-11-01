@@ -1,0 +1,309 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Created with Jaspersoft Studio version 6.12.2.final using JasperReports Library version 6.12.2-75c5e90a222ab406e416cbf590a5397028a52de3  -->
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="Equipment.printTSD" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="b1d2a590-2a09-441a-9903-ee2197ad5b31">
+	<property name="net.sf.jasperreports.export.xls.print.page.width" value="842"/>
+	<property name="net.sf.jasperreports.export.xls.print.page.height" value="595"/>
+	<style name="DefaultStyle" isDefault="true" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
+		<box>
+			<pen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+		</box>
+		<paragraph leftIndent="2" rightIndent="2"/>
+	</style>
+	<style name="GroupCellStyle3" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
+		<box>
+			<pen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+		</box>
+		<paragraph leftIndent="2" rightIndent="2"/>
+	</style>
+	<style name="GroupCellStyle2" mode="Opaque" backcolor="#D5D5D5" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
+		<box>
+			<pen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+		</box>
+		<paragraph leftIndent="2" rightIndent="2"/>
+	</style>
+	<style name="GroupCellStyle1" mode="Opaque" backcolor="#EAEAEA" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
+		<box>
+			<pen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+		</box>
+		<paragraph leftIndent="2" rightIndent="2"/>
+	</style>
+	<style name="GroupCellStyle0" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
+		<box>
+			<pen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
+		</box>
+		<paragraph leftIndent="2" rightIndent="2"/>
+	</style>
+	<field name="o.object" class="java.lang.Long"/>
+	<field name="name(o)" class="java.lang.String"/>
+	<field name="upDateXlsTsd(o)" class="java.util.Date"/>
+	<field name="h.object" class="java.lang.Long"/>
+	<field name="atr(h)" class="java.lang.String"/>
+	<field name="atr(h).background" class="java.awt.Color"/>
+	<field name="number(h)" class="java.lang.String"/>
+	<field name="number(h).background" class="java.awt.Color"/>
+	<field name="qrep(h)" class="java.lang.Integer"/>
+	<field name="qrep(h).background" class="java.awt.Color"/>
+	<field name="l.object" class="java.lang.Long"/>
+	<field name="atr(l)" class="java.lang.String"/>
+	<field name="atr(l).background" class="java.awt.Color"/>
+	<field name="date(l)" class="java.util.Date"/>
+	<field name="date(l).background" class="java.awt.Color"/>
+	<field name="time(l)" class="java.util.Date"/>
+	<field name="time(l).background" class="java.awt.Color"/>
+	<field name="place(l)" class="java.lang.String"/>
+	<field name="place(l).background" class="java.awt.Color"/>
+	<field name="ipAddress(l)" class="java.lang.String"/>
+	<field name="ipAddress(l).background" class="java.awt.Color"/>
+	<field name="user(l)" class="java.lang.String"/>
+	<field name="user(l).background" class="java.awt.Color"/>
+	<field name="idApp(l)" class="java.lang.String"/>
+	<field name="idApp(l).background" class="java.awt.Color"/>
+	<group name="designGroup35589">
+		<groupExpression><![CDATA[String.valueOf($F{h.object})]]></groupExpression>
+		<groupHeader>
+			<band height="18" splitType="Prevent">
+				<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="GroupCellStyle1" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="0" y="0" width="30" height="18" backcolor="#C5C5C5" uuid="71e70922-a03b-425b-ab53-1a14a70615c4"/>
+					<textElement textAlignment="Center">
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{atr(h)}]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="GroupCellStyle1" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="30" y="0" width="695" height="18" backcolor="#C5C5C5" uuid="1a19fc43-5547-4e56-80e7-035ba5708829">
+						<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					</reportElement>
+					<textElement textAlignment="Left">
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{number(h)}]]></textFieldExpression>
+				</textField>
+				<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+					<reportElement style="GroupCellStyle1" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="725" y="0" width="77" height="18" backcolor="#C5C5C5" uuid="a08e1a5c-2605-46be-b956-1540fa0abbc3"/>
+					<textElement textAlignment="Center">
+						<font isBold="true"/>
+					</textElement>
+					<textFieldExpression><![CDATA[$F{qrep(h)}]]></textFieldExpression>
+				</textField>
+			</band>
+		</groupHeader>
+	</group>
+	<title>
+		<band height="50">
+			<staticText>
+				<reportElement x="0" y="0" width="100" height="18" uuid="a91d5114-39df-4ea7-bf0c-aeea3f76bdbc">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<text><![CDATA[Отчет по ТСД]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="18" width="50" height="18" uuid="4c0497dc-0639-41a7-9323-9c0d1b1de276">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<text><![CDATA[Клиент:]]></text>
+			</staticText>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle2" positionType="Float" stretchType="RelativeToBandHeight" mode="Transparent" x="50" y="18" width="428" height="18" uuid="e461b4bf-d2e0-4b95-9911-466af24e5b74"/>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{name(o)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" pattern="dd.MM.yy" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle2" positionType="Float" stretchType="RelativeToBandHeight" mode="Transparent" x="725" y="18" width="77" height="18" uuid="c99a794e-f2a5-4cea-ab1f-8f3e6946c80c">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{upDateXlsTsd(o)}]]></textFieldExpression>
+			</textField>
+			<staticText>
+				<reportElement x="650" y="18" width="75" height="18" uuid="b6902d5f-e592-44c2-af6a-6b5d5ea98043">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<text><![CDATA[Дата расчета:]]></text>
+			</staticText>
+		</band>
+	</title>
+	<pageHeader>
+		<band height="36">
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<staticText>
+				<reportElement mode="Opaque" x="0" y="0" width="30" height="18" backcolor="#C5C5C5" uuid="8df85721-8fde-48cc-8187-a56a1cfa42f8">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[атр.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="30" y="0" width="695" height="18" backcolor="#C5C5C5" uuid="6295d04b-5c88-4edb-8bfd-7576a79e70dd">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[серийный номер ТСД]]></text>
+			</staticText>
+			<staticText>
+				<reportElement mode="Opaque" x="725" y="0" width="77" height="18" backcolor="#C5C5C5" uuid="5e42f9a4-0ba4-453c-8ebd-ae4d0ae61c24">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[кол-во мест]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="30" y="18" width="70" height="18" uuid="d08a2816-4263-4bc3-bcbc-4de017cdeaaa">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[дата]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="0" y="18" width="30" height="18" uuid="1cd7b4b3-7562-45f5-82bf-8e770e6574e9">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[атр.]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="100" y="18" width="50" height="18" uuid="3edf7ff7-4f36-4d4c-9d16-5687aff9f79d">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[время]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="150" y="18" width="280" height="18" uuid="e3b06627-b5d3-4b0d-bfd3-f57d68881f24">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[место использования]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="430" y="18" width="87" height="18" uuid="024a74a0-049b-40bc-86d8-2c85057b3d0c">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[IP]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="517" y="18" width="25" height="18" uuid="5013e86b-adbe-4568-8a80-d2c4e9686047">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[ID]]></text>
+			</staticText>
+			<staticText>
+				<reportElement x="542" y="18" width="260" height="18" uuid="2d0a20a2-b525-4de1-ad7e-d628ed11074e">
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<text><![CDATA[пользователь]]></text>
+			</staticText>
+		</band>
+	</pageHeader>
+	<detail>
+		<band height="18">
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="0" y="0" width="30" height="18" uuid="2fea62a3-6d27-4faa-968b-7c2270b14512"/>
+				<textElement textAlignment="Center">
+					<font isBold="true"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{atr(l)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" pattern="dd.MM.yy" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="30" y="0" width="70" height="18" uuid="5472cebf-0d52-475d-99bf-4214d0734b5a"/>
+				<textElement textAlignment="Right"/>
+				<textFieldExpression><![CDATA[$F{date(l)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" pattern="HH:mm:ss" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="100" y="0" width="50" height="18" uuid="651b4719-a911-491a-9fd4-842aefccb734"/>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{time(l)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="150" y="0" width="280" height="18" uuid="abaa065c-5b9c-4887-8c30-c0210b815228"/>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{place(l)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="430" y="0" width="87" height="18" uuid="b11466f9-5bd2-44ed-afac-8c5fe17cae7b">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{ipAddress(l)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="542" y="0" width="260" height="18" uuid="a31e9dde-3aab-462c-9401-5df803bafb5c">
+					<property name="com.jaspersoft.studio.unit.width" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{user(l)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" mode="Opaque" x="517" y="0" width="25" height="18" uuid="1a19564c-895b-4641-bb56-50dab14bf8fb"/>
+				<textElement textAlignment="Left"/>
+				<textFieldExpression><![CDATA[$F{idApp(l)}]]></textFieldExpression>
+			</textField>
+		</band>
+	</detail>
+</jasperReport>
