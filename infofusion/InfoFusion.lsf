@@ -1,26 +1,7 @@
 MODULE InfoFusion;
 
-REQUIRE Employee, Dashboard, Issue, Customer, Utils;
+REQUIRE InfoFusionTopic, Employee, Dashboard, Issue, Customer, Utils;
 
-NAMESPACE InfoFusion;
-
-CLASS InfoFusionTopic 'Разделы';
-name        'Название раздела'      = DATA STRING[40] (InfoFusionTopic) NONULL;  
-TABLE infofusiontopic (InfoFusionTopic);
-
-FORM viewInfoFusionTopic 'Разделы занятий'
-    OBJECTS o = InfoFusionTopic
-    PROPERTIES(o) READONLY name
-    PROPERTIES(o) NEWSESSION DELETE, NEW, EDIT
-    LIST InfoFusionTopic OBJECT o
-    ORDERS name(o)
-;
-
-FORM editInfoFusionTopic 'Редактирование'
-    OBJECTS o = InfoFusionTopic PANEL
-    PROPERTIES(o) name
-    EDIT InfoFusionTopic OBJECT o
-;
 
 CLASS InfoFusion 'База знаний lsFusion';
 TABLE infofusion (InfoFusion);
@@ -36,9 +17,6 @@ description 'Описание занятия'      = DATA TEXT             (Info
 guru 'Докладчик' (InfoFusion o)   = name(employee(o));
 nameTopic 'Раздел' (InfoFusion o) = name(topic(o));
 nameCustomer 'Клиент' (InfoFusion o) = name(customer(o));
-
-CONSTRAINT nameTopic(InfoFusion o) = '!ВСЕ' MESSAGE 'Не допустимое название раздела: !ВСЕ';
-
 
 CLASS InfoFusionResource 'Ресурсы';
 TABLE inforusionresource (InfoFusionResource);
@@ -112,18 +90,21 @@ onShow 'Показать' (InfoFusionResource r) {
 
 otop '' = DATA InfoFusionTopic ();          // указатель перехода на раздел, после редактирования темы занятия. См. editInfoFusion, edit +
 descriptionText = DATA LOCAL TEXT ();       // обманка для description. Если 2-й грид не имеет записей, то табло пропадает
-                                            // обманка исправляет "прагание" интерфейсов 
-
+                                            // обманка исправляет "прыгание" интерфейсов 
+fltDescription 'Фильтр описания темы' = DATA LOCAL STRING[20] ();                                          
+                                            
 FORM viewInfoFusion 'Проводимые занятия'
-    OBJECTS t = InfoFusionTopic
-    PROPERTIES(t) READONLY name 
+    TREE ot t = InfoFusionTopic PARENT parent(t)
+    PROPERTIES(t) READONLY name
+    PROPERTIES(t) NEWSESSION DELETE, NEW, EDIT 
     ORDERS name(t)
 
     OBJECTS o = InfoFusion
     PROPERTIES( ) READONLY PANEL descriptionText 
     PROPERTIES(o) READONLY date, lession, guru, theme, nameCustomer
     PROPERTIES(o) NEWSESSION DELETE, NEW, EDIT
-    FILTERS IF name(t) = '!ВСЕ' THEN TRUE ELSE topic(o) = t
+    FILTERGROUP  tflt
+        FILTER ' Привязка к разделам' level(topic(o), t) DEFAULT
 
     OBJECTS r = InfoFusionResource
     PROPERTIES(r) READONLY date, nameType, description, link
@@ -132,14 +113,29 @@ FORM viewInfoFusion 'Проводимые занятия'
     FILTERS infoFusion(r) = o
     ORDERS date(o)
     
+    PROPERTIES fltDescription()
+    FILTERS IF fltDescription() THEN isISubstring(description(o),fltDescription()) ELSE TRUE  
+    
     EVENTS ON CHANGE o {
         descriptionText() <- OVERRIDE description(o), '';       
     }
+    EVENTS ON INIT {
+        LOCAL top = InfoFusionTopic ();
+        FOR (InfoFusionTopic ob IS InfoFusionTopic) ORDER level(ob,parent(ob)), name(ob) DO {
+            IF NOT top() THEN top() <- ob;
+            {EXPAND UP viewInfoFusion.t OBJECTS t = ob;}
+        }
+    }
 ; 
+
+
+
 
 FORM editInfoFusion 'Редактирование'
     OBJECTS o = InfoFusion PANEL 
-    PROPERTIES(o) date, lession, guru, nameTopic, theme, nameCustomer, description
+    PROPERTIES(o) date, lession, guru
+    PROPERTIES(o) nameTopic ON CHANGE {DIALOG listInfoFusionTopic OBJECTS t INPUT DO topic(o) <-t;}
+    PROPERTIES(o) theme, nameCustomer, description
     EDIT InfoFusion OBJECT o
     EVENTS ON INIT {
         IF NOT date(o) THEN date(o) <- currentDate();
@@ -192,7 +188,8 @@ DESIGN viewInfoFusion {
             fill = 1;
             NEW cnt1 {
                 fill = 5;
-                MOVE BOX(t);
+                horizontal = TRUE;
+                MOVE BOX (TREE ot) {caption = 'Список разделов';};
                 MOVE BOX(o) {fill = 6;}
             }
             NEW cnt2 {
@@ -201,6 +198,9 @@ DESIGN viewInfoFusion {
                 MOVE BOX(r);
             }
         } 
+    }
+    TOOLBARRIGHT (o) {
+        MOVE PROPERTY (fltDescription()) FIRST;
     }
 }
 

@@ -1,0 +1,31 @@
+MODULE InfoFusionTopic;
+
+NAMESPACE InfoFusion;
+
+CLASS InfoFusionTopic 'Разделы';
+TABLE infofusiontopic (InfoFusionTopic);
+
+name  'Название раздела' = DATA STRING[40] (InfoFusionTopic) NONULL;
+parent 'Родитель' = DATA InfoFusionTopic (InfoFusionTopic);
+nameParent 'Родитель' (InfoFusionTopic o) = name(parent(o)) IN base;
+level 'Уровень' (InfoFusionTopic child, InfoFusionTopic parent) = 
+        RECURSION 1l IF child IS InfoFusionTopic AND parent=child STEP 2l IF parent = parent($parent) MATERIALIZED;
+
+FORM listInfoFusionTopic 'Справочник разделов'
+    TREE to t = InfoFusionTopic PARENT parent(t)
+    PROPERTIES(t) READONLY name
+    ORDERS name(t)
+    LIST InfoFusionTopic OBJECT t
+    EVENTS ON INIT {
+        FOR (InfoFusionTopic ob IS InfoFusionTopic) ORDER level(ob,parent(ob)), name(ob) DO 
+            EXPAND UP listInfoFusionTopic.t OBJECTS t = ob;
+    }
+;
+
+FORM editInfoFusionTopic 'Редактирование'
+    OBJECTS o = InfoFusionTopic PANEL
+    PROPERTIES(o) name
+    PROPERTIES(o) nameParent ON CHANGE {DIALOG listInfoFusionTopic OBJECTS t INPUT DO parent(o) <- t;}
+    EDIT InfoFusionTopic OBJECT o
+;
+

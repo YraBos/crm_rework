@@ -31,7 +31,7 @@ DESIGN editNormDocStaff {
     BOX(s) {
         NEW cnt {
             fill = 1;
-            type = CONTAINERH;
+            horizontal = TRUE;
             MOVE PROPERTY (nameEmployee(s));
         }
     }

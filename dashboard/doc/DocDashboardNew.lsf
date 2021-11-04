@@ -1,0 +1,52 @@
+MODULE DocDashboardNew;
+
+REQUIRE DocDashboard, DebtAgreement, Utils;
+
+EXTEND FORM docDashboard
+    PROPERTIES(d) READONLY inCurrency BEFORE shortNameCurrency(d) 
+;
+
+DESIGN docDashboard {
+    PROPERTY (inCurrency(d)) {caption = '$'; charWidth = 3;}
+} 
+
+// RM16467 - Документы в работе
+isSubNameAgreement '' (STRING ctxt) = 
+    (isISubstring(ctxt,'доработка') OR isISubstring(ctxt,'разработка') OR isISubstring(ctxt,'внедрение') OR isISubstring(ctxt,'обучение'));
+
+dateAgreement 'Дата согл.' (Debt d) = date(agreement(d));
+nameAgreementType 'Тип' (Debt d) = nameType(agreement(d));
+title1 '' = DATA LOCAL TEXT ();
+
+FORM repWorkDoc 'Документы в работе'
+    PROPERTIES currentDate() PANEL 
+    OBJECTS o = Customer
+    PROPERTIES(o) name 
+    OBJECTS c = Contract
+    FILTERS customer(c) = o
+    PROPERTIES(c) number, date, nameType, name 
+    OBJECTS d = Debt
+    PROPERTIES(d) date, sum, numberAgreement, dateAgreement, nameAgreementType, nameAgreement
+    PROPERTIES title1() 
+    FILTERS contract(d) = c 
+    FILTERS NOT act(d), date(d) <= currentDate()
+    FILTERS IF NOT nameType(contract(d)) = 'Сопровождение' THEN TRUE 
+            ELSE IF agreement(d) AND isSubNameAgreement(nameAgreement(d)) THEN TRUE  
+//    FILTERS isSubstring(note(c),'*') // отладка
+    ORDERS name(o), date(c), date(d)
+;
+
+onRepWorkDoc 'Документы в работе' () {
+    title1() <- 'Условия добавления данных в отчет: ' + 
+        'Все договора (ДСГ, ПРТ), кроме Сопровождения, не закрытые актом. Для договоров Сопровождения не закрытые актом, если их ДСГ (ПРТ) ' +  
+        'включают в название слова: доработка, разработка, внедрение, обучение. Данные, включаемые в отчет беруться на текущую дату'; 
+    PRINT repWorkDoc XLS; //XLS;
+}
+
+EXTEND FORM docDashboard PROPERTIES onRepWorkDoc();
+
+DESIGN docDashboard {
+    filter {
+        MOVE PROPERTY (onRepWorkDoc());
+    }
+}

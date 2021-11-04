@@ -74,18 +74,16 @@ FORM showNote 'Замечание'
 DESIGN editNormDocListNote {
     BOX (n) {
         NEW cntMain {
-            type = CONTAINERV ;
             fill = 1;
             NEW cnt1 {
                 caption = 'Дополнительная информация';
-                type = CONTAINERV ;
                 MOVE PROPERTY (createDate(n));
                 MOVE PROPERTY (nameCreate(n));
                 MOVE PROPERTY (nameDoc(n));
                 MOVE PROPERTY (nameAuthor(n));
             }
             NEW cnt2 {
-                type = CONTAINERH ;
+                horizontal = TRUE ;
                 fill = 1;
                 caption = 'Замечания к версии документа, режим: ' + IF employee(n) = currentUser() THEN 'редактирование' ELSE 'просмотр';
                 MOVE PROPERTY (note(n)) {caption = ''; charHeight = 10;}

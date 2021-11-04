@@ -83,10 +83,9 @@ DESIGN actRevise {
     }
     OBJECTS {
         NEW cntMain {
-            type = CONTAINERV;
             NEW cntDate {
                 caption = 'выбор период расчета';
-                type = CONTAINERH;
+                horizontal = TRUE;
                 MOVE PROPERTY (ds);
                 MOVE PROPERTY (de) {marginLeft = 10;};
             }
@@ -96,17 +95,14 @@ DESIGN actRevise {
             }
             NEW cntCNT {
                 caption = 'выбор договора';
-                type = CONTAINERV;
                 NEW cnt1 {
-                    type = CONTAINERV;
                     NEW cnt11 {
-                        type = CONTAINERH;
+                        horizontal = TRUE;
                         MOVE PROPERTY (design2);
                         MOVE PROPERTY (date(cn)) {marginLeft = 10;}; 
                         MOVE PROPERTY (actReviseNameType(cn)) {marginLeft = 10;}; 
                     } 
                     NEW cnt12 {
-                        type = CONTAINERV;
                         MOVE PROPERTY(actReviseEMail(le)); 
                         MOVE PROPERTY (actReviseAllowEMail());
                         MOVE PROPERTY (actReviseAllowEdit());
@@ -115,7 +111,7 @@ DESIGN actRevise {
             }
             NEW cntSaldo {
                 caption = 'Остатки на начало';
-                type = CONTAINERH;
+                horizontal = TRUE;
                 MOVE PROPERTY (sDBSum) ;
                 MOVE PROPERTY (sCRSum) {marginLeft = 10;};
                 MOVE PROPERTY (actReviseAllowSum()) {marginLeft = 10;};

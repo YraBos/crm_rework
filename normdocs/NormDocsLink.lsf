@@ -221,7 +221,6 @@ DESIGN editNormDocLink {
     OBJECTS {
         BOX(l) {
             NEW cnt {
-                type = CONTAINERV;
                 MOVE PROPERTY (date(l));
                 MOVE PROPERTY (dateEnd(l));
                 MOVE PROPERTY (nameNormDocType(l));
@@ -232,7 +231,6 @@ DESIGN editNormDocLink {
             }
         }    
         NEW cntLists {
-            type = TABBED ;
             fill = 1;
             NEW cntCoordination {
                 caption = 'Лист согласований';
