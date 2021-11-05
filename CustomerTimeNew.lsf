@@ -127,7 +127,7 @@ DESIGN customerTimeDashboard {
         }
         NEW reportExt AFTER report {
             caption = 'Дополнительные параметры';
-            type = CONTAINERH; 
+            horizontal = TRUE; // type = CONTAINERH; 
 //            type = COLUMNS;  // если не будет входить линейка фильтров, то переходим на COLUMNS вместо CONTAINERH
 //            columns = 8;
             MOVE PROPERTY (printCustomerReportExt(c, df, dt));
@@ -136,7 +136,7 @@ DESIGN customerTimeDashboard {
             MOVE PROPERTY (noSeparateContract()); 
         }
         NEW tabloTimeEntries AFTER reportExt {
-            type = CONTAINERV;
+            // type = CONTAINERV;
             MOVE PROPERTY (commentStringIssue(t)) {background=#EEF7F7; charWidth = 150;};
         }
         GRID(t) {
@@ -211,7 +211,7 @@ EXTEND FORM customerTimeDashboard
 DESIGN customerTimeDashboard {
     issues {
         NEW filterIssue AFTER docReport {
-            type = CONTAINERH;
+            horizontal = TRUE; // type = CONTAINERH;
             caption = 'Отчет по задачам';
             MOVE PROPERTY (onPrintIssueExt(c, df, dt, st));
             MOVE PROPERTY (noErrorIssue()) {marginLeft = 10;};
@@ -221,7 +221,7 @@ DESIGN customerTimeDashboard {
             MOVE PROPERTY (lenDescription()) {marginLeft = 10;};
         }
         NEW tabloIssues AFTER filterIssue {
-            type = CONTAINERV;
+            // type = CONTAINERV;
             MOVE PROPERTY (descriptionStringTablo(is)) {background=#EEF7F7; charWidth = 150;}; 
         }
     }

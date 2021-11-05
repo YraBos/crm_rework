@@ -71,7 +71,7 @@ FORM debtsPlan2 'План платежей в разрезе валют'
 DESIGN debtsPlan2 {
     OBJECTS {
         NEW tab AFTER BOX (mc) {
-            type = TABBED;
+            tabbed = TRUE ;  // type = TABBED;
             fill = 1;
             MOVE BOX (d);
             MOVE BOX (p) { caption = 'Платежи'; }

@@ -509,7 +509,7 @@ EXTEND FORM customers
 DESIGN customers {
     PROPERTY (nameGroup(o)) {hide = TRUE;}  
     cnt1 {
-        type = CONTAINERH; 
+        horizontal = TRUE; // type = CONTAINERH; 
         MOVE PROPERTY (clientTypeInfo(o)) {
             caption = 'Тип клиента';
             fill=3;

@@ -131,11 +131,11 @@ EXTEND FORM contractDashboard
 DESIGN contractDashboard {
     OBJECTS {
         NEW ocnt FIRST {
-            type = CONTAINERH;
+            horizontal = TRUE; // type = CONTAINERH;
             MOVE filter;
             NEW cntBut {
                 caption = 'Доп. обработки';
-                type = CONTAINERH;
+                horizontal = TRUE; // type = CONTAINERH;
                 MOVE PROPERTY (onFullCreateDebts());
                 MOVE PROPERTY (recalcCurrencyDebts());
             }           

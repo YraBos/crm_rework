@@ -95,7 +95,9 @@ EXTEND FORM listEnumAtr
 ;
 
 DESIGN listEnumAtr {
-    OBJECTS {type = CONTAINERH;}
+    OBJECTS {
+        horizontal = TRUE; // type = CONTAINERH;
+    }
     BOX(ep) {flex=3;}
     BOX(er) {flex=2;}
     BOX(ec) {flex=5;}

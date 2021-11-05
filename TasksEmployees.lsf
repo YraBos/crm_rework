@@ -47,9 +47,9 @@ DESIGN tasksEmployees {
     PROPERTY (doneRatio(is)) {caption = 'Готов,%';}
     PANEL {
         NEW cntMain {
-            type = CONTAINERV;
+//            type = CONTAINERV;
             NEW cntFlt {
-                type = CONTAINERH;
+                horizontal = TRUE; // type = CONTAINERH;
                 caption = 'Фильтры';
                 MOVE PROPERTY (dateStart()) {caption = 'Дата с';} 
                 MOVE PROPERTY (dateEnd()) {caption = 'по';}
@@ -61,7 +61,7 @@ DESIGN tasksEmployees {
                 MOVE PROPERTY (nameFilterAuthor()) {marginLeft = 5;}
             } 
             NEW cntDsc {
-                type = CONTAINERH;
+                horizontal = TRUE; // type = CONTAINERH;
                 MOVE PROPERTY (descriptionStringTablo(is)) {charWidth = 100;};
             }
         }

@@ -45,7 +45,7 @@ FORM editNameEvatDetail 'Редактирование услуг'
 DESIGN editNameEvatDetail {
     OBJECTS {
         NEW cnt1 {
-            type = CONTAINERH;
+            horizontal = TRUE ; // type = CONTAINERH;
             fill = 1;
             caption = 'Наименование товаров (работ, услуг)';
             MOVE PROPERTY (name(d)) {caption = ''; fontSize = 16;}
@@ -64,6 +64,6 @@ EXTEND FORM EVATs
 
 DESIGN EVATs {
     BOX(dates) {
-        type = CONTAINERH ;
+        horizontal = TRUE ; // type = CONTAINERH ;
     }
 }

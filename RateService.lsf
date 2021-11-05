@@ -177,7 +177,7 @@ DESIGN customers {
         NEW cnt3 {
             marginLeft = 10;
             caption = '% обслуживания'; 
-            type = CONTAINERH ;
+            horizontal = TRUE; // type = CONTAINERH ;
             MOVE PROPERTY (dateStart());
             MOVE PROPERTY (dateEnd());
             MOVE PROPERTY (extReport());
