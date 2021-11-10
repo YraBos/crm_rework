@@ -1,5 +1,6 @@
 MODULE EquipmentDashboardNew;
 
+// можно подключить модуль для загрузки для отладки серийных номеров EquimpentImportSerial (скопировать из H:\Fusion_Arc\Old_Added\equipment\)
 REQUIRE EquipmentDashboard, ContractSubject, CustomerAttachment, TempClassReports;
 
 // --- задач - 13003, 12704
@@ -115,53 +116,65 @@ onXlsDataLoad 'Импорт данных' (Equipment e,SubjectType t) {
 }
 
 number 'Номер'          = DATA STRING[250]  (TempClassReports);
-dLast 'Дата пос. исп.'  = DATA STRING       (TempClassReports);
-found 'Найден'          = DATA STRING[3]    (TempClassReports);
+dLast 'Дата пос. исп.'  = DATA DATE         (TempClassReports);
+dCreate 'Дата выдачи'     = DATA DATE       (TempClassReports);
+found 'Найден'          = DATA STRING[20]   (TempClassReports);
 
 // заголовки отчета
-title1 = DATA LOCAL TEXT (); title2 = DATA LOCAL TEXT (); title3 = DATA LOCAL TEXT (); title4 = DATA LOCAL TEXT (); 
+title1 = DATA LOCAL TEXT (); title2 = DATA LOCAL TEXT (); title3 = DATA LOCAL TEXT ();  title4 = DATA LOCAL TEXT (); 
 
 FORM repTempEQUReport 'Сверка торговых объектов'
   PROPERTIES() title1, title2, title3, title4 PANEL  
   OBJECTS o1 = TempClassReports
-  PROPERTIES(o1) pi, number, dLast, found
+  PROPERTIES(o1) pi, number, dLast, dCreate, found
   ORDERS pi(o1)   
 ;
 
 // R14583, сверка серийных номеров по договору
 onReviseTSD 'Сверка раб. ТСД' (Equipment e) {
-   newTempClassReports();
-   IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN; }
-   // грузим файл 
-   LOCAL ot = Attachment();
-   LOCAL colC, colE = STRING(INTEGER);
-   LOCAL npp = INTEGER();
-   title1() <- 'Отчет по сверке работающих ТСД';
-   title2() <- 'по клиенту: ' + name(customer(e));
-   IF nameLegalEntityContract(e) THEN title2() <- title2() + ', ' + nameLegalEntityContract(e);
-   IF nameAgreement(e) THEN title2() <- title2() + ', ' + nameAgreement(e); 
-        ELSE IF nameContract(e) THEN title2() <- title2() + ', ' + nameContract(e); 
-   title3() <- 'дата создания ключей: ' + toDateDDMMYYYY(createdDate(e));
-   title4() <- 'дата отчета: ' + toDateDDMMYYYY(currentDate()); 
-   ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND name(type(a)) = 'Список работающих ТСД';
-   IF NOT ot() THEN { MESSAGE 'Ненайден документ:\nСписок работающих ТСД'; RETURN; }
-   IMPORT XLS NOHEADER FROM file(ot()) AS FILE TO colC = C, colE = E;
-   FOR (EquipmentSerial o IS EquipmentSerial) IF equipment(o) = e DO {
-        NEW ob = TempClassReports {
-            npp() <- npp() (+) 1;
-            pi(ob) <- npp();
-            number(ob) <- number(o);
-            found(ob) <- 'нет';
-            FOR imported(INTEGER i) AND i > 1 ORDER i DO {
-                colC(i) <- OVERRIDE colC(i),''; colE(i) <- OVERRIDE colE(i), '';
-                IF colC(i) = number(o) THEN {
-                    dLast(ob) <- colE(i);
-                    found(ob) <- 'да';
-                }   
+    newTempClassReports();
+    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN; }
+    LOCAL ot = Attachment();
+    LOCAL colC = STRING[250] (INTEGER);
+    LOCAL colE = DATE (INTEGER);
+    LOCAL ctxt = STRING[250] ();
+    LOCAL cnt, cnt1, cnt2 = INTEGER(); cnt() <- 0; cnt1() <- 0; cnt2() <- 0; 
+    LOCAL oe = Equipment(); LOCAL os = EquipmentSerial ();
+    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND name(type(a)) = 'Список работающих ТСД';
+    IF NOT ot() THEN { 
+        MESSAGE 'Не найден документ:\nСписок работающих ТСД'; 
+        RETURN; 
+    }
+    IMPORT XLS NOHEADER FROM file(ot()) AS FILE TO colC = C, colE = E;
+    FOR imported(INTEGER i) AND i > 1 ORDER i DO {
+        colC(i) <- trim(OVERRIDE colC(i),'');
+        IF length(colC(i)) > 0 THEN NEW ob = TempClassReports {
+            cnt()  <- cnt() + 1;
+            number(ob) <- colC(i); 
+            dLast(ob) <- colE(i);
+            os() <- GROUP MAX (EquipmentSerial s) IF number(s) = number(ob);
+            IF os() THEN {
+                pi(ob) <- 2;
+                cnt2() <- cnt2() + 1;
+                found(ob) <- 'ок';
+                oe() <- GROUP MAX (Equipment e1) IF e1 = equipment(os());
+                IF oe() THEN dCreate(ob) <- createdDate(oe());
+            } ELSE {
+                pi(ob) <- 1;
+                cnt1() <- cnt1() + 1;
+                found(ob) <- 'не найден';
             }
-        }    
-   }
-   PRINT repTempEQUReport XLS; // XLS
+        }
+    }  
+//  SHOW repTempEQUReport; // Отладка
+    title1() <- 'Отчет по сверке работающих ТСД';
+    title2() <- 'по клиенту: ' + name(customer(e));
+    title3() <- 'Обработано всего: ' + trim(toChar(cnt(),'999999')) + ', ' + 
+                'найдено в БД: ' + trim(toChar(cnt2(),'999999')) + ', не найдено: ' + trim(toChar(cnt1(),'999999')); 
+    title4() <- 'Отчет формируется относительно содержимого документа "Список работающих ТСД". ' + 
+                'Серийные номера (sn) из документа последовательно сверяются с sn в базе данных по клиенту.\n' +
+                'Если sn найден, то заполняется дата выдачи и значение колонки "выдан" - ok, иначе пишется: не найден';
+    PRINT repTempEQUReport XLS; // XLS
 }
 
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] (); 
