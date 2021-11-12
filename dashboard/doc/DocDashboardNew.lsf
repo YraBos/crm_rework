@@ -21,18 +21,20 @@ title1 '' = DATA LOCAL TEXT ();
 FORM repWorkDoc 'Документы в работе'
     PROPERTIES currentDate() PANEL 
     OBJECTS o = Customer
-    PROPERTIES(o) name 
+    PROPERTIES(o) name
+        FILTERS NOT inactive(o) 
     OBJECTS c = Contract
-    FILTERS customer(c) = o
+        FILTERS customer(c) = o 
+        FILTERS NOT dateClosing(c)
     PROPERTIES(c) number, date, nameType, name 
     OBJECTS d = Debt
     PROPERTIES(d) date, sum, numberAgreement, dateAgreement, nameAgreementType, nameAgreement
     PROPERTIES title1() 
-    FILTERS contract(d) = c 
-    FILTERS NOT act(d), date(d) <= currentDate()
-    FILTERS IF NOT nameType(contract(d)) = 'Сопровождение' THEN TRUE 
-            ELSE IF agreement(d) AND isSubNameAgreement(nameAgreement(d)) THEN TRUE  
-//    FILTERS isSubstring(note(c),'*') // отладка
+        FILTERS contract(d) = c 
+        FILTERS NOT act(d), date(d) <= currentDate()
+        FILTERS IF NOT nameType(contract(d)) = 'Сопровождение' THEN TRUE 
+                ELSE IF agreement(d) AND isSubNameAgreement(nameAgreement(d)) THEN TRUE  
+        FILTERS NOT dateClosing(agreement(d))        
     ORDERS name(o), date(c), date(d)
 ;
 
