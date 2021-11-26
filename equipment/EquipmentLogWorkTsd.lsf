@@ -1,10 +1,9 @@
 MODULE EquipmentLogWorkTsd;
 
-REQUIRE CustomerNew, EquipmentDashboardNew, Time;
+REQUIRE CustomerNew, EquipmentDashboardNew, RevisionHelp, Time;
 
 NAMESPACE Equipment;
 
-fltS2 'Клиенты ТСД (S2)'    = DATA LOCAL BOOLEAN ();
 fltQrep 'Кол. мест > 1'     = DATA LOCAL BOOLEAN ();
 fltAttention 'Внимание(!)'  = DATA LOCAL BOOLEAN ();
 
@@ -25,6 +24,13 @@ ipAddress 'IP адрес' = DATA STRING[20] (LWorkTsd);
 idApp 'ID приложения' = DATA STRING[20] (LWorkTsd);
 atr '!' = DATA STRING[1] (LWorkTsd);
 
+// устанавливает значение фильтра в статическом справавочнике тип клиента S2 = TRUE
+onSetFilterEnumRevise () {
+    LOCAL ob = EnumRevise ();
+    ob() <- GROUP MAX (EnumRevise er) IF staticCaption(er) = 'S2:  Производится сверка по ТСД';
+    mark(ob()) <- TRUE;
+    fltClientType(0) <- 'S2';
+}
 
 
 upDateXlsTsd 'Дата обнов. лога' = DATA DATE (Customer) CHARWIDTH 12; 
@@ -83,7 +89,8 @@ onUpdateLog 'Обновить Лог по клиенту' (Customer c) {
     FOR (HWorkTsd h IS HWorkTsd) AND customer(h) = c AND qrep(h) > 1 DO {
         date2() <- NULL; place2() <- NULL;
         FOR (LWorkTsd l IS LWorkTsd) AND customer(l) = c AND number(l) = number(h) ORDER date(l),place(l),time(l) DO {
-            IF NOT date2() THEN date2() <- date(l); IF NOT place2() THEN place2() <- place(l);
+            IF NOT date2() THEN date2() <- date(l);
+            IF NOT place2() THEN place2() <- place(l);
             IF date2() = date(l) AND NOT place2() = place(l) THEN {
                 atr(l) <- '*'; atr(h) <- '*';    
             }
@@ -92,7 +99,7 @@ onUpdateLog 'Обновить Лог по клиенту' (Customer c) {
     }         
     upDateXlsTsd(c) <- date(ob());
     apply();
-    fltS2() <- TRUE;
+    onSetFilterEnumRevise();
 }
 
 onOpenXLS 'Открыть XLS' (Customer c) {
@@ -124,17 +131,16 @@ FORM viewTSD 'Журнал Fusion ТСД'
     FILTERS customer(l) = o AND number(l) = number(h)
     ORDERS date(l), place(l), time(l)
     
-    PROPERTIES  delimiter(), onCalc(), onCustomerDashboard(c), fltS2(), fltQrep(), fltAttention(),
-                onStaticClientType(), onUpdateLog(o), onCustomerReports(o), onOpenXLS(o)
+    PROPERTIES  delimiter(), onCalc(), onCustomerDashboard(c), fltQrep(), fltAttention(),
+                onStaticClientType(), onUpdateLog(o), onOpenXLS(o)
     
     EVENTS ON INIT {
         delimiter() <- '###';
-        fltS2() <- TRUE;
+        onSetFilterEnumRevise();
     }  
     
     FILTERGROUP active FILTER 'Активные' NOT inactive(o) DEFAULT
     
-    FILTERS IF fltS2() THEN isISubstring(clientType(o),'S2') ELSE TRUE // по дефолту S2  
     FILTERS IF fltClientType(0) THEN isSubstring(clientType(o) + ',', fltClientType(0)) ELSE TRUE
     FILTERS IF fltClientType(1) THEN isSubstring(clientType(o) + ',', fltClientType(1)) ELSE TRUE 
     FILTERS IF fltClientType(2) THEN isSubstring(clientType(o) + ',', fltClientType(2)) ELSE TRUE 
@@ -148,6 +154,17 @@ FORM viewTSD 'Журнал Fusion ТСД'
  ;
 
 inReport '' = DATA LOCAL BOOLEAN (HWorkTsd);
+
+onCustomerReports2 'Отчеты' (Customer o1) {
+  inReport(Customer c1) <- NULL;
+  FOR [FILTER viewTSD.o](Customer c) DO inReport(c) <- TRUE; 
+  onCustomerReports(o1);
+  onSetFilterEnumRevise();  
+}
+
+EXTEND FORM viewTSD
+    PROPERTIES onCustomerReports2(o)
+;
 
 FORM printTSD 'Отчет'
     OBJECTS o = Customer PANEL 
@@ -168,7 +185,8 @@ onPrint 'Отчет ТСД' (Customer c) {
     PRINT printTSD OBJECTS o = c XLS; 
 }
 
-EXTEND FORM viewTSD PROPERTIES onPrint(o);
+EXTEND FORM viewTSD 
+    PROPERTIES onPrint(o), onOpenHelp();
 
 DESIGN viewTSD {
     OBJECTS { horizontal = TRUE ; }
@@ -199,12 +217,11 @@ DESIGN viewTSD {
                     caption = 'параметры сверки';                
                     MOVE PROPERTY (delimiter());
                     MOVE PROPERTY (onCalc()) {marginLeft=5;};
-                    MOVE PROPERTY (onCustomerReports(o)){marginLeft=5;};
+                    MOVE PROPERTY (onCustomerReports2(o)){marginLeft=5;};
                 }
                 NEW cntAction2 {
                     horizontal = TRUE ;
                     caption = 'фильтры';                
-                    MOVE PROPERTY (fltS2());
                     MOVE PROPERTY (onStaticClientType()) {marginLeft=5;};
                     MOVE PROPERTY (fltAttention()) {marginLeft=5;};
                     MOVE PROPERTY (fltQrep()) {marginLeft=5;};

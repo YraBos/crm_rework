@@ -1,6 +1,6 @@
 MODULE DocDashboardNew;
 
-REQUIRE DocDashboard, DebtAgreement, Utils;
+REQUIRE DocDashboard, DebtAgreement, Utils, RevisionHelp;
 
 EXTEND FORM docDashboard
     PROPERTIES(d) READONLY inCurrency BEFORE shortNameCurrency(d) 
@@ -45,7 +45,8 @@ onRepWorkDoc 'Документы в работе' () {
     PRINT repWorkDoc XLS; //XLS;
 }
 
-EXTEND FORM docDashboard PROPERTIES onRepWorkDoc();
+
+EXTEND FORM docDashboard PROPERTIES onRepWorkDoc(), onOpenHelp();
 
 DESIGN docDashboard {
     filter {

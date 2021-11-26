@@ -1,7 +1,7 @@
 MODULE CustomerNew;
 
 REQUIRE Customer, CustomerAttachment, CustomerDashboard, TempClassReports, 
-        StaticClientType, Equipment, Utils, Time;
+        StaticClientType, Equipment, RevisionHelp, Utils, Time;
 
 calcInfo 'Данные сверки' = DATA LOCAL TEXT (Customer);
 delimiter 'Разделитель' = DATA LOCAL STRING[10] () CHARWIDTH 10; 
@@ -261,12 +261,12 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
 onRevise '' (INTEGER ntype, STRING cRepName1,cRepName2,cFilter,cDelimiter) {
     LOCAL cmsg,c1, c2, cd, ck = TEXT (); 
     LOCAL ind = INTEGER (); ind() <- 0;
-    inReport(Customer c) <- NULL;
+//    inReport(Customer c) <- NULL;
     IF ntype = 3 THEN {
         showTsdOtherCol() <- 0;
         ASK 'Показать не выданные ТСД\nотдельной колонкой в отчете?' DO showTsdOtherCol() <- 1;    
     }
-    FOR [FILTER customers.o](Customer c) DO inReport(c) <- TRUE; 
+//    FOR [FILTER customers.o](Customer c) DO inReport(c) <- TRUE; 
     FOR (Customer c IS Customer) AND isSubstring(clientType(c),cFilter) AND inReport(c) ORDER name(c) NEW ob = TempClassReports DO {
         pc(ob) <- name(c); ind() <- ind() + 1; pi(ob) <- ind(); ps(ob) <- 1;   
         p2(ob) <- 0; p4(ob) <- 0; p6(ob) <- 0; p8(ob) <- 0; 
@@ -352,8 +352,14 @@ onCustomerDashboard 'Работа с клиентами' (Customer o) {
     show(o);
 }
 
+onCustomerReports1 'Отчеты' (Customer o1) {
+  inReport(Customer c1) <- NULL;
+  FOR [FILTER customers.o](Customer c) DO inReport(c) <- TRUE; 
+  onCustomerReports(o1);  
+}
+
 EXTEND FORM customers
-    PROPERTIES onCalc(), delimiter(), onCustomerReports(o), onStaticClientType(), onCustomerDashboard(o) 
+    PROPERTIES onCalc(), delimiter(), onCustomerReports1(o), onStaticClientType(), onCustomerDashboard(o) 
     PROPERTIES(o) READONLY clientType AFTER nameGroup(o)
     PROPERTIES(o) PANEL READONLY calcInfo
     EVENTS ON INIT {
@@ -394,7 +400,7 @@ DESIGN customers {
                     caption = 'параметры сверки';
                     MOVE PROPERTY (delimiter()) {charHeight = 1;};
                     MOVE PROPERTY (onCalc());
-                    MOVE PROPERTY (onCustomerReports(o));
+                    MOVE PROPERTY (onCustomerReports1(o));
                 }
                 // cnt3, см. RateService
                 NEW cnt4 {
@@ -503,6 +509,7 @@ EXTEND FORM customer
 // расширенное описание типа клиента, запись расширенного описания при сохранении формы
 EXTEND FORM customers
     PROPERTIES(o) PANEL READONLY clientTypeInfo
+    PROPERTIES onOpenHelp()
 ;
 
 // в тч, nameGroup(o) hide - скрываем свойство, RM 15119, 05.03.2021

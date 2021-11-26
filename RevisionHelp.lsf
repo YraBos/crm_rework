@@ -1,0 +1,16 @@
+MODULE RevisionHelp;
+
+REQUIRE CustomerAttachment, Utils;
+
+onOpenHelp '?' () {
+    LOCAL ot = Attachment();
+    LOCAL cpage = STRING (); LOCAL ctxt = TEXT ();
+    ot() <- GROUP  MAX (Attachment o) IF nameType(o) = 'Справка по доработкам CRM';
+    IF NOT ot() THEN {
+        MESSAGE 'Не найден документ:\nСправка по доработкам CRM\nСм.: Работа с клиентом-Люксофт-Документы';
+        RETURN;
+    }
+    open( file(ot()) );
+} TOOLBAR; 
+
+

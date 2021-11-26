@@ -91,7 +91,11 @@ onShow 'Показать' (InfoFusionResource r) {
 otop '' = DATA InfoFusionTopic ();          // указатель перехода на раздел, после редактирования темы занятия. См. editInfoFusion, edit +
 descriptionText = DATA LOCAL TEXT ();       // обманка для description. Если 2-й грид не имеет записей, то табло пропадает
                                             // обманка исправляет "прыгание" интерфейсов 
-fltDescription 'Фильтр описания темы' = DATA LOCAL STRING[20] ();                                          
+
+fltDescription 'Фильтр темы' = DATA LOCAL STRING[20] ();                                          
+onClsFlt 'X' () {
+    fltDescription() <- NULL;
+}
                                             
 FORM viewInfoFusion 'Проводимые занятия'
     TREE ot t = InfoFusionTopic PARENT parent(t)
@@ -113,7 +117,7 @@ FORM viewInfoFusion 'Проводимые занятия'
     FILTERS infoFusion(r) = o
     ORDERS date(o)
     
-    PROPERTIES fltDescription()
+    PROPERTIES fltDescription(), onClsFlt()
     FILTERS IF fltDescription() THEN isISubstring(description(o),fltDescription()) ELSE TRUE  
     
     EVENTS ON CHANGE o {
@@ -200,7 +204,12 @@ DESIGN viewInfoFusion {
         } 
     }
     TOOLBARRIGHT (o) {
-        MOVE PROPERTY (fltDescription()) FIRST;
+        NEW cnt3 FIRST {
+            horizontal = TRUE ;
+            MOVE PROPERTY (fltDescription());
+            MOVE PROPERTY (onClsFlt()) {width = 40;};
+            MOVE FILTERGROUP (tflt);
+        }
     }
 }
 
