@@ -91,6 +91,7 @@ FORM customerReportExt 'Расширенный отчёт для клиента'
 printCustomerReportExt 'Расш. отчет' (Customer c, DATE df, DATE dt) {
     filterAgreement()       <- NULL;
     filterContract()        <- NULL;
+    
     inReport(TimeEntry t)   <- NULL;
     FOR [FILTER customerTimeDashboard.t](TimeEntry t2) DO inReport(t2) <- TRUE;
     IF NOT hoursFilterProjectExt(c,df,dt) THEN {
@@ -106,7 +107,7 @@ printCustomerReportExt 'Расш. отчет' (Customer c, DATE df, DATE dt) {
 EXTEND FORM customerTimeDashboard
     PROPERTIES(t)   in BEFORE id(t)
 //    PROPERTIES(t)   inReport BEFORE in(t) // отладка, см. выше
-    PROPERTIES(t)   discountHours AFTER hours(t)
+    PROPERTIES(t)   READONLY discountHours AFTER hours(t)
     PROPERTIES(t)   READONLY nameStatusIssue, descriptionStringIssue, dateToIssue, dateTimeCreatedIssue, dateTimeUpdatedIssue, dateFromIssue,  
                     doneRatioIssue, estimatedHoursIssue, nameAuthorIssue, nameAssignedToIssue, nameTrackerIssue,  
                     numberAgreementIssue, nameAgreementIssue, numberContractIssue, nameContractIssue,
