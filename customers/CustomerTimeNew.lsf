@@ -5,6 +5,11 @@ NAMESPACE Project;
 
 discountHours 'Скидка' = DATA NUMERIC[7,2] (TimeEntry);
 
+hoursWithoutDocs2 'ТЗ без привязки к документам' (Customer c, Month m, INTEGER y) = 
+    GROUP SUM (hours(TimeEntry t) (-) discountHours(t))  IF NOT contract(issue(t)) AND NOT agreement(issue(t)) BY customer(t), month(t), year(t);
+    
+EXTEND FORM customerTimeDashboard PROPERTIES hoursWithoutDocs2(c, m, y);  
+
 // вытягиваем поля на форму, name, number, hours, namePoject исключаем, они уже есть
 //numberIssue2            '* НЗ *'                (TimeEntry t) = number(issue(t)); // отладка
 descriptionStringIssue  'Описание'              (TimeEntry t) = descriptionString(issue(t));
