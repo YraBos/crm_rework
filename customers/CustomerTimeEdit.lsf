@@ -1,0 +1,73 @@
+MODULE CustomerTimeEdit;
+// редактирование в отметках времени и задачах
+
+REQUIRE CustomerTime;
+NAMESPACE Project;
+
+discountHours 'Скидка сотрудника' = DATA NUMERIC[7,2] (TimeEntry);
+discountHours 'Скидка сотрудника' (Issue i) = GROUP SUM discountHours(TimeEntry t) BY issue(t);
+
+// ------------- РАСШИРЕНИЕ для задач
+CLASS IssueExtension 'Задачи: дополнительные параметры';
+TABLE issueExtension (IssueExtension);
+
+id 'ID' = DATA STRING[15] (IssueExtension);
+INDEX id(IssueExtension i), i; 
+
+note 'Примечание'            = DATA STRING[250]  (IssueExtension);
+discount 'Скидка менеджера'  = DATA NUMERIC[7,2] (IssueExtension);
+
+getId 'Получить ID' (Issue i) = GROUP MAX (IssueExtension e) IF id(e)=id(i);
+noteManager 'Примечание' (Issue i) = note(getId(i));
+discountManager 'Скидка менеджера' (Issue i) = discount(getId(i));
+
+// !!! вызывается из ImportRmExt - заполняем ID для расширения
+onFillIssueExtension 'Заполнение расширения задач' () {
+    FOR (Issue i IS Issue) AND NOT getId(i) ORDER id(i) DO {
+        NEW e = IssueExtension {
+            id(e) <- id(i);
+        }
+    } 
+} 
+
+FORM editIssueExtension 'Редактирование'
+    OBJECTS e = IssueExtension PANEL
+    PROPERTIES (e) discount, note
+    OBJECTS i = Issue PANEL
+    PROPERTIES (i) READONLY hours, discountHours
+    EDIT IssueExtension OBJECT e
+    FILTERS id(i) = id(e)
+    EVENTS ON OK {APPLY;}
+; 
+
+DESIGN editIssueExtension {
+    BOX(e) {
+        NEW cnt1 {
+            MOVE PROPERTY (hours(i)) {background = #DADADA; caption = 'Трудозатраты (часы)';}
+            MOVE PROPERTY (discountHours(i)) {background = #DADADA;}
+            MOVE PROPERTY (discount(e));
+            MOVE PROPERTY (note(e));
+        }
+    }
+}
+
+onEditIssueExtension 'Изменить параметры' (Issue i) {
+    SHOW editIssueExtension OBJECTS  e = getId(i);
+}
+
+hoursWithoutDocsWithDiscount 'ТЗ без привязки к документам' (Customer c, Month m, INTEGER y) = 
+    GROUP SUM (hours(TimeEntry t) (-) discountHours(t)) 
+    IF NOT contract(issue(t)) AND NOT agreement(issue(t)) BY customer(t), month(t), year(t);
+
+flagDiscountManager 'Флаг Скидка менеджера' (TimeEntry t) = IF discountManager(issue(t)) THEN TRUE ELSE NULL CHARWIDTH 5;
+
+EXTEND FORM customerTimeDashboard
+    PROPERTIES(is)  READONLY PANEL noteManager
+    PROPERTIES(is)  READONLY discountHours          AFTER hours(is)
+    PROPERTIES(is)  READONLY discountManager        AFTER discountHours(is)
+    PROPERTIES(t)   READONLY discountHours          AFTER hours(t)
+    PROPERTIES(t)   READONLY flagDiscountManager    AFTER discountHours(t)
+    PROPERTIES onEditIssueExtension(is) BEFORE open(is) TOOLBAR          
+    PROPERTIES hoursWithoutDocsWithDiscount(c, m, y)
+;
+

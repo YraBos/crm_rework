@@ -1,6 +1,6 @@
 MODULE EmployeeNew;
 
-REQUIRE Employee, Qualification;
+REQUIRE Employee, Qualification, Time, Utils;
 
 NAMESPACE Contact;
 
@@ -10,16 +10,55 @@ dayDelta 'Диапазон дней (-/+) для отображения ДР о�
 normDocAdmin 'Администратор нормативных документов' = DATA BOOLEAN (Employee);
 normDocCoordination 'Согласование нормативных документов' = DATA BOOLEAN (Employee);
 
+employmentDate 'Дата приема на работу' = DATA DATE (Employee);
+seniority 'Трудовой стаж' = DATA STRING[30] (Employee);
+
+lfstr '' (INTEGER p1) = trim(toChar(p1,'99'));
+
+onCalcSeniority 'Обновить стаж' () {
+    seniority(Employee e) <- NULL;
+    LOCAL cd, nd, cm, nm, cy, ny = INTEGER ();
+    cd() <- currentDay(); 
+    cm() <- currentMonth(); 
+    cy() <- currentYear();
+    FOR (Employee e IS Employee) AND employmentDate(e) DO {
+        nd() <- cd() - extractDay(employmentDate(e)) + 1;
+        nm() <- cm() - extractMonthNumber(employmentDate(e));
+        ny() <- cy() - extractYear(employmentDate(e));
+        IF nd() < 0 THEN {
+            nd() <- nd() + 30;
+            nm() <- nm() - 1;
+        }
+        IF nm() < 0 THEN {
+            nm() <- nm() + 12;
+            ny() <- ny() - 1;
+        }
+        IF nm() > 11 THEN {
+            ny() <- ny() + 1;
+            nm() <- 0;
+        }
+       seniority(e) <- STRING[30]( lfstr(nd()) + ' дней, ' + lfstr(nm()) + ' мес., ' + lfstr(ny()) + ' лет' );      
+    }  
+    APPLY; 
+}
+
 // форма отображения
 EXTEND FORM employees
-    PROPERTIES(o) READONLY dateBirthday, lstQualification, normDocAdmin, normDocCoordination  
+    PROPERTIES(o) READONLY dateBirthday, lstQualification, normDocAdmin, normDocCoordination, employmentDate, seniority
+    PROPERTIES onCalcSeniority()
 ; 
+
+DESIGN employees {
+    TOOLBARRIGHT (o) {
+        MOVE PROPERTY (onCalcSeniority());
+    }
+}
 
 // форма редактирования
 EXTEND FORM employee
     PROPERTIES(o)   dateBirthday, showMsgBirthdayStarted, dayDelta, onGetQualification, 
-                    normDocAdmin, normDocCoordination
-    PROPERTIES(o) READONLY lstQualification
+                    normDocAdmin, normDocCoordination, employmentDate
+    PROPERTIES(o) READONLY lstQualification, seniority
 ; 
 
 DESIGN employee {
@@ -31,6 +70,12 @@ DESIGN employee {
             MOVE PROPERTY (showMsgBirthdayStarted(o)) {marginLeft = 10;} 
             MOVE PROPERTY (dayDelta(o)) {marginLeft = 10;}
         }
+        NEW dop3 AFTER dop2 {
+            caption = 'Трудовой стаж';
+            horizontal = TRUE;
+            MOVE PROPERTY (employmentDate(o));
+            MOVE PROPERTY (seniority(o));
+        }    
         dop {
             NEW cntdop {
                 horizontal = TRUE ; // type = CONTAINERH; 
@@ -47,3 +92,4 @@ DESIGN employee {
         }     
     }
 }
+

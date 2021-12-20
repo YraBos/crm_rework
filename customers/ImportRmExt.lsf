@@ -1,7 +1,7 @@
 MODULE ImportRmExt;
 // импорт дополнительных полей из RedMine
 
-REQUIRE ProjectRedmine, IssueNew, CustomerTimeNew, Utils;
+REQUIRE ProjectRedmine, IssueNew, CustomerTimeNew;
 NAMESPACE Project;
 
 importRmExt 'Импорт отд. полей' (External e) {
@@ -40,7 +40,10 @@ importRmExt 'Импорт отд. полей' (External e) {
         FOR TimeEntry t = timeEntry(STRING[15](id(INTEGER i)), e) AND id(i) DO {
             discountHours(t) <- NUMERIC[5,2](pvalue(i));    
         }
-        // -----------------------------------------------------------------------------------------------  
+        // заполнение расширений для задач - не сбрасываемые при обновлении изменения 
+        // -----------------------------------------------------------------------------------------------
+        onFillIssueExtension();
+        // -----------------------------------------------------------------------------------------------
         APPLY;        
     }
     
