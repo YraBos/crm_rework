@@ -1,0 +1,13 @@
+MODULE TimeEntryTotalDashboardNew;
+
+REQUIRE TimeEntryTotalDashboard, CustomerTimeEdit;
+
+NAMESPACE Project;
+
+discountHours 'Скидка' (Employee e, Project p, INTEGER y, Month m) = 
+    GROUP SUM discountHours(TimeEntry t) BY employee(t), project(t), year(t), month(t);
+
+EXTEND FORM timeEntryDashboard
+    PROPERTIES READONLY discountHours(e, p, y, m)
+    PROPERTIES(t) READONLY discountHours AFTER hours(t)
+;

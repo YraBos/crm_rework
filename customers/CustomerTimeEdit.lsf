@@ -36,6 +36,7 @@ FORM editIssueExtension 'Редактирование'
     OBJECTS i = Issue PANEL
     PROPERTIES (i) READONLY hours, discountHours
     EDIT IssueExtension OBJECT e
+    
     FILTERS id(i) = id(e)
     EVENTS ON OK {APPLY;}
 ; 
@@ -55,9 +56,8 @@ onEditIssueExtension 'Изменить параметры' (Issue i) {
     SHOW editIssueExtension OBJECTS  e = getId(i);
 }
 
-hoursWithoutDocsWithDiscount 'ТЗ без привязки к документам' (Customer c, Month m, INTEGER y) = 
-    GROUP SUM (hours(TimeEntry t) (-) discountHours(t)) 
-    IF NOT contract(issue(t)) AND NOT agreement(issue(t)) BY customer(t), month(t), year(t);
+hoursWithDiscount 'ТЗ-Скидка' (Customer c, Month m, INTEGER y) = 
+    GROUP SUM (hours(TimeEntry t) (-) discountHours(t)) BY customer(t), month(t), year(t);
 
 flagDiscountManager 'Флаг Скидка менеджера' (TimeEntry t) = IF discountManager(issue(t)) THEN TRUE ELSE NULL CHARWIDTH 5;
 
@@ -68,6 +68,6 @@ EXTEND FORM customerTimeDashboard
     PROPERTIES(t)   READONLY discountHours          AFTER hours(t)
     PROPERTIES(t)   READONLY flagDiscountManager    AFTER discountHours(t)
     PROPERTIES onEditIssueExtension(is) BEFORE open(is) TOOLBAR          
-    PROPERTIES hoursWithoutDocsWithDiscount(c, m, y)
+    PROPERTIES hoursWithDiscount(c, m, y)
 ;
 

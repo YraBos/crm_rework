@@ -32,7 +32,8 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         ActRevise,                  // RM15932, Акт сверки: форма и отчет
         DebtNew,                    // RM16465, добавить признак валют в журнал платежей
         NormDocs,                   // RM16778, Нормативные документы
-        EquipmentLogWorkTsd         // Журнал, работающих ТСД
+        EquipmentLogWorkTsd,        // Журнал, работающих ТСД
+        TimeEntryTotalDashboardNew  // RM18251, Контроль отмеченного времени
 ;
 
  
