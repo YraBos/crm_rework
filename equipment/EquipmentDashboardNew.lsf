@@ -1,7 +1,7 @@
 MODULE EquipmentDashboardNew;
 
 // можно подключить модуль для загрузки для отладки серийных номеров EquimpentImportSerial (скопировать из H:\Fusion_Arc\Old_Added\equipment\)
-REQUIRE EquipmentDashboard, ContractSubject, CustomerAttachment, TempClassReports;
+REQUIRE EquipmentDashboard, ContractSubject, CustomerAttachment, TempClassReports, Time;
 
 // --- задач - 13003, 12704
 numberChange 'Замена номера' = DATA ISTRING[250] (EquipmentSerial) CHARWIDTH 15;
@@ -186,7 +186,7 @@ clsExprEquipment 'X' () {fltNumber() <- NULL;}
 // генерация лицензий по фильтру на форме
 inMark 'Отм.' = DATA LOCAL BOOLEAN (Equipment);
 
-onGenLic 'Создать LIC' (Equipment ob) {
+onGenLic 'Создать LIC (по клиенту)' (Equipment ob) {
     LOCAL ctxt = TEXT(); 
     IF NOT filterCustomer() THEN {
         MESSAGE 'Определите клиента'; RETURN ;
@@ -202,10 +202,61 @@ onGenLic 'Создать LIC' (Equipment ob) {
     open(resultFile(),'lic');
 }
 
+// Алфавитно-цифровой QR код = 4296 байт, лицензии по 32 байта (всегда)
+CLASS TempLicQR 'QR коды';
+qrtext 'QR код' = DATA STRING[3200] (TempLicQR); // на 100 лицензий, 3200
+snum 'ID ТСД' = DATA STRING (TempLicQR);
+cnt 'Количество' = DATA INTEGER (TempLicQR);
+
+equTitle1 = DATA LOCAL STRING ();
+equTitle2 = DATA LOCAL STRING ();
+equTitle3 = DATA LOCAL STRING ();
+
+FORM prnTempLicQR 'Печатаная форма'
+    PROPERTIES () equTitle1, equTitle2, equTitle3 
+    OBJECTS t = TempLicQR
+    PROPERTIES(t) READONLY cnt, snum, qrtext 
+;
+
+onPrintQR 'Печать QR (по текущему)' (Equipment e) {
+    IF NOT file(e) THEN { MESSAGE 'Сгенерите лицензии\nи повторите операцию'; RETURN; }
+    LOCAL cqrtext  = STRING[3200] (); cqrtext() <- '';
+    LOCAL csnum, cid = STRING (); csnum() <- '';
+    LOCAL ctxt = TEXT ();
+    LOCAL ncnt = INTEGER (); ncnt() <- 0;
+    DELETE TempLicQR  o1 WHERE o1 IS TempLicQR;
+    fileToString(file(e));
+    ctxt() <- replace(resultString(),'\n','');
+    ctxt() <- replace(ctxt(),'\r','');
+    FOR iterate(INTEGER i,1,length(ctxt())/32) DO {
+        cid() <- substr(ctxt(),32 * (i-1) + 1,32);
+        IF ncnt() + 1 < 101 THEN {
+            cqrtext() <- cqrtext() + cid();
+            IF ncnt() > 0 THEN csnum() <- csnum() + ', ';
+            csnum() <- csnum() + cid();  
+            ncnt() <- ncnt() + 1;    
+        } ELSE {
+            NEW o = TempLicQR { qrtext(o) <- cqrtext(); cnt(o) <- ncnt(); snum(o) <- csnum(); }
+            cqrtext()   <- cid();
+            csnum()     <- cid();
+            ncnt()      <- 1;       
+        }
+    }
+    NEW o = TempLicQR { qrtext(o) <- cqrtext(); cnt(o) <- ncnt(); snum(o) <- csnum(); }
+    equTitle1() <- 'Список лицензий';
+    equTitle2() <- 'Клиент: ' + nameCustomer(e);
+    equTitle3() <- 'Дата: ' + toDateDDMMYYYY(createdDate(e)) + ', всего номеров: ' + trim(toChar(quantitySerial(e),'99999'));
+    PRINT prnTempLicQR PDF;
+}
+
+// только для отладки
+onLoadLic 'Загрузить LIC в БД' (Equipment e) { INPUT f = FILE DO { file(e) <- f; APPLY; } } TOOLBAR ;
+
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
     PROPERTIES(n) NEWSESSION EDIT
-    PROPERTIES onXlsDataLoad(e,t), onReviseTSD(e), onGenLic(e)
+    PROPERTIES onXlsDataLoad(e,t), onReviseTSD(e), onGenLic(e), onPrintQR(e)
+//    PROPERTIES onLoadLic(e) // только для отладки
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
     FILTERS IF fltNumber() THEN upper(number(n)) = upper(fltNumber()) ELSE TRUE
@@ -214,14 +265,26 @@ EXTEND FORM equipmentDashboard
 
 DESIGN equipmentDashboard {
     head {
-        MOVE PROPERTY (onXlsDataLoad(e,t));
-        MOVE PROPERTY (onReviseTSD(e));
-        MOVE PROPERTY (onGenLic(e));
+        NEW mhead {
+            horizontal = FALSE ;
+            NEW head1 {
+                horizontal = TRUE ;
+                MOVE PROPERTY (name(t));
+                MOVE PROPERTY (nameFilterCustomer());
+                MOVE PROPERTY (nameFilterContract(t));
+                MOVE PROPERTY (fltNumber());
+                MOVE PROPERTY (clsExprEquipment());
+            }
+            NEW head2 {
+                horizontal = TRUE ;
+                MOVE PROPERTY (quantitySerial(t)) {background=#E1E1E1;};
+                MOVE PROPERTY (onXlsDataLoad(e,t));
+                MOVE PROPERTY (onReviseTSD(e));
+                MOVE PROPERTY (onGenLic(e));
+                MOVE PROPERTY (onPrintQR(e));
+            }
+        }
     }
-    TOOLBARRIGHT(e) {
-        MOVE PROPERTY (fltNumber()) {marginLeft = 10;};
-        MOVE PROPERTY (clsExprEquipment());
-    } 
 }
 
 
