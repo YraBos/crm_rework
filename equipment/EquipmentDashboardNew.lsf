@@ -249,7 +249,7 @@ onPrintQR 'Печать QR (по текущему)' (Equipment e) {
     PRINT prnTempLicQR PDF;
 }
 
-// только для отладки
+// только для отладки, см ниже на форме equipmentDashboard, PROPERTIES onLoadLic(e) 
 onLoadLic 'Загрузить LIC в БД' (Equipment e) { INPUT f = FILE DO { file(e) <- f; APPLY; } } TOOLBAR ;
 
 EXTEND FORM equipmentDashboard
