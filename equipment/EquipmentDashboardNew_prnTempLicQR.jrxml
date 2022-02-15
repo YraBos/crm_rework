@@ -24,6 +24,7 @@
 	<field name="equTitle1()" class="java.lang.String"/>
 	<field name="equTitle2()" class="java.lang.String"/>
 	<field name="equTitle3()" class="java.lang.String"/>
+	<field name="equTitle4()" class="java.lang.String"/>
 	<field name="t.object" class="java.lang.Long"/>
 	<field name="cnt(t)" class="java.lang.Integer"/>
 	<field name="snum(t)" class="java.lang.String"/>
@@ -77,14 +78,7 @@
 				<text><![CDATA[Кол-во]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="50" y="0" width="620" height="18" uuid="bb622ebc-24b1-4dab-be86-0848a7fc21ad">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Center"/>
-				<text><![CDATA[Список лицензий ТСД]]></text>
-			</staticText>
-			<staticText>
-				<reportElement x="670" y="0" width="132" height="18" uuid="9a1c8bce-ae3c-430e-9dcf-e4691679cbf8">
+				<reportElement x="50" y="0" width="132" height="18" uuid="9a1c8bce-ae3c-430e-9dcf-e4691679cbf8">
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
 				</reportElement>
 				<textElement textAlignment="Center"/>
@@ -102,17 +96,8 @@
 				<textElement textAlignment="Right"/>
 				<textFieldExpression><![CDATA[$F{cnt(t)}]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
-				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="50" y="0" width="620" height="100" uuid="e5836eab-008f-47ae-b0da-8e6db8d4d461">
-					<property name="com.jaspersoft.studio.unit.height" value="px"/>
-				</reportElement>
-				<textElement textAlignment="Left">
-					<font fontName="lsf.TimesNewRoman" size="8"/>
-				</textElement>
-				<textFieldExpression><![CDATA[$F{snum(t)}]]></textFieldExpression>
-			</textField>
 			<componentElement>
-				<reportElement positionType="Float" x="692" y="9" width="110" height="90" uuid="6d8c57f1-3540-4141-bfe3-4f38edaeb4bc">
+				<reportElement positionType="Float" x="72" y="9" width="110" height="90" uuid="6d8c57f1-3540-4141-bfe3-4f38edaeb4bc">
 					<property name="com.jaspersoft.studio.unit.x" value="px"/>
 					<property name="com.jaspersoft.studio.unit.y" value="px"/>
 					<property name="com.jaspersoft.studio.unit.height" value="px"/>
@@ -123,4 +108,31 @@
 			</componentElement>
 		</band>
 	</detail>
+	<summary>
+		<band height="37">
+			<staticText>
+				<reportElement x="0" y="0" width="400" height="18" uuid="6f41bce8-34c0-4b74-abea-c300bc2a1ea2">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+					<property name="com.jaspersoft.studio.unit.x" value="px"/>
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<box>
+					<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<bottomPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
+				</box>
+				<text><![CDATA[Лицензии сформированы для группы ID терминалов:]]></text>
+			</staticText>
+			<textField textAdjust="StretchHeight">
+				<reportElement positionType="Float" stretchType="ContainerHeight" x="0" y="19" width="802" height="18" uuid="08ab5167-a708-4fc8-bf5a-e5fa1e3fdf93">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement>
+					<font size="8"/>
+				</textElement>
+				<textFieldExpression><![CDATA[$F{equTitle4()}]]></textFieldExpression>
+			</textField>
+		</band>
+	</summary>
 </jasperReport>

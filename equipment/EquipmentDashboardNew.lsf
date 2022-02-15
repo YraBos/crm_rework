@@ -211,9 +211,10 @@ cnt 'Количество' = DATA INTEGER (TempLicQR);
 equTitle1 = DATA LOCAL STRING ();
 equTitle2 = DATA LOCAL STRING ();
 equTitle3 = DATA LOCAL STRING ();
+equTitle4 = DATA LOCAL TEXT ();
 
 FORM prnTempLicQR 'Печатаная форма'
-    PROPERTIES () equTitle1, equTitle2, equTitle3 
+    PROPERTIES () equTitle1, equTitle2, equTitle3, equTitle4 
     OBJECTS t = TempLicQR
     PROPERTIES(t) READONLY cnt, snum, qrtext 
 ;
@@ -246,6 +247,10 @@ onPrintQR 'Печать QR (по текущему)' (Equipment e) {
     equTitle1() <- 'Список лицензий';
     equTitle2() <- 'Клиент: ' + nameCustomer(e);
     equTitle3() <- 'Дата: ' + toDateDDMMYYYY(createdDate(e)) + ', всего номеров: ' + trim(toChar(quantitySerial(e),'99999'));
+    // equTitle4() <- GROUP CONCAT number(EquipmentSerial s) IF equipment(s) = e, ', ' ORDER s; // CONCAT не тянет, если много (> 170)
+    // по этому через FOR
+    FOR (EquipmentSerial s IS EquipmentSerial) AND equipment(s) = e ORDER s DO 
+        IF NOT equTitle4() THEN equTitle4() <- number(s); ELSE equTitle4() <- equTitle4() + ', ' + number(s);  
     PRINT prnTempLicQR PDF;
 }
 
