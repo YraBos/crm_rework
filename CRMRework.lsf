@@ -33,7 +33,8 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         DebtNew,                    // RM16465, добавить признак валют в журнал платежей
         NormDocs,                   // RM16778, Нормативные документы
         EquipmentLogWorkTsd,        // Журнал, работающих ТСД
-        TimeEntryTotalDashboardNew  // RM18251, Контроль отмеченного времени
+        TimeEntryTotalDashboardNew, // RM18251, Контроль отмеченного времени
+        ExchangeMenu
 ;
 
  
