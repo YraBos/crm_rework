@@ -1,29 +1,59 @@
 MODULE ImportLegalEntity;
 
-REQUIRE LegalEntityBy, Payment, Expense;
+REQUIRE LegalEntityBy, Payment, Expense, Contract, Agreement;
 
 NAMESPACE ExchangeOneC;
 
-startYear   'Начать с года'    = DATA LOCAL INTEGER ();
-
-FORM exp1c 'Реквизиты экспорта'
-    OBJECTS sy = INTEGER PANEL
-    PROPERTIES sy = startYear()         
-;
+//startYear   'Начать с года'    = DATA LOCAL INTEGER ();
+//
+//FORM exp1c 'Реквизиты экспорта'
+//    OBJECTS sy = INTEGER PANEL
+//    PROPERTIES sy = startYear()         
+//;
 
 // выбираем организации, которые проходили по платежам, начиная с выбранного года
-inPayment '' (LegalEntity l) = GROUP MAX (Payment p) AND legalEntity(p) = l AND extractYear(date(p)) >= startYear();
-inExpense '' (LegalEntity l) = GROUP MAX (Expense e) AND legalEntity(e) = l AND extractYear(date(e)) >= startYear();
+//inPayment '' (LegalEntity l) = GROUP MAX (Payment p) AND legalEntity(p) = l AND extractYear(date(p)) >= startYear();
+//inExpense '' (LegalEntity l) = GROUP MAX (Expense e) AND legalEntity(e) = l AND extractYear(date(e)) >= startYear();
 
-onImportLegalEntity 'Выгрузка организаций для импорта в 1c' () {
-    startYear() <- extractYear(currentDate());
-    SHOW exp1c DOCKED WAIT;
-    LOCAL f1,f2,f3 = FILE();
-    EXPORT CSV ' ;' HEADER NOESCAPE FROM id(LegalEntity l), name(l), fullName(l), UNP(l), OKPO(l), numberAccount(l), l WHERE (inPayment(l) OR inExpense(l)) TO f1;
+//onImportLegalEntity 'Выгрузка организаций для импорта в 1c' () {
+//    startYear() <- extractYear(currentDate());
+//    SHOW exp1c DOCKED WAIT;
+//    LOCAL f1,f2,f3 = FILE();
+//    EXPORT CSV ' ;' HEADER NOESCAPE FROM id(LegalEntity l), name(l), fullName(l), UNP(l), OKPO(l), numberAccount(l), l WHERE (inPayment(l) OR inExpense(l)) TO f1;
+//    open(f1());
+//    EXPORT CSV ' ;' HEADER NOESCAPE FROM number(Account a), nameCurrency(a), legalEntity(a), bank(a), a  TO f2;
+//    open(f2());
+//    EXPORT CSV ' ;' HEADER NOESCAPE FROM id(Bank b), number(b), name(b), address(b), b  TO f3;
+//    open(f3());
+//}
+
+onImportContract 'Выгрузка договоров для импорта в 1c' () {
+    LOCAL f1, f2 = FILE();
+    EXPORT CSV ' ;' HEADER NOESCAPE FROM number(Contract c), date(c), name(c), legalEntity(c), c WHERE active(c) TO f1;
     open(f1());
-    EXPORT CSV ' ;' HEADER NOESCAPE FROM number(Account a), nameCurrency(a), legalEntity(a), bank(a), a  TO f2;
-    open(f2());
-    EXPORT CSV ' ;' HEADER NOESCAPE FROM id(Bank b), number(b), name(b), address(b), b  TO f3;
-    open(f3());
 }
 
+
+
+//value '' (STRING s) = s;
+//
+////GROUP 'v8:CatalogObject.Контрагенты';
+//GROUP all EXTID 'V8Exch:Data'; //v8:Description;
+//
+//FORM exportXML 'Экспорт XML'
+//    OBJECTS l = LegalEntity EXTID '=v8:CatalogObject.Контрагенты' IN all
+//    //FORMEXTID 'V8Exch:_1CV8DtUD xmlns:V8Exch="http://www.1c.ru/V8/1CV8DtUD/" xmlns:core="http://v8.1c.ru/data" xmlns:v8="http://v8.1c.ru/8.1/data/enterprise/current-config" xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' 
+//    PROPERTIES startYear() EXTID 'v8:IsFolder'
+//    PROPERTIES name(l) EXTID 'v8:Description'
+//    
+//    FILTERS (inPayment(l) OR inExpense(l))
+//    
+//;
+//
+//
+//onImportLegalEntity 'Выгрузка организаций для импорта в 1c' () {
+//    startYear() <- currentYear();
+//    EXPORT exportXML XML TO System.exportFile;
+//    WRITE exportFile() TO 'c://1C_xml/a';
+//    MESSAGE 'Ok';
+// }

@@ -4,6 +4,7 @@ REQUIRE MasterData, ImportLegalEntity;
 
 NAVIGATOR {
     NEW FOLDER External1cFolder '1c' WINDOW toolbar BEFORE masterData {
-        NEW ACTION onImportLegalEntity;
+//        NEW ACTION onImportLegalEntity;
+        NEW ACTION onImportContract;
     }
 }
