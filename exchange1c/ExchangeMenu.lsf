@@ -2,9 +2,10 @@ MODULE ExchangeMenu;
 
 REQUIRE MasterData, ImportLegalEntity;
 
+// пока оставим:
+// могут быть две задачи: импорт платежей и экспорт актов
 NAVIGATOR {
     NEW FOLDER External1cFolder '1c' WINDOW toolbar BEFORE masterData {
-//        NEW ACTION onImportLegalEntity;
-        NEW ACTION onImportContract;
+        NEW ACTION onImportPayment;
     }
 }

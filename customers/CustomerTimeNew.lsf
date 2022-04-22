@@ -79,10 +79,11 @@ FORM customerReportExt 'Расширенный отчёт для клиента'
     FILTERS issue(t) == i, date(t) >= df AND date(t) <= dt AND inReport(t) AND hoursResult(t) > 0.00  
     
     OBJECTS te = TimeEntry
-    PROPERTIES (te) READONLY nameEmployee, date, hours, nameActivity, commentsString
+    PROPERTIES (te) READONLY nameEmployee, date, hours, nameActivity, commentsString, hoursResult
     ORDERS date(te)
     FILTERS (customer(te) == c OR customer(project(te)) == c) AND NOT issue(te), date(te) >= df AND date(te) <= dt, 
-            project(te) == filterProject(c) OR NOT filterProject(c), te IS TimeEntry AND NOT filterAgreement() AND NOT filterContract() AND inReport(te)
+            project(te) == filterProject(c) OR NOT filterProject(c), te IS TimeEntry AND NOT filterAgreement() AND 
+            NOT filterContract() AND inReport(te) AND hoursResult(te) > 0.00
 ;
 
 printCustomerReportExt 'Расш. отчет' (Customer c, DATE df, DATE dt) {
