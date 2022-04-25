@@ -64,13 +64,16 @@ captionStaticClientType 'Заголовок формы' = DATA LOCAL STRING ();
 eventStaticClientType 'Событие формы' = DATA LOCAL BOOLEAN ();
 
 fltClientType '' = DATA LOCAL STRING (INTEGER);
+fltClientOR   '' = DATA LOCAL BOOLEAN ; // флаг, тип договора, задействован для реализации ИЛИ
+noShowCDop    '' = DATA LOCAL BOOLEAN ;   
 
 onClsClientTypeProp '' (BOOLEAN all) {
     IF all THEN {
         mark(EnumProducts ep) <- NULL; mark(EnumRevise er)   <- NULL; 
         mark(EnumContract ec) <- NULL; cdop(EnumContract ec) <- NULL;
     }
-    FOR iterate(INTEGER i,0,9) DO fltClientType(i) <- NULL;
+    fltClientOR() <- NULL;
+    FOR iterate(INTEGER i,0,15) DO fltClientType(i) <- NULL;
 }
 
 
@@ -85,7 +88,7 @@ FORM listEnumAtr ''
     PROPERTIES(er) staticName SHOWIF NULL
     OBJECTS ec = EnumContract 
     PROPERTIES(ec) mark 
-    PROPERTIES(ec) cdop  
+    PROPERTIES(ec) cdop SHOWIF IF noShowCDop() THEN NULL ELSE TRUE  
     PROPERTIES(ec) READONLY staticCaption
     PROPERTIES(ec) staticName SHOWIF NULL
     ORDERS staticName(ep), staticName(er), staticName(ec)
@@ -120,23 +123,18 @@ DESIGN listEnumAtr {
 
 onSetClientTypeProp '' () {
     LOCAL i = INTEGER (); i() <- 0; 
-    FOR (EnumProducts ep IS EnumProducts) ORDER staticName(ep) DO {
-        IF mark(ep) AND i() < 10 THEN {
-            fltClientType(i()) <- substr(staticCaption(ep),1,strpos(staticCaption(ep),':')-1) + ',';
-            i() <- i() + 1;
-        }
+    FOR (EnumProducts ep IS EnumProducts) AND mark(ep) AND i() < 10 ORDER staticName(ep) DO {
+       fltClientType(i()) <- substr(staticCaption(ep),1,strpos(staticCaption(ep),':')-1) + ',';
+       i() <- i() + 1;
     }   
-    FOR (EnumRevise er IS EnumRevise) ORDER staticName(er) DO {
-        IF mark(er) AND i() < 10 THEN {
-            fltClientType(i()) <- substr(staticCaption(er),1,strpos(staticCaption(er),':')-1) + ',';
-            i() <- i() + 1;
-        }
-    }   
-    FOR (EnumContract ec IS EnumContract) ORDER staticName(ec) DO {
-        IF mark(ec) AND i() < 10 THEN {
-            fltClientType(i()) <- substr(staticCaption(ec),1,strpos(staticCaption(ec),':')-1) + 
-            IF cdop(ec) THEN '(' + trim(cdop(ec)) + '),' ELSE ',';
-            i() <- i() + 1;
-        }
-    }   
+    FOR (EnumRevise er IS EnumRevise) AND mark(er) AND i() < 10 ORDER staticName(er) DO {
+       fltClientType(i()) <- substr(staticCaption(er),1,strpos(staticCaption(er),':')-1) + ',';
+       i() <- i() + 1;
+    } 
+    i() <- 10;
+    FOR (EnumContract ec IS EnumContract) AND mark(ec) AND i() < 15 ORDER staticName(ec) DO {
+       fltClientOR() <- TRUE;    
+       fltClientType(i()) <- substr(staticCaption(ec),1,strpos(staticCaption(ec),':')-1) ; //+ IF cdop(ec) THEN '(' + trim(cdop(ec)) + '),' ELSE ',';
+       i() <- i() + 1;
+    } 
 }

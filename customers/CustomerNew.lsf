@@ -344,11 +344,13 @@ onCustomerReports 'Отчеты' (Customer c) {
 // вызов статического класса для выбора установки фильтров, см. определение в StaticClientType.lsf
 onStaticClientType 'Фильтр: Тип клиента' () {
     onClsClientTypeProp(NULL);
+    noShowCDop() <- TRUE;
     DIALOG listEnumAtr ; 
     onSetClientTypeProp();
+    noShowCDop() <- NULL;
 }
 
-onCustomerDashboard 'Работа с клиентами' (Customer o) {
+onCustomerDashboard 'Работа с клиентами' (Customer o) { 
     show(o);
 }
 
@@ -374,8 +376,17 @@ EXTEND FORM customers
     FILTERS IF fltClientType(6) THEN isSubstring(clientType(o) + ',', fltClientType(6)) ELSE TRUE 
     FILTERS IF fltClientType(7) THEN isSubstring(clientType(o) + ',', fltClientType(7)) ELSE TRUE 
     FILTERS IF fltClientType(8) THEN isSubstring(clientType(o) + ',', fltClientType(8)) ELSE TRUE 
-    FILTERS IF fltClientType(9) THEN isSubstring(clientType(o) + ',', fltClientType(9)) ELSE TRUE 
+    FILTERS IF fltClientType(9) THEN isSubstring(clientType(o) + ',', fltClientType(9)) ELSE TRUE
+    FILTERS IF fltClientOR() THEN (
+        (IF fltClientType(10) THEN isSubstring(clientType(o) + ',', fltClientType(10))) OR    
+        (IF fltClientType(11) THEN isSubstring(clientType(o) + ',', fltClientType(11))) OR
+        (IF fltClientType(12) THEN isSubstring(clientType(o) + ',', fltClientType(12))) OR
+        (IF fltClientType(13) THEN isSubstring(clientType(o) + ',', fltClientType(13))) OR
+        (IF fltClientType(14) THEN isSubstring(clientType(o) + ',', fltClientType(14)))
+        ) ELSE TRUE      
 ;
+
+ 
 
 EXTEND FORM customer
     PROPERTIES(o) clientType 
