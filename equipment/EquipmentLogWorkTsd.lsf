@@ -180,6 +180,7 @@ DESIGN viewTSD {
     }  
 }
 
+
 NAVIGATOR {
     dashboard {
         NEW viewTSD AFTER equipmentDashboard;

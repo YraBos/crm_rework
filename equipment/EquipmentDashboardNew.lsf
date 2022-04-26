@@ -178,7 +178,7 @@ onReviseTSD 'Сверка раб. ТСД (упр.)' (Equipment e) {
 }
 
 onReviseS2 'Сверка лицензий ТСД' (Equipment e) {
-    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN; }
+    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента';  RETURN; }
     newTempClassReports();    
     title() <- 'Отчет по сверке выданных лицензий ТСД';
     date() <- currentDate();
