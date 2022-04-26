@@ -1,7 +1,7 @@
 MODULE EquipmentDashboardNew;
 
 // можно подключить модуль для загрузки для отладки серийных номеров EquimpentImportSerial (скопировать из H:\Fusion_Arc\Old_Added\equipment\)
-REQUIRE EquipmentDashboard, ContractSubject, CustomerAttachment, TempClassReports, Time;
+REQUIRE CustomerNew, EquipmentDashboard, ContractSubject, CustomerAttachment, TempClassReports, Time;
 
 // --- задач - 13003, 12704
 numberChange 'Замена номера' = DATA ISTRING[250] (EquipmentSerial) CHARWIDTH 15;
@@ -131,7 +131,7 @@ FORM repTempEQUReport 'Сверка торговых объектов'
 ;
 
 // R14583, сверка серийных номеров по договору
-onReviseTSD 'Сверка раб. ТСД' (Equipment e) {
+onReviseTSD 'Сверка раб. ТСД (упр.)' (Equipment e) {
     newTempClassReports();
     IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN; }
     LOCAL ot = Attachment();
@@ -175,6 +175,17 @@ onReviseTSD 'Сверка раб. ТСД' (Equipment e) {
                 'Серийные номера (sn) из документа последовательно сверяются с sn в базе данных по клиенту.\n' +
                 'Если sn найден, то заполняется дата выдачи и значение колонки "выдан" - ok, иначе пишется: не найден';
     PRINT repTempEQUReport XLS; // XLS
+}
+
+onReviseS2 'Сверка лицензий ТСД' (Equipment e) {
+    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN; }
+    newTempClassReports();    
+    title() <- 'Отчет по сверке выданных лицензий ТСД';
+    date() <- currentDate();
+    FOR (Customer c IS Customer) DO inReport(c) <- NULL;
+    FOR (Customer c IS Customer) AND c=customer(e) DO inReport(c) <- TRUE;
+    onRevise(3,'Список лицензий ТСД','Список выданных ключей ТСД','S2',NULL);
+    PRINT repReviseTSD XLS; // XLS;
 }
 
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] (); 
@@ -260,7 +271,7 @@ onLoadLic 'Загрузить LIC в БД' (Equipment e) { INPUT f = FILE DO { f
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
     PROPERTIES(n) NEWSESSION EDIT
-    PROPERTIES onXlsDataLoad(e,t), onReviseTSD(e), onGenLic(e), onPrintQR(e)
+    PROPERTIES onXlsDataLoad(e,t), onReviseTSD(e), onReviseS2(e), onGenLic(e), onPrintQR(e)
 //    PROPERTIES onLoadLic(e) // только для отладки
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
@@ -284,9 +295,10 @@ DESIGN equipmentDashboard {
                 horizontal = TRUE ;
                 MOVE PROPERTY (quantitySerial(t)) {background=#E1E1E1;};
                 MOVE PROPERTY (onXlsDataLoad(e,t));
-                MOVE PROPERTY (onReviseTSD(e));
                 MOVE PROPERTY (onGenLic(e));
                 MOVE PROPERTY (onPrintQR(e));
+                MOVE PROPERTY (onReviseTSD(e));
+                MOVE PROPERTY (onReviseS2(e));
             }
         }
     }

@@ -24,15 +24,6 @@ ipAddress 'IP адрес' = DATA STRING[20] (LWorkTsd);
 idApp 'ID приложения' = DATA STRING[20] (LWorkTsd);
 atr '!' = DATA STRING[1] (LWorkTsd);
 
-// устанавливает значение фильтра в статическом справавочнике тип клиента S2 = TRUE
-onSetFilterEnumRevise () {
-    LOCAL ob = EnumRevise ();
-    ob() <- GROUP MAX (EnumRevise er) IF staticCaption(er) = 'S2:  Производится сверка по ТСД';
-    mark(ob()) <- TRUE;
-    fltClientType(0) <- 'S2';
-}
-
-
 upDateXlsTsd 'Дата обнов. лога' = DATA DATE (Customer) CHARWIDTH 12; 
 
 onUpdateLog 'Обновить Лог по клиенту' (Customer c) {
@@ -99,10 +90,9 @@ onUpdateLog 'Обновить Лог по клиенту' (Customer c) {
     }         
     upDateXlsTsd(c) <- date(ob());
     apply();
-    onSetFilterEnumRevise();
 }
 
-onOpenXLS 'Открыть XLS' (Customer c) {
+onOpenXLS 'Открыть исходный XLS' (Customer c) {
     LOCAL ot = Attachment ();
     ot() <- GROUP MAX Attachment a IF customer(a) = c AND nameType(a) = 'Список всех подключений ТСД';
     IF NOT ot() THEN {
@@ -116,10 +106,6 @@ FORM viewTSD 'Журнал Fusion ТСД'
     OBJECTS o = Customer
     PROPERTIES (o) READONLY name, upDateXlsTsd
 
-    OBJECTS c = Customer PANEL
-    PROPERTIES (c) READONLY calcInfo, clientTypeInfo
-    FILTERS c = o
-    
     OBJECTS h = HWorkTsd
     PROPERTIES (h) READONLY BACKGROUND (IF atr(h) THEN RGB(235,215,255)) atr, number, qrep
     FILTERS customer(h) = o
@@ -131,40 +117,12 @@ FORM viewTSD 'Журнал Fusion ТСД'
     FILTERS customer(l) = o AND number(l) = number(h)
     ORDERS date(l), place(l), time(l)
     
-    PROPERTIES  delimiter(), onCalc(), onCustomerDashboard(c), fltQrep(), fltAttention(),
-                onStaticClientType(), onUpdateLog(o), onOpenXLS(o)
+    PROPERTIES  fltQrep(), fltAttention(), onUpdateLog(o), onOpenXLS(o)
     
-    EVENTS ON INIT {
-        delimiter() <- '###';
-        onSetFilterEnumRevise();
-    }  
-    
-    FILTERGROUP active FILTER 'Активные' NOT inactive(o) DEFAULT
-    
-    FILTERS IF fltClientType(0) THEN isSubstring(clientType(o) + ',', fltClientType(0)) ELSE TRUE
-    FILTERS IF fltClientType(1) THEN isSubstring(clientType(o) + ',', fltClientType(1)) ELSE TRUE 
-    FILTERS IF fltClientType(2) THEN isSubstring(clientType(o) + ',', fltClientType(2)) ELSE TRUE 
-    FILTERS IF fltClientType(3) THEN isSubstring(clientType(o) + ',', fltClientType(3)) ELSE TRUE 
-    FILTERS IF fltClientType(4) THEN isSubstring(clientType(o) + ',', fltClientType(4)) ELSE TRUE 
-    FILTERS IF fltClientType(5) THEN isSubstring(clientType(o) + ',', fltClientType(5)) ELSE TRUE 
-    FILTERS IF fltClientType(6) THEN isSubstring(clientType(o) + ',', fltClientType(6)) ELSE TRUE 
-    FILTERS IF fltClientType(7) THEN isSubstring(clientType(o) + ',', fltClientType(7)) ELSE TRUE 
-    FILTERS IF fltClientType(8) THEN isSubstring(clientType(o) + ',', fltClientType(8)) ELSE TRUE 
-    FILTERS IF fltClientType(9) THEN isSubstring(clientType(o) + ',', fltClientType(9)) ELSE TRUE 
+    FILTERS isSubstring(clientType(o) + ',', 'S2')  
  ;
 
 inReport '' = DATA LOCAL BOOLEAN (HWorkTsd);
-
-onCustomerReports2 'Отчеты' (Customer o1) {
-  inReport(Customer c1) <- NULL;
-  FOR [FILTER viewTSD.o](Customer c) DO inReport(c) <- TRUE; 
-  onCustomerReports(o1);
-  onSetFilterEnumRevise();  
-}
-
-EXTEND FORM viewTSD
-    PROPERTIES onCustomerReports2(o)
-;
 
 FORM printTSD 'Отчет'
     OBJECTS o = Customer PANEL 
@@ -179,7 +137,7 @@ FORM printTSD 'Отчет'
     ORDERS date(l), place(l), time(l)
 ; 
 
-onPrint 'Отчет ТСД' (Customer c) {
+onPrint 'Отчет по клиенту (Лог)' (Customer c) {
     inReport(HWorkTsd h) <- NULL;
     FOR [FILTER viewTSD.h](HWorkTsd h) DO inReport(h) <- TRUE;
     PRINT printTSD OBJECTS o = c XLS; 
@@ -198,45 +156,28 @@ DESIGN viewTSD {
     PANEL {
         NEW cntHPanel {
             fill = 1;
-            NEW cntInfo {
-                horizontal = TRUE;
-                fill = 1; 
-                NEW cntInfo1 {
-                    fill = 1;
-                    MOVE PROPERTY (calcInfo(c)) {caption = 'Сверка';};
-                }
-                NEW cntInfo2 {
-                    fill = 2;
-                    MOVE PROPERTY (clientTypeInfo(c)) {caption = 'Тип клиента';};
-                }
-            }    
             NEW cntAction {
                 horizontal = TRUE ;
                 NEW cntAction1 {
                     horizontal = TRUE ;
-                    caption = 'параметры сверки';                
-                    MOVE PROPERTY (delimiter());
-                    MOVE PROPERTY (onCalc()) {marginLeft=5;};
-                    MOVE PROPERTY (onCustomerReports2(o)){marginLeft=5;};
+                    caption = 'выполнение'; 
+                    MOVE PROPERTY (onUpdateLog(o));               
+                    MOVE PROPERTY (onOpenXLS(o));
                 }
                 NEW cntAction2 {
                     horizontal = TRUE ;
                     caption = 'фильтры';                
-                    MOVE PROPERTY (onStaticClientType()) {marginLeft=5;};
                     MOVE PROPERTY (fltAttention()) {marginLeft=5;};
                     MOVE PROPERTY (fltQrep()) {marginLeft=5;};
                 }
                 NEW cntAction3{
                     horizontal = TRUE ;
-                    caption = 'дополнительно';                
+                    caption = 'отчеты';                
                     MOVE PROPERTY (onPrint(o));
-                    MOVE PROPERTY (onOpenXLS(o));
-                    MOVE PROPERTY (onCustomerDashboard(c));
                 }    
             }
         }   
     }  
-    TOOLBARRIGHT (o) {MOVE PROPERTY (onUpdateLog(o));} 
 }
 
 NAVIGATOR {
