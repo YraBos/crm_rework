@@ -8,6 +8,7 @@ delimiter 'Разделитель' = DATA LOCAL STRING[10] () CHARWIDTH 10;
 clientType 'Тип клиента' = DATA STRING[50] (Customer) CHARWIDTH 50; 
 clientTypeInfo 'Описание типа клиента' = DATA TEXT (Customer);
 inReport 'Отм.' = DATA LOCAL BOOLEAN (Customer);
+flagRevise 'Флаг сверки' = DATA LOCAL BOOLEAN ();
 
 showTsdOtherCol 'Показать не выданные ТСД в отдельной колонке' = DATA LOCAL INTEGER ();
 
@@ -38,7 +39,7 @@ date = DATA LOCAL DATE (); title = DATA LOCAL TEXT ();
 FORM repReviseTO 'Сверка торговых объектов'
   PROPERTIES() date, title PANEL  
   OBJECTS o1 = TempClassReports
-  PROPERTIES(o1) pi,ps,pc,p1,p2,p3,p4,p6,pn
+  PROPERTIES(o1) pi,ps,pc,p1,p2,p3,p4,p6,p8,unp,pn
   ORDERS pi(o1), ps(o1)   
 ;
 
@@ -49,6 +50,13 @@ FORM repReviseTSD 'Печатная форма 3 пары'
   PROPERTIES () showTsdOtherCol
   ORDERS pi(o1), ps(o1)   
 ;
+
+// добавляет значения комментариев
+onAddNote(TempClassReports oRep, STRING  cmsg) {
+    IF NOT pn(oRep) THEN pn(oRep) <- '';
+    IF length(pn(oRep)) > 0 THEN pn(oRep) <- pn(oRep) + '\n';
+    pn(oRep) <- pn(oRep) + cmsg; 
+}
 
 retInteger '' = DATA LOCAL INTEGER ();
 onRetInteger2 '' (STRING cs) {
@@ -80,94 +88,62 @@ maxDate(Customer c,AttachmentType t) = GROUP MAX date(Attachment o) IF customer(
 // 'Список лицензий','Список объектов'
 onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, cRepName2, cFDelimiter) {
     LOCAL ot = AttachmentType ();
-    LOCAL frep = FILE(); 
-    LOCAL pnote, UNP1, UNP2 = TEXT(); UNP1() <- ''; UNP2() <- ''; 
+    LOCAL ob = TempClassReports ();
     LOCAL ox1, ox2 = Attachment();
-    LOCAL ks1,ks2,ks6,iks1,iks2,iks3,iks6 = INTEGER (); iks3() <- 0;   
-    LOCAL onlyClient = BOOLEAN ();
-    LOCAL nob,imax = INTEGER(); nob() <- 0; imax() <- 0;  
     LOCAL colA1,colB1,colC1,colD1,colB2,colC2,colD2,colF2,colH2,colG2 = BPSTRING[50] (INTEGER);
-    LOCAL c1 = TEXT(); 
+    LOCAL c1 = TEXT();
+    // обработка список объектов
+    ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName2;
+    ox2() <- GROUP MAX (Attachment a) IF customer(a) = c AND type(a) = ot() AND date(a) = maxDate(c, ot());
+    IF ox2() THEN {
+        p3(oRep) <- toDateDDMMYY(date(ox2()));
+        IMPORT XLS FROM file(ox2()) AS FILE TO colB2=B, colC2=C, colD2=D, colF2=F, colG2=G, colH2=H;
+        FOR imported(INTEGER i2) AND i2 > 1 AND colD2(i2) AND colF2(i2) ORDER i2 DO {
+            ob() <- GROUP MAX (TempClassReports t) IF unp(t) = trim(colD2(i2));
+            IF NOT ob() THEN {
+                NEW ob = TempClassReports {
+                    pi(ob)  <- 2;
+                    pc(ob)  <- '   ' + colC2(i2);
+                    unp(ob) <- trim(colD2(i2));
+                    ob()    <- ob;
+                }    
+            }
+            IF isISubstring('Скл.',colF2(i2)) THEN {
+                p6(oRep) <- p6(oRep) (+) 1;
+                p6(ob()) <- p6(ob()) (+) 1;
+            } ELSE {
+                p4(oRep) <- p4(oRep) (+) 1;
+                p4(ob()) <- p4(ob()) (+) 1;
+            } 
+        }
+    } ELSE onAddNote(oRep,'Документ < ' + cRepName2 + ' > не найден');    
+    // обработка список лицензий
     ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName1;
     ox1() <- GROUP MAX (Attachment a) IF customer(a) = c AND type(a) = ot() AND date(a) = maxDate(c, ot());
     IF ox1() THEN {
         p1(oRep) <- toDateDDMMYY(date(ox1()));
-        // обработка документов, лицензии: организация, унп, магазины, склады
-        // если будет найден любой пустой УНП, то будем обрабатывать без учета УНП
-        // при этом рассчитаем общий итог заранее, так как не знаем, где встретиться пустой УНП
         IMPORT XLS FROM file(ox1()) AS FILE TO colA1=A,colB1=B,colC1=C,colD1=D;
-        FOR imported(INTEGER i) ORDER i DO {
-            colA1(i) <- trim(OVERRIDE colA1(i),''); colB1(i) <- OVERRIDE colB1(i),''; 
-            colC1(i) <- OVERRIDE colC1(i),''; colD1(i) <- OVERRIDE colD1(i),'';
-            IF i > 0 THEN {
-                IF length(colA1(i)) > 0 THEN {
-                    IF NOT isISubstring(colA1(i),'Лицензи') THEN {
-                        onRetInteger(colC1(i),colD1(i)); iks3() <- iks3() + retInteger(); 
-                        IF length(colB1(i)) = 0 THEN onlyClient() <- TRUE;
-                        imax() <- i; 
-                        UNP1() <- UNP1() + ',' + colB1(i);    // список УНП для сравнения (прописанные в списке лицензий)  
-                    } ELSE BREAK; 
-                } ELSE BREAK; 
-            }    
-        } 
-    } ELSE  {
-        pnote() <- cRepName1; onlyClient() <- TRUE;    
-    }
-    IF onlyClient() THEN {
-        imax() <- 1; colA1(1) <- '* ' + name(c); UNP1() <- '';
-    }
-    // обработка документов, объекты: адрес, унп, продажи
-    ot() <- GROUP  MAX (AttachmentType o) IF name(o) = cRepName2;
-    ox2() <- GROUP MAX (Attachment a) IF customer(a) = c AND type(a) = ot() AND date(a) = maxDate(c,ot());
-    IF ox2() THEN {
-        p3(oRep) <- toDateDDMMYY(date(ox2()));
-        IMPORT XLS FROM file(ox2()) AS FILE TO colB2=B, colC2=C, colD2=D, colF2=F, colG2=G, colH2=H;          
-        iks1() <- 0; iks2() <- 0; iks6() <- 0; 
-        FOR iterate(INTEGER i1,1,imax()) ORDER i1 DO {
-            IF onlyClient() THEN ks1() <- iks3(); ELSE {
-                onRetInteger(colC1(i1), colD1(i1)); ks1() <- retInteger();                
-            } 
-            NEW ob = TempClassReports {
-                pi(ob) <- ind; ps(ob) <- 2; pc(ob) <- '   ' + colA1(i1);     // организация клиента
-                ks2() <- 0; ks6() <- 0; 
-                FOR imported(INTEGER i2) AND i2 > 0 ORDER i2 DO {
-                    colB2(i2) <- OVERRIDE colB2(i2),''; colC2(i2) <- OVERRIDE trim(colC2(i2)),'';
-                    colD2(i2) <- OVERRIDE trim(colD2(i2)),''; colG2(i2) <- OVERRIDE colG2(i2),'';
-                    colF2(i2) <- OVERRIDE trim(colF2(i2)), ''; colH2(i2) <- OVERRIDE colH2(i2), '';
-                    IF onlyClient() OR trim(colB1(i1)) = colD2(i2) THEN {
-                        onRetInteger(colG2(i2),NULL);
-                        IF retInteger() > 0 THEN ks2() <- ks2() + 1;
-                        onRetInteger(colH2(i2),NULL);
-                        IF colF2(i2) = 'Скл.' AND retInteger() > 0 THEN ks6() <- ks6() + 1;
-                    }  
-                    IF NOT onlyClient() AND NOT isISubstring(colD2(i2),'УНП') THEN {
-                    // Обработка ситуации, что УНП не прописан в списке лицензий, но присутствует в списке объектов
-                        IF  NOT isISubstring(UNP1(), colD2(i2)) AND 
-                            NOT isISubstring(UNP2(), colD2(i2)) THEN {
-                                IF length(UNP2()) > 0 THEN UNP2() <- UNP2() + '; ';
-                                UNP2() <- UNP2() + colC2(i2) + ', ' + colD2(i2);
-                        }
-                    } 
-                }
-                iks1() <- iks1() + ks1(); iks2() <- iks2() + ks2(); iks6() <- iks6() + ks6();
-                p2(ob) <- ks1(); p4(ob) <- ks2(); p6(ob) <- ks6();                                      // итог по организации клиента
+        FOR imported(INTEGER i1) AND i1 > 0 AND colA1(i1) ORDER i1 DO {
+            IF length(trim(colA1(i1))) = 0 OR isISubstring(colA1(i1),'Лицензи') THEN BREAK; // конец проверяемой области
+            colB1(i1) <- trim(OVERRIDE colB1(i1), '');  
+            IF i1 = 1 THEN {
+                onRetInteger2(colC1(i1)); 
+                p2(oRep) <- retInteger();
             }
-        }   
-        p2(oRep) <- iks1(); p4(oRep) <- iks2(); p6(oRep) <- iks6();                                        // итог по клиенту
-    } ELSE {
-        IF ox1() THEN p2(oRep) <- iks3();
-        IF pnote() THEN pnote() <- pnote() + ', ';
-        pnote() <- (OVERRIDE pnote(),'') + cRepName2;
-    }
-    IF pnote() THEN pnote() <- '* док. не найдены: ' + pnote() + '\n'; ELSE pnote() <- '';  
-    IF length(UNP2()) > 0 THEN pnote() <- pnote() + 'Список УНП не найденых в "Списке лицензий":\n' + UNP2() + '\n';  
+            ob() <- GROUP MAX (TempClassReports t) IF unp(t) = colB1(i1) AND pi(t)=2;
+            IF ob() THEN p8(ob()) <- 1;  // флаг: найден в списке объектов
+        }
+    } ELSE onAddNote(oRep,'Документ < ' + cRepName1 + ' > не найден');; 
+    // проверка не найденных УНП Списка лицензий относительно Списка объектов
+    FOR (TempClassReports t IS TempClassReports) AND pi(t) = 2 DO {
+        IF NOT p8(t) THEN onAddNote(t,'Не найден УНП объекта в Cписке лицензий') ;
+    } 
     // обработка разделителя (по клиенту)
-    FOR iterate(INTEGER i, 2, wordCount(info(c),cFDelimiter)) ORDER i DO {
+    FOR iterate(INTEGER i, 2, wordCount(info(c),cFDelimiter)) AND info(c) ORDER i DO {
         c1() <- OVERRIDE getWord(getWord(info(c),cFDelimiter,i),'\n',1), '';
         c1() <- OVERRIDE getWord(c1(),'///',2), '';
-        IF length(c1()) > 0 THEN pnote() <- pnote() + trim(c1());
+        onAddNote(oRep,trim(c1()));
     }    
-   pn(oRep) <- pnote();
 }
 
 // 3. сверка по ТСД и работающим ТСД (если есть), тип S2 по отдельному клиенту
@@ -270,9 +246,10 @@ onRevise '' (INTEGER ntype, STRING cRepName1,cRepName2,cFilter,cDelimiter) {
     FOR (Customer c IS Customer) AND isSubstring(clientType(c),cFilter) AND inReport(c) ORDER name(c) NEW ob = TempClassReports DO {
         pc(ob) <- name(c); ind() <- ind() + 1; pi(ob) <- ind(); ps(ob) <- 1;   
         p2(ob) <- 0; p4(ob) <- 0; p6(ob) <- 0; p8(ob) <- 0; 
-        IF ntype = 2 THEN 
+        flagRevise() <- TRUE; 
+        IF ntype = 2 THEN { 
             onRevise2(ind(),ob,c,cRepName1,cRepName2,cDelimiter);
-        ELSE IF ntype = 3 THEN {
+        } ELSE IF ntype = 3 THEN {
             onRevise3(ind(),ob,c,cRepName1,cRepName2,'Список работающих ТСД',cDelimiter);
             c1() <- t1(ob); t1(ob) <- '';
             IF showTsdOtherCol() = 1 THEN {
@@ -292,7 +269,9 @@ onRevise '' (INTEGER ntype, STRING cRepName1,cRepName2,cFilter,cDelimiter) {
                 }
             }
         }
-    }  
+    }
+    IF NOT flagRevise() THEN 
+        MESSAGE 'Отчет не содержит данных\nПроверьте наличие значения < ' + cFilter + ' >\n в колонке Тип клиента';   
 }
 
 FORM  input 'Ввод значения'
@@ -308,17 +287,18 @@ onCustomerReports 'Отчеты' (Customer c) {
     IF NOT enum() THEN RETURN;
     ps() <- substr(staticCaption(enum()),1,3);
     date() <- currentDate();
+    flagRevise() <- NULL;
     IF ps() = ' 1.' THEN {
         newTempClassReports();
         title() <- 'Отчет по сверке торговых объектов';    
         onRevise(2,'Список лицензий','Список объектов','S1','###');
-        PRINT repReviseTO XLS;//XLS;
+        IF flagRevise() THEN PRINT repReviseTO XLS;
     }
     ELSE IF ps() = ' 2.' THEN {
         newTempClassReports();    
         title() <- 'Ежемесячный отчет по сверке торговых объектов';    
         onRevise(2,'Список лицензий','Список объектов','S1M','###');
-        PRINT repReviseTO XLS;//XLS;
+        IF flagRevise() THEN PRINT repReviseTO XLS;
     }    
     ELSE IF ps() = ' 3.' THEN {
         LOCAL nmes = INTEGER (); nmes() <- extractMonthNumber(currentDate()); 
@@ -328,14 +308,14 @@ onCustomerReports 'Отчеты' (Customer c) {
         newTempClassReports();    
             title() <- 'Отчет по сверке торговых объектов за ' + nmes() + ' месяц';    
             onRevise(2,'Список лицензий','Список объектов','S1' + nmes(),'###');
-            PRINT repReviseTO XLS;
+            IF flagRevise() THEN PRINT repReviseTO XLS;
             }    
     }    
     ELSE IF ps() = ' 4.' THEN {
         newTempClassReports();    
         title() <- 'Отчет по сверке выданных лицензий ТСД';
         onRevise(3,'Список лицензий ТСД','Список выданных ключей ТСД','S2','*#*');
-        PRINT repReviseTSD XLS; // XLS;
+        IF flagRevise() THEN PRINT repReviseTSD XLS; // XLS;
     } 
     CANCEL; 
 }

@@ -13,6 +13,7 @@ p6 'значение 3' = DATA LOCAL INTEGER        (TempClassReports);
 p8 'значение 4' = DATA LOCAL INTEGER        (TempClassReports);
 t1 'значение 5' = DATA LOCAL STRING         (TempClassReports);
 t2 'значение 6' = DATA LOCAL STRING         (TempClassReports);
+unp 'унп'       = DATA LOCAL STRING         (TempClassReports);
 pn 'примечание' = DATA LOCAL TEXT           (TempClassReports);
 
 newTempClassReports '' () {
