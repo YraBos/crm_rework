@@ -1,0 +1,64 @@
+MODULE BankImport1c;
+// модуль импорта банковских выписок из 1C: доходы (Payment) и расходы (Expense)
+
+REQUIRE BankPrepare1c, PaymentProcessDashboard, LegalEntityBy;
+
+onImportPayment 'Импорт приходов' (LegalEntity olux) {
+    LOCAL oh = tempHeader();
+    LOCAL le = LegalEntity();
+    LOCAL oc = tempClient();
+    LOCAL od = tempDoghovor();
+    FOR vpostuplieniieID(INTEGER i) NEW o=Payment DO {
+        company(o)     <- olux;
+        number(o)      <- STRING[10](vnomierDokumienta2(i));
+        date(o)        <- vdataDokumienta2(i);
+        sum(o)         <- vsumma2(i);
+        note(o)        <- ISTRING[250](vsodierzhaniie2(i));
+        oh()           <- GROUP MAX (tempHeader t) IF nid(t) = vpostuplieniieID(i); // шапка выписки
+        uid(o)         <- uid(oh());
+        account(o)     <- GROUP MAX (Account a) IF number(a) = account(oh()) AND legalEntity(a) = olux;
+        currency(o)    <- GROUP MAX (Currency r) IF sid(r) = nameCurrency(oh());
+        oc()           <- GROUP MAX (tempClient c) IF uid(c) = refClientPost(i); // контрагенты  
+        legalEntity(o) <- GROUP MAX (LegalEntity l) IF UNP(l) = unp(oc());
+        od()           <- GROUP MAX (tempDoghovor d) IF uid(d) = refDogPost(i); // договора
+        contract(o)    <- GROUP MAX (Contract cnt) 
+                            IF number(cnt) = number(od()) AND date(cnt) = date(od()) AND legalEntity(cnt) = legalEntity(o);
+    }
+}
+
+onImportExpense 'Импорт расходов' (LegalEntity olux) {
+    LOCAL oh = tempHeader();
+    LOCAL le = LegalEntity();
+    LOCAL oc = tempClient();
+    FOR vspisaniieID(INTEGER i) NEW o=Expense DO {
+        company(o)              <- olux;
+        date(o)                 <- vdataDokumienta1(i);
+        sum(o)                  <- vsumma1(i);
+        note(o)                 <- vsodierzhaniie1(i);
+        oh()                    <- GROUP MAX (tempHeader t) IF nid(t) = vspisaniieID(i);   // шапка выписки
+        uid(o)                  <- uid(oh());
+        currency(o)             <- GROUP MAX (Currency r) IF sid(r) = nameCurrency(oh()); 
+        account(o)              <- GROUP MAX (Account a) IF number(a) = account(oh()) AND legalEntity(a) = olux;
+        oc()                    <- GROUP MAX (tempClient c) IF uid(c) = refClientSpis(i);  // контрагенты
+        legalEntity(o)          <- GROUP MAX (LegalEntity l) IF UNP(l) = unp(oc());
+    }
+}
+
+onImportFrom1c 'Импорт 1С' () {
+    onPrepareImport('d:/obmen/bank.xml');
+    IF NOT fileExistsDataImport() THEN RETURN ;
+    LOCAL olux = LegalEntity ();
+    olux() <- GROUP MAX (LegalEntity l) IF id(l) = '1';
+    onImportPayment(olux());
+    onImportExpense(olux());
+    onClearPrepareTemp();
+}
+
+
+EXTEND FORM paymentProcessDasboard PROPERTIES onImportFrom1c() ;
+
+DESIGN paymentProcessDasboard {
+    top {
+        MOVE PROPERTY (onImportFrom1c());
+    }
+}

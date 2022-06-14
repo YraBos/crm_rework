@@ -1,7 +1,0 @@
-MODULE ImportLegalEntity;
-
-NAMESPACE ExchangeOneC;
-
-onImportPayment 'Импорт платежей' () {
-    MESSAGE 'Обработка не назначена';
-}

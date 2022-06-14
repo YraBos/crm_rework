@@ -1,0 +1,208 @@
+MODULE BankPrepare1c;
+// импорт из 1С и подготовка к основному импорту доходов(Payment) и расходов(Expense)
+
+REQUIRE Utils, Payment, Expense;
+
+uid                 'ID выписки'     = DATA STRING[36] (Payment);
+uid                 'ID выписки'     = DATA STRING[36] (Expense);
+
+GROUP data EXTID 'V8Exch:Data';
+
+GROUP documentObject_VypiskaBanka EXTID 'v8:DocumentObject.ВыпискаБанка';
+refVypiskaBanka         = DATA LOCAL STRING[36](INTEGER);
+currency                = DATA LOCAL BOOLEAN(INTEGER);
+date                    = DATA LOCAL DATE(INTEGER);
+number                  = DATA LOCAL STRING(INTEGER);
+refCurrency             = DATA LOCAL STRING[36](INTEGER); 
+refAccount              = DATA LOCAL STRING[36](INTEGER);
+
+GROUP vspisaniieSvodnoie EXTID 'v8:СписаниеСводное';
+vvidOplaty1             = DATA LOCAL STRING(INTEGER);
+vdataDokumienta1        = DATA LOCAL DATE(INTEGER);
+vnomierDokumienta1      = DATA LOCAL STRING(INTEGER);
+vsodierzhaniie1         = DATA LOCAL STRING(INTEGER);
+vsumma1                 = DATA LOCAL NUMERIC[14,2](INTEGER);
+refAccountSpis          = DATA LOCAL STRING[36](INTEGER);
+refClientSpis           = DATA LOCAL STRING[36](INTEGER);
+vspisaniieID            = DATA LOCAL INTEGER(INTEGER);
+GROUP vsubkonto1s EXTID 'v8:Субконто1';
+subconto1s              = DATA LOCAL STRING(INTEGER);
+
+GROUP vpostuplieniieSvodnoie EXTID 'v8:ПоступлениеСводное';
+vvidOplaty2             = DATA LOCAL STRING(INTEGER);
+vdataDokumienta2        = DATA LOCAL DATE(INTEGER);
+vnomierDokumienta2      = DATA LOCAL STRING(INTEGER);
+vsodierzhaniie2         = DATA LOCAL STRING(INTEGER);
+vsumma2                 = DATA LOCAL NUMERIC[14,2](INTEGER);
+refAccountPost          = DATA LOCAL STRING[36](INTEGER);
+refClientPost           = DATA LOCAL STRING[36](INTEGER);
+refDogPost              = DATA LOCAL STRING[36](INTEGER);
+vpostuplieniieID        = DATA LOCAL INTEGER(INTEGER);
+GROUP vsubkonto1p EXTID 'v8:Субконто1';
+subconto1p               = DATA LOCAL STRING(INTEGER);
+GROUP vsubkonto2p EXTID 'v8:Субконто2'; // только для приходов
+subconto2p               = DATA LOCAL STRING(INTEGER);
+
+GROUP catalogObject_Valiuty 'v8:CatalogObject.Валюты';
+refValiuty              = DATA LOCAL STRING[36](INTEGER);
+descriptionValiuty      = DATA LOCAL STRING(INTEGER); 
+
+GROUP catalogObject_RaschietnyieSchieta 'v8:CatalogObject.РасчетныеСчета';
+refRsh                  = DATA LOCAL STRING[36](INTEGER); 
+isFolderRsh             = DATA LOCAL BOOLEAN(INTEGER); 
+vnomierRsh              = DATA LOCAL STRING(INTEGER); 
+
+GROUP catalogObject_Kontraghienty 'v8:CatalogObject.Контрагенты';
+refKontraghienty        = DATA LOCAL STRING[36](INTEGER);
+isFolderKontraghienty   = DATA LOCAL BOOLEAN(INTEGER);
+nameKontraghienty       = DATA LOCAL STRING(INTEGER);
+unpKontraghienty        = DATA LOCAL STRING(INTEGER);
+
+GROUP catalogObject_Doghovora 'v8:CatalogObject.Договора';
+refDoghovor             = DATA LOCAL STRING[36](INTEGER);
+vdataDoghovor           = DATA LOCAL DATE(INTEGER);
+vnomierDoghovor         = DATA LOCAL STRING(INTEGER);
+
+
+FORM importData FORMEXTID 'V8Exch=http://www.1c.ru/V8/1CV8DtUD/:_1CV8DtUD'
+    PROPERTIES ATTR = 'http://v8.1c.ru/data' EXTID 'xmlns:core' 
+    PROPERTIES ATTR = 'http://v8.1c.ru/8.1/data/enterprise/current-config' EXTID 'xmlns:v8' 
+    PROPERTIES ATTR = 'http://www.w3.org/2001/XMLSchema' EXTID 'xmlns:xs' 
+    PROPERTIES ATTR = 'http://www.w3.org/2001/XMLSchema-instance' EXTID 'xmlns:xsi'
+
+    OBJECTS documentObject_VypiskaBanka = INTEGER EXTID 'v8:DocumentObject.ВыпискаБанка' IN data
+    PROPERTIES(documentObject_VypiskaBanka) 
+        refVypiskaBanka EXTID 'v8:Ref', date EXTID 'v8:Date', number EXTID 'v8:Number',
+        currency EXTID 'v8:ФлагВалютныйЖурнал', refCurrency EXTID 'v8:Валюта', refAccount EXTID 'v8:РасчетныйСчет'
+
+    OBJECTS vspisaniieSvodnoie = INTEGER EXTID 'v8:СписаниеСводное'
+    PROPERTIES (vspisaniieSvodnoie)
+        vvidOplaty1 EXTID 'v8:ВидОплаты', vdataDokumienta1 EXTID 'v8:ДатаДокумента', 
+        vnomierDokumienta1 EXTID 'v8:НомерДокумента', vsumma1 EXTID 'v8:Сумма', vsodierzhaniie1 EXTID 'v8:Содержание', 
+        refClientSpis EXTID 'v8:Субконто1', subconto1s EXTID 'xsi:type' IN vsubkonto1s ATTR               // тип субконто: контрагенты, сотрудники, ... 
+    FILTERS vspisaniieID(vspisaniieSvodnoie) = documentObject_VypiskaBanka
+    FILTERS imported(vspisaniieSvodnoie)
+
+    OBJECTS vpostuplieniieSvodnoie = INTEGER EXTID 'v8:ПоступлениеСводное'
+    PROPERTIES(vpostuplieniieSvodnoie) 
+        vnomierDokumienta2 EXTID 'v8:НомерДокумента', vdataDokumienta2 EXTID 'v8:ДатаДокумента', 
+        vvidOplaty2 EXTID 'v8:ВидОплаты', vsumma2 EXTID 'v8:Сумма', vsodierzhaniie2 EXTID 'v8:Содержание', 
+        refClientPost EXTID 'v8:Субконто1', subconto1p EXTID 'xsi:type' IN vsubkonto1p ATTR,            // тип субконто: контрагенты, сотрудники, ...
+        refDogPost EXTID 'v8:Субконто2', subconto2p EXTID 'xsi:type' IN vsubkonto2p ATTR               // субконто, договора  
+    FILTERS vpostuplieniieID(vpostuplieniieSvodnoie) = documentObject_VypiskaBanka
+    FILTERS imported(vpostuplieniieSvodnoie)
+
+    OBJECTS catalogObject_Doghovora = INTEGER EXTID 'v8:CatalogObject.Договора' IN data
+    PROPERTIES(catalogObject_Doghovora)
+        refDoghovor EXTID 'v8:Ref', vdataDoghovor EXTID 'v8:ДатаДоговора', vnomierDoghovor EXTID 'v8:НомерДоговора'
+    
+    OBJECTS catalogObject_Valiuty = INTEGER EXTID 'v8:CatalogObject.Валюты' IN data
+    PROPERTIES(catalogObject_Valiuty) 
+        refValiuty EXTID 'v8:Ref', descriptionValiuty EXTID 'v8:Description'
+    FILTERS imported(catalogObject_Valiuty) 
+    
+    OBJECTS catalogObject_RaschietnyieSchieta = INTEGER EXTID 'v8:CatalogObject.РасчетныеСчета' IN data
+    PROPERTIES(catalogObject_RaschietnyieSchieta) 
+        refRsh EXTID 'v8:Ref', isFolderRsh EXTID 'v8:IsFolder', vnomierRsh EXTID 'v8:Номер'
+    FILTERS imported(catalogObject_RaschietnyieSchieta)
+    
+    OBJECTS catalogObject_Kontraghienty = INTEGER EXTID 'v8:CatalogObject.Контрагенты' IN data
+    PROPERTIES(catalogObject_Kontraghienty) 
+        refKontraghienty EXTID 'v8:Ref', isFolderKontraghienty EXTID 'v8:IsFolder', 
+        nameKontraghienty EXTID 'v8:Description', unpKontraghienty EXTID 'v8:УНП'
+    FILTERS imported(catalogObject_Kontraghienty)    
+;
+
+
+CLASS tempValiuty 'Валюты';
+uid 'ID' = DATA STRING[36] (tempValiuty);
+name 'Наименование' = DATA STRING[3] (tempValiuty);
+
+onFillValiuty 'Заполнение справочника валют' () {
+    FOR refValiuty(INTEGER i) NEW o = tempValiuty DO {
+        uid(o) <- refValiuty(i);
+        name(o) <- STRING[3](descriptionValiuty(i));  
+    }
+}  
+
+
+CLASS tempDoghovor 'Договора';
+uid 'ID' = DATA STRING[36] (tempDoghovor);
+number 'Номер' = DATA STRING  (tempDoghovor);
+date 'Дата' = DATA DATE  (tempDoghovor);
+
+onFillDoghovor 'Заполнение договоров' () {
+    FOR refDoghovor(INTEGER i)  NEW o = tempDoghovor DO {
+        uid(o) <- refDoghovor(i);
+        number(o) <- vnomierDoghovor(i);
+        date(o) <- vdataDoghovor(i);
+    }
+}
+
+
+CLASS tempRsh 'Расчетные счета';
+uid 'ID' = DATA STRING[36] (tempRsh);
+number 'Наименование' = DATA STRING (tempRsh);
+
+onFillRsh 'Заполнение справочника р/счетов' () {
+    FOR refRsh(INTEGER i) AND NOT isFolderRsh(i) NEW o = tempRsh DO {
+        uid(o) <- refRsh(i);
+        number(o) <- vnomierRsh(i);
+    }
+}
+
+
+CLASS tempClient 'Контрагенты, Организации, Сотрудники';
+uid 'ID' = DATA STRING[36] (tempClient);
+name 'Наименование' = DATA STRING (tempClient);
+unp 'УНП' = DATA STRING (tempClient);   
+
+onFillClient 'Заполнение Контрагентов' () {
+    FOR refKontraghienty(INTEGER i) AND NOT isFolderKontraghienty(i) NEW o = tempClient DO { 
+        uid(o) <- refKontraghienty(i);
+        name(o) <- nameKontraghienty(i);
+        unp(o) <- unpKontraghienty(i);
+    }
+}
+
+CLASS tempHeader 'Временная таблица';
+nid 'Группа документов в выписке' = DATA INTEGER (tempHeader);
+uid 'ID' = DATA STRING[36] (tempHeader);
+nv 'Номер выписки' = DATA STRING[10] (tempHeader);
+dv 'Дата выписки' = DATA DATE (tempHeader);
+nameCurrency 'Валюта' = DATA STRING (tempHeader);
+account 'Расчетный Счет'  = DATA STRING (tempHeader);
+
+onFillHeader 'Шапка банковской выписки' () {
+    FOR refVypiskaBanka(INTEGER i) ORDER i NEW o=tempHeader DO { 
+            DELETE Payment p WHERE uid(p) = refVypiskaBanka(i);
+            DELETE Expense e WHERE uid(e) = refVypiskaBanka(i); 
+            nid(o) <- i;
+            uid(o) <- refVypiskaBanka(i);
+            nv(o)  <- STRING[10](number(i));
+            dv(o)  <- date(i);
+            nameCurrency(o) <- name(GROUP MAX (tempValiuty v) IF uid(v)=refCurrency(i));
+            account(o) <- number(GROUP MAX (tempRsh r) IF uid(r) = refAccount(i));
+    }
+}
+
+fileExistsDataImport 'Флаг наличия файла иморта' = DATA LOCAL BOOLEAN ();
+
+onClearPrepareTemp 'Очистка временных свойств' () {
+    DELETE tempHeader o     WHERE o IS tempHeader;
+    DELETE tempValiuty o    WHERE o IS tempValiuty; 
+    DELETE tempClient o     WHERE o IS tempClient;  
+    DELETE tempRsh o        WHERE o IS tempRsh;
+    DELETE tempDoghovor o   WHERE o IS tempDoghovor;
+}
+
+onPrepareImport (STRING fName) {
+    fileExists(fName);
+    IF NOT fileExists() THEN { MESSAGE 'Ошибка импорта банковской выписки:\nФайл < ' + fName + ' > не найден'; RETURN ;  }
+    fileExistsDataImport() <- TRUE;
+    LOCAL f = XMLFILE ();
+    READ fName TO f;
+    IMPORT importData XML FROM f();
+    onClearPrepareTemp();
+    onFillValiuty(); onFillRsh(); onFillClient(); onFillDoghovor(); onFillHeader();    
+}

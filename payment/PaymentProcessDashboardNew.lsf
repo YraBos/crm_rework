@@ -14,22 +14,3 @@ DESIGN dialogAgreements {
     PROPERTY (differenceSumPaid(o)) {charWidth = 10;}
 }
 
-//FORM dialogAgreementsPayments 'Не оплаченные ДСГ'
-//    OBJECTS c = Contract PANEL 
-//    OBJECTS a = Agreement
-//    PROPERTIES(a) READONLY numberContract, number, date, name, sum, paidPayment
-//    FILTERS contract(a) = c 
-////    FILTERS sum(a) != paid(a) 
-//    ORDERS date(a)
-//;
-//
-//onShowAgreement 'Показать ДСГ' (Payment p) {
-//    DIALOG dialogAgreementsPayments OBJECTS c = contract(p), a INPUT DO {
-//        MESSAGE name(a);
-//    }
-//}
-//
-//
-//EXTEND FORM paymentProcessDasboard
-//    PROPERTIES onShowAgreement(p) SHOWIF contract(p) TOOLBAR 
-//;
