@@ -1,12 +1,17 @@
 MODULE PaymentProcessDashboardNew;
 
-REQUIRE PaymentProcessDashboard, Agreement, Contract, Payment;
+REQUIRE PaymentProcessDashboard, Agreement, Contract, Payment, BankPrepare1c;
 
 differenceSumPaid 'Разница (ст.-опл.)' (Agreement a) = sum(a) (-) paidPayment(a); 
 
 EXTEND FORM dialogAgreements
     PROPERTIES(o) READONLY paidPayment AFTER sum(o)
     PROPERTIES(o) READONLY differenceSumPaid AFTER paidPayment(o)
+;
+
+EXTEND FORM paymentProcessDasboard
+    PROPERTIES (p) READONLY uid 
+    PROPERTIES (e) READONLY uid
 ;
 
 DESIGN dialogAgreements {

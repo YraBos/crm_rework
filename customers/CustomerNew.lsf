@@ -98,7 +98,7 @@ onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
     IF ox2() THEN {
         p3(oRep) <- toDateDDMMYY(date(ox2()));
         IMPORT XLS FROM file(ox2()) AS FILE TO colB2=B, colC2=C, colD2=D, colF2=F, colG2=G, colH2=H;
-        FOR imported(INTEGER i2) AND i2 > 1 AND colD2(i2) AND colF2(i2) ORDER i2 DO {
+        FOR imported(INTEGER i2) AND i2 > 1 AND colC2(i2) AND colF2(i2) ORDER i2 DO {
             ob() <- GROUP MAX (TempClassReports t) IF unp(t) = trim(colD2(i2));
             IF NOT ob() THEN {
                 NEW ob = TempClassReports {
@@ -109,11 +109,11 @@ onRevise2 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
                 }    
             }
             IF isISubstring('Скл.',colF2(i2)) THEN {
-                p6(oRep) <- p6(oRep) (+) 1;
-                p6(ob()) <- p6(ob()) (+) 1;
+                p6(oRep) <- p6(oRep) (+) IF colH2(i2) THEN 1;
+                p6(ob()) <- p6(ob()) (+) IF colH2(i2) THEN 1;
             } ELSE {
-                p4(oRep) <- p4(oRep) (+) 1;
-                p4(ob()) <- p4(ob()) (+) 1;
+                p4(oRep) <- p4(oRep) (+) IF colG2(i2) THEN 1;
+                p4(ob()) <- p4(ob()) (+) IF colG2(i2) THEN 1;
             } 
         }
     } ELSE onAddNote(oRep,'Документ < ' + cRepName2 + ' > не найден');    

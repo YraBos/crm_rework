@@ -3,8 +3,8 @@ MODULE BankPrepare1c;
 
 REQUIRE Utils, Payment, Expense;
 
-uid                 'ID выписки'     = DATA STRING[36] (Payment);
-uid                 'ID выписки'     = DATA STRING[36] (Expense);
+uid                 'ID выписки'     = DATA STRING[50] (Payment); // uid выписки + '+' + номер документа
+uid                 'ID выписки'     = DATA STRING[50] (Expense); // uid выписки + '+' + номер документа
 
 GROUP data EXTID 'V8Exch:Data';
 
@@ -25,6 +25,7 @@ vsumma1                 = DATA LOCAL NUMERIC[14,2](INTEGER);
 refAccountSpis          = DATA LOCAL STRING[36](INTEGER);
 refClientSpis           = DATA LOCAL STRING[36](INTEGER);
 vspisaniieID            = DATA LOCAL INTEGER(INTEGER);
+vnomStroki1             = DATA LOCAL STRING(INTEGER);
 GROUP vsubkonto1s EXTID 'v8:Субконто1';
 subconto1s              = DATA LOCAL STRING(INTEGER);
 
@@ -38,6 +39,7 @@ refAccountPost          = DATA LOCAL STRING[36](INTEGER);
 refClientPost           = DATA LOCAL STRING[36](INTEGER);
 refDogPost              = DATA LOCAL STRING[36](INTEGER);
 vpostuplieniieID        = DATA LOCAL INTEGER(INTEGER);
+vnomStroki2             = DATA LOCAL STRING(INTEGER);
 GROUP vsubkonto1p EXTID 'v8:Субконто1';
 subconto1p               = DATA LOCAL STRING(INTEGER);
 GROUP vsubkonto2p EXTID 'v8:Субконто2'; // только для приходов
@@ -78,7 +80,8 @@ FORM importData FORMEXTID 'V8Exch=http://www.1c.ru/V8/1CV8DtUD/:_1CV8DtUD'
     OBJECTS vspisaniieSvodnoie = INTEGER EXTID 'v8:СписаниеСводное'
     PROPERTIES (vspisaniieSvodnoie)
         vvidOplaty1 EXTID 'v8:ВидОплаты', vdataDokumienta1 EXTID 'v8:ДатаДокумента', 
-        vnomierDokumienta1 EXTID 'v8:НомерДокумента', vsumma1 EXTID 'v8:Сумма', vsodierzhaniie1 EXTID 'v8:Содержание', 
+        vnomierDokumienta1 EXTID 'v8:НомерДокумента', vsumma1 EXTID 'v8:Сумма', 
+        vsodierzhaniie1 EXTID 'v8:Содержание', vnomStroki1 EXTID 'v8:НомСтроки',
         refClientSpis EXTID 'v8:Субконто1', subconto1s EXTID 'xsi:type' IN vsubkonto1s ATTR               // тип субконто: контрагенты, сотрудники, ... 
     FILTERS vspisaniieID(vspisaniieSvodnoie) = documentObject_VypiskaBanka
     FILTERS imported(vspisaniieSvodnoie)
@@ -86,7 +89,8 @@ FORM importData FORMEXTID 'V8Exch=http://www.1c.ru/V8/1CV8DtUD/:_1CV8DtUD'
     OBJECTS vpostuplieniieSvodnoie = INTEGER EXTID 'v8:ПоступлениеСводное'
     PROPERTIES(vpostuplieniieSvodnoie) 
         vnomierDokumienta2 EXTID 'v8:НомерДокумента', vdataDokumienta2 EXTID 'v8:ДатаДокумента', 
-        vvidOplaty2 EXTID 'v8:ВидОплаты', vsumma2 EXTID 'v8:Сумма', vsodierzhaniie2 EXTID 'v8:Содержание', 
+        vvidOplaty2 EXTID 'v8:ВидОплаты', vsumma2 EXTID 'v8:Сумма', 
+        vsodierzhaniie2 EXTID 'v8:Содержание', vnomStroki2 EXTID 'v8:НомСтроки', 
         refClientPost EXTID 'v8:Субконто1', subconto1p EXTID 'xsi:type' IN vsubkonto1p ATTR,            // тип субконто: контрагенты, сотрудники, ...
         refDogPost EXTID 'v8:Субконто2', subconto2p EXTID 'xsi:type' IN vsubkonto2p ATTR               // субконто, договора  
     FILTERS vpostuplieniieID(vpostuplieniieSvodnoie) = documentObject_VypiskaBanka
@@ -173,10 +177,10 @@ dv 'Дата выписки' = DATA DATE (tempHeader);
 nameCurrency 'Валюта' = DATA STRING (tempHeader);
 account 'Расчетный Счет'  = DATA STRING (tempHeader);
 
+newDataImport 'Флаг нового импорта' = DATA LOCAL BOOLEAN;
+
 onFillHeader 'Шапка банковской выписки' () {
-    FOR refVypiskaBanka(INTEGER i) ORDER i NEW o=tempHeader DO { 
-            DELETE Payment p WHERE uid(p) = refVypiskaBanka(i);
-            DELETE Expense e WHERE uid(e) = refVypiskaBanka(i); 
+    FOR refVypiskaBanka(INTEGER i) ORDER i NEW o=tempHeader DO {
             nid(o) <- i;
             uid(o) <- refVypiskaBanka(i);
             nv(o)  <- STRING[10](number(i));
@@ -185,8 +189,6 @@ onFillHeader 'Шапка банковской выписки' () {
             account(o) <- number(GROUP MAX (tempRsh r) IF uid(r) = refAccount(i));
     }
 }
-
-fileExistsDataImport 'Флаг наличия файла иморта' = DATA LOCAL BOOLEAN ();
 
 onClearPrepareTemp 'Очистка временных свойств' () {
     DELETE tempHeader o     WHERE o IS tempHeader;
@@ -199,7 +201,7 @@ onClearPrepareTemp 'Очистка временных свойств' () {
 onPrepareImport (STRING fName) {
     fileExists(fName);
     IF NOT fileExists() THEN { MESSAGE 'Ошибка импорта банковской выписки:\nФайл < ' + fName + ' > не найден'; RETURN ;  }
-    fileExistsDataImport() <- TRUE;
+    newDataImport() <- TRUE;
     LOCAL f = XMLFILE ();
     READ fName TO f;
     IMPORT importData XML FROM f();

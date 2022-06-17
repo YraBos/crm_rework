@@ -1,28 +1,44 @@
 MODULE BankImport1c;
 // модуль импорта банковских выписок из 1C: доходы (Payment) и расходы (Expense)
+// Номера документов могут повторяться внутри одной выписки
+// Выписка снимается несколько раз в день, при этом ее содержание меняется
+// CID - НомерВыписки - ГГГГММДД - номерДокумента 
 
-REQUIRE BankPrepare1c, PaymentProcessDashboard, LegalEntityBy;
+REQUIRE BankPrepare1c, PaymentProcessDashboard, LegalEntityBy, Time, Utils;
+
+cntPayment 'Кол-во документов' = DATA LOCAL INTEGER;
+cntExpence 'Кол-во документов' = DATA LOCAL INTEGER;
 
 onImportPayment 'Импорт приходов' (LegalEntity olux) {
     LOCAL oh = tempHeader();
     LOCAL le = LegalEntity();
     LOCAL oc = tempClient();
     LOCAL od = tempDoghovor();
-    FOR vpostuplieniieID(INTEGER i) NEW o=Payment DO {
-        company(o)     <- olux;
-        number(o)      <- STRING[10](vnomierDokumienta2(i));
-        date(o)        <- vdataDokumienta2(i);
-        sum(o)         <- vsumma2(i);
-        note(o)        <- ISTRING[250](vsodierzhaniie2(i));
-        oh()           <- GROUP MAX (tempHeader t) IF nid(t) = vpostuplieniieID(i); // шапка выписки
-        uid(o)         <- uid(oh());
-        account(o)     <- GROUP MAX (Account a) IF number(a) = account(oh()) AND legalEntity(a) = olux;
-        currency(o)    <- GROUP MAX (Currency r) IF sid(r) = nameCurrency(oh());
-        oc()           <- GROUP MAX (tempClient c) IF uid(c) = refClientPost(i); // контрагенты  
-        legalEntity(o) <- GROUP MAX (LegalEntity l) IF UNP(l) = unp(oc());
-        od()           <- GROUP MAX (tempDoghovor d) IF uid(d) = refDogPost(i); // договора
-        contract(o)    <- GROUP MAX (Contract cnt) 
-                            IF number(cnt) = number(od()) AND date(cnt) = date(od()) AND legalEntity(cnt) = legalEntity(o);
+    LOCAL cid = STRING[50]();
+    LOCAL dogID = Contract();
+    LOCAL clientID = LegalEntity();
+    FOR vpostuplieniieID(INTEGER i) DO {
+        oh()       <- GROUP MAX (tempHeader t) IF nid(t) = vpostuplieniieID(i); // шапка выписки
+        oc()       <- GROUP MAX (tempClient c) IF uid(c) = refClientPost(i); // контрагенты  
+        clientID() <- GROUP MAX (LegalEntity l) IF UNP(l) = unp(oc());
+        od()       <- GROUP MAX (tempDoghovor d) IF uid(d) = refDogPost(i); // договора
+        dogID()    <- GROUP MAX (Contract cnt) IF number(cnt) = number(od()) AND date(cnt) = date(od()) AND legalEntity(cnt) = clientID();
+        cid()      <- nv(oh()) + '-' + toDateDDMMYYYY(dv(oh())) + '-' + trim(vnomierDokumienta2(i)) + '-' + OVERRIDE number(dogID()),'';
+        IF NOT (GROUP MAX(Payment p) IF uid(p) = cid() AND sum(p) = vsumma2(i))  THEN {
+            NEW o = Payment {
+                cntPayment()   <- cntPayment() (+) 1;
+                company(o)     <- olux;
+                number(o)      <- STRING[10](vnomierDokumienta2(i));
+                date(o)        <- vdataDokumienta2(i);
+                sum(o)         <- vsumma2(i);
+                note(o)        <- ISTRING[250](vsodierzhaniie2(i));
+                uid(o)         <- cid();
+                account(o)     <- GROUP MAX (Account a) IF number(a) = account(oh()) AND legalEntity(a) = olux;
+                currency(o)    <- GROUP MAX (Currency r) IF sid(r) = nameCurrency(oh());
+                legalEntity(o) <- clientID();
+                contract(o)    <- dogID();
+            }                        
+        }                    
     }
 }
 
@@ -30,28 +46,42 @@ onImportExpense 'Импорт расходов' (LegalEntity olux) {
     LOCAL oh = tempHeader();
     LOCAL le = LegalEntity();
     LOCAL oc = tempClient();
-    FOR vspisaniieID(INTEGER i) NEW o=Expense DO {
-        company(o)              <- olux;
-        date(o)                 <- vdataDokumienta1(i);
-        sum(o)                  <- vsumma1(i);
-        note(o)                 <- vsodierzhaniie1(i);
-        oh()                    <- GROUP MAX (tempHeader t) IF nid(t) = vspisaniieID(i);   // шапка выписки
-        uid(o)                  <- uid(oh());
-        currency(o)             <- GROUP MAX (Currency r) IF sid(r) = nameCurrency(oh()); 
-        account(o)              <- GROUP MAX (Account a) IF number(a) = account(oh()) AND legalEntity(a) = olux;
-        oc()                    <- GROUP MAX (tempClient c) IF uid(c) = refClientSpis(i);  // контрагенты
-        legalEntity(o)          <- GROUP MAX (LegalEntity l) IF UNP(l) = unp(oc());
+    LOCAL cid = STRING[50]();
+    FOR vspisaniieID(INTEGER i) DO {
+        oh() <- GROUP MAX (tempHeader t) IF nid(t) = vspisaniieID(i);   // шапка выписки
+        cid() <- nv(oh()) + '-' + toDateDDMMYYYY(dv(oh())) + '-' + trim(vnomierDokumienta1(i));
+        IF NOT (GROUP MAX(Expense e) IF uid(e) = cid() AND sum(e)=vsumma1(i)) THEN {
+            NEW o = Expense {
+                cntExpence()            <- cntExpence() (+) 1;
+                company(o)              <- olux;
+                date(o)                 <- vdataDokumienta1(i);
+                sum(o)                  <- vsumma1(i);
+                note(o)                 <- vsodierzhaniie1(i);
+                uid(o)                  <- cid();
+                currency(o)             <- GROUP MAX (Currency r) IF sid(r) = nameCurrency(oh()); 
+                account(o)              <- GROUP MAX (Account a) IF number(a) = account(oh()) AND legalEntity(a) = olux;
+                oc()                    <- GROUP MAX (tempClient c) IF uid(c) = refClientSpis(i);  // контрагенты
+                legalEntity(o)          <- GROUP MAX (LegalEntity l) IF UNP(l) = unp(oc());
+            }    
+        }    
     }
 }
 
 onImportFrom1c 'Импорт 1С' () {
-    onPrepareImport('d:/obmen/bank.xml');
-    IF NOT fileExistsDataImport() THEN RETURN ;
+    onPrepareImport('file://d:/obmen/bank.xml');
+    IF NOT newDataImport() THEN RETURN;
     LOCAL olux = LegalEntity ();
     olux() <- GROUP MAX (LegalEntity l) IF id(l) = '1';
     onImportPayment(olux());
     onImportExpense(olux());
-    onClearPrepareTemp();
+    IF cntPayment() OR cntExpence() THEN {
+        onClearPrepareTemp();
+        MESSAGE 'Импортировано документов:\nПлатежи - ' + 
+                    toChar((OVERRIDE cntPayment(),0),'9999') + '\n' + 'Расходы - ' + toChar((OVERRIDE cntExpence(),0),'9999');
+    } ELSE {
+        CANCEL;
+        MESSAGE 'Нет новых документов для импорта';
+    } 
 }
 
 
