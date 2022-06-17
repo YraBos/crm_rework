@@ -236,7 +236,7 @@ onPrintQR 'Печать QR (по текущему)' (Equipment e) {
     LOCAL csnum, cid = STRING (); csnum() <- '';
     LOCAL ctxt = TEXT ();
     LOCAL ncnt = INTEGER (); ncnt() <- 0;
-    DELETE TempLicQR  o1 WHERE o1 IS TempLicQR;
+    DELETE TempLicQR o1 WHERE o1 IS TempLicQR;
     fileToString(file(e));
     ctxt() <- replace(resultString(),'\n','');
     ctxt() <- replace(ctxt(),'\r','');
@@ -258,6 +258,7 @@ onPrintQR 'Печать QR (по текущему)' (Equipment e) {
     equTitle1() <- 'Список лицензий';
     equTitle2() <- 'Клиент: ' + nameCustomer(e);
     equTitle3() <- 'Дата: ' + toDateDDMMYYYY(createdDate(e)) + ', всего номеров: ' + trim(toChar(quantitySerial(e),'99999'));
+    equTitle4() <- NULL;
     // equTitle4() <- GROUP CONCAT number(EquipmentSerial s) IF equipment(s) = e, ', ' ORDER s; // CONCAT не тянет, если много (> 170)
     // по этому через FOR
     FOR (EquipmentSerial s IS EquipmentSerial) AND equipment(s) = e ORDER s DO 
