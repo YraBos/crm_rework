@@ -9,13 +9,34 @@ EXTEND FORM dialogAgreements
     PROPERTIES(o) READONLY differenceSumPaid AFTER paidPayment(o)
 ;
 
-EXTEND FORM paymentProcessDasboard
-    PROPERTIES (p) READONLY uid 
-    PROPERTIES (e) READONLY uid
-;
+//EXTEND FORM paymentProcessDasboard
+//    PROPERTIES (p) READONLY uid 
+//    PROPERTIES (e) READONLY uid
+//;
 
 DESIGN dialogAgreements {
     PROPERTY (paidPayment(o)) {caption = 'Оплачено по факт'; charWidth = 10;}
     PROPERTY (differenceSumPaid(o)) {charWidth = 10;}
 }
 
+// Справочник-заготовка для подстановки в назначение платежа
+CLASS dirPayment 'Платежи, примечание';
+name 'Наименование' = DATA STRING[100] (dirPayment);
+ 
+FORM viewDP 'Платежи, примечание' OBJECTS o = dirPayment PROPERTIES (o) READONLY name PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE ORDERS name(o);
+FORM editDP OBJECTS o = dirPayment PANEL PROPERTIES (o) name EDIT dirPayment OBJECT o;
+onListDP 'Примечание' (Payment p) { DIALOG viewDP OBJECTS o INPUT DO note(p) <- name(o); }  
+
+// Справочник-заготовка для подстановки в назначение платежа
+CLASS dirExpense 'Расходы, примечание';
+name 'Наименование' = DATA STRING[100] (dirExpense);
+ 
+FORM viewDE 'Расходы, примечание' OBJECTS o = dirExpense PROPERTIES (o) READONLY name PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE ORDERS name(o);
+FORM editDE OBJECTS o = dirExpense PANEL PROPERTIES (o) name EDIT dirExpense OBJECT o;
+onListDE 'Примечание' (Expense e) { DIALOG viewDE OBJECTS o INPUT DO note(e) <- name(o); }  
+
+
+EXTEND FORM paymentProcessDasboard
+    PROPERTIES (p) onListDP TOOLBAR
+    PROPERTIES (e) onListDE TOOLBAR 
+;
