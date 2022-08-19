@@ -1,0 +1,170 @@
+MODULE RestApiMain;
+
+REQUIRE RestApiXmlIssue, RestApiXmlTracker, RestApiXmlStatus, RestApiXmlActivity, RestApiXmlTimeEntry, RestApiXmlProject,
+        ProjectRedmine, CustomerTimeNew, Utils;
+
+NAMESPACE Project;
+
+chkFio  (STRING name) = GROUP MAX (Employee e) IF name(e) = name;
+chkProject (STRING cid,External e) = GROUP MAX (Project p) IF id(p) = STRING[15](cid) AND external(p)=e;
+
+onRestApiProject 'Импорт проектов' (External e) {
+   NEWSESSION {
+        LOCAL f = XMLFILE ();
+        LOCAL oc = Customer ();
+        EXTERNAL HTTP GET url(e) + '/projects.xml' TO f;    
+        IMPORT RestApiProjects FROM f();
+         FOR [GROUP MIN INTEGER i BY RestApiXmlProject.id(i)](STRING[15] id) AND id != '' AND NOT project(id, e) DO NEW p = Project {
+             id(p) <- id;
+             external(p) <- e;
+         }
+         FOR Project p = project(STRING[15](RestApiXmlProject.id(INTEGER i)), e) AND RestApiXmlProject.id(i) DO {
+             name(p) <- RestApiXmlProject.name(i);
+             identifier(p) <- RestApiXmlProject.identifier(i);
+             inactive(p) <- IF RestApiXmlProject.status(i)='1' THEN NULL ELSE TRUE;
+             IF isISubstring(name(e),'FIT') THEN {
+                customer(p) <- GROUP MAX Customer o IF isISubstring(name(o),'FIT'); 
+             }
+         }
+         FOR external(Project p) == e AND NOT [GROUP SUM 1 IF imported(INTEGER i) BY STRING[15](RestApiXmlProject.id(i))](id(p)) DO {
+             DELETE p;
+         }
+         APPLY;
+   }
+}
+
+onRestApiTracker 'Импорт трекеров' (External e) {
+    NEWSESSION {
+        LOCAL f = XMLFILE ();
+        EXTERNAL HTTP GET url(e) + '/trackers.xml' TO f;    
+        IMPORT RestApiTrackers FROM f();
+        FOR [GROUP MIN INTEGER i BY RestApiXmlTracker.name(i)](STRING[100] name) AND name != '' AND NOT tracker(name) DO NEW s = Tracker {
+            name(s) <- name;
+        }
+        APPLY ;
+    }
+}
+
+onRestApiStatus 'Импорт статусов' (External e) {
+    NEWSESSION  {
+        LOCAL f = XMLFILE ();
+        EXTERNAL HTTP GET url(e) + '/issue_statuses.xml' TO f;    
+        IMPORT RestApiIssueStatuses FROM f();               
+        FOR [GROUP MIN INTEGER i BY RestApiXmlStatus.name(i)](STRING[100] name) AND name != '' AND NOT issueStatus(name) DO NEW s = IssueStatus {
+             name(s) <- name;
+        }
+        FOR name(IssueStatus s) = RestApiXmlStatus.name(INTEGER i) DO {
+            id(e, IssueStatus se) <- NULL WHERE id(e, se) = INTEGER(RestApiXmlStatus.id(i));
+            id(e, s) <- INTEGER(RestApiXmlStatus.id(i));
+        }
+        APPLY ;
+   }
+}
+
+onRestApiActivity 'Импорт признаков деятельности' (External e) {
+    NEWSESSION {
+        LOCAL f = XMLFILE ();
+        EXTERNAL HTTP GET url(e) + '/enumerations/time_entry_activities.xml' TO f;
+        IMPORT RestApiActivity FROM f();
+        FOR [GROUP MIN INTEGER i BY RestApiXmlActivity.name(i)](STRING[100] name) AND name != '' AND NOT activity(name) DO NEW s = Activity {
+            name(s) <- name;
+        }
+        APPLY;
+    }    
+}
+
+onRestApiIssue 'Импорт задач' (External e,STRING cmd) {
+    NEWSESSION {
+        LOCAL f = XMLFILE ();
+        LOCAL imax, noffset = INTEGER ();
+        EXTERNAL HTTP GET url(e) + cmd + '&limit=1&offset=0' TO f; // определяем количество записей в БД - total_count
+        IMPORT RestApiIssues XML FROM f();
+        imax() <- divideInteger(RestApiXmlIssue.total_count(),100) + (IF mod(RestApiXmlIssue.total_count(),100) > 0 THEN 1 ELSE 0);
+        imax() <- OVERRIDE imax(), 0;
+        IF imax() = 0 THEN RETURN ;
+        noffset() <- 0;
+        FOR iterate(INTEGER i2,1,imax()) DO {
+            EXTERNAL HTTP GET url(e) + cmd + '&limit=100&offset=' + trim(toChar(noffset(),'999999')) TO f;
+            IMPORT  RestApiIssues XML FROM f();
+        // ----- ЗАПОЛНЕНИЕ ЗАДАЧ -----
+            FOR INTEGER ii = [GROUP MIN INTEGER i BY RestApiXmlIssue.id(i)](STRING[15] id) AND 
+                                id != '' AND NOT issue(id, e) AND chkFio(RestApiXmlIssue.name5(ii)) DO NEW s = Issue {
+                id(s) <- id;
+                external(s) <- e;
+            }
+            FOR Issue s = issue(RestApiXmlIssue.id(INTEGER i), e) AND 
+                                RestApiXmlIssue.id(i) AND chkFio(RestApiXmlIssue.name5(i)) DO {
+                project(s)          <- project(RestApiXmlIssue.id1(i), e);
+                name(s)             <- ISTRING[500](RestApiXmlIssue.subject(i));
+                description(s)      <- RestApiXmlIssue.description(i);
+                dateTo(s)           <- DATE(RestApiXmlIssue.due_date(i));
+                dateTimeCreated(s)  <- DATETIME(RestApiXmlIssue.created_on(i));
+                dateTimeUpdated(s)  <- DATETIME(RestApiXmlIssue.updated_on(i));
+                dateFrom(s)         <- RestApiXmlIssue.start_date(i);
+                doneRatio(s)        <- INTEGER(RestApiXmlIssue.done_ratio(i));
+                estimatedHours(s)   <- NUMERIC[7,2](RestApiXmlIssue.estimated_hours(i));
+                author(s)           <- NULL;
+                assignedTo(s)       <- GROUP MAX Employee m IF name(m) = RestApiXmlIssue.name5(i);
+                tracker(s)          <- GROUP MAX Tracker t IF name(t) = RestApiXmlIssue.name1(i);
+                status(s)           <- GROUP MAX IssueStatus u IF name(u) = RestApiXmlIssue.name2(i);    
+            }
+        // ----- ЗАПОЛНЕНИЕ ЗАДАЧ -----
+            noffset() <- noffset() + 98;
+        }
+        APPLY ;
+    } 
+}
+
+onRestApiTimeEntry 'Импорт отметок времени' (External e) {
+    NEWSESSION {
+        LOCAL f = XMLFILE ();
+        LOCAL imax, noffset = INTEGER ();
+        EXTERNAL HTTP GET url(e) + '/time_entries.xml?limit=1&offset=0' TO f; // определяем количество записей в БД - total_count
+        IMPORT RestApiTimeEntries XML FROM f();
+        imax() <- divideInteger(RestApiXmlTimeEntry.total_count(),100) + (IF mod(RestApiXmlTimeEntry.total_count(),100) > 0 THEN 1 ELSE 0);
+        imax() <- OVERRIDE imax(), 0;
+        IF imax() = 0 THEN RETURN ;
+        noffset() <- 0;
+        FOR iterate(INTEGER i2,1,imax()) DO {
+            EXTERNAL HTTP GET url(e) + '/time_entries.xml?limit=100&offset=' + trim(toChar(noffset(),'999999')) TO f;
+            IMPORT RestApiTimeEntries XML FROM f();
+        // ----- ЗАПОЛНЕНИЕ ОТМЕТОК ВРЕМЕНИ -----
+            FOR INTEGER ii = [GROUP MIN INTEGER i IF NOT daysBetweenDates(currentDate(), RestApiXmlTimeEntry.spent_on(i)) > daysImportTimeEntry() 
+                                BY STRING[15](RestApiXmlTimeEntry.id(i))](STRING[15] id) AND 
+                                id != '' AND NOT timeEntry(id, e) AND chkFio(RestApiXmlTimeEntry.name1(ii)) DO NEW s = TimeEntry {
+                id(s) <- id;
+                external(s) <- e;
+            }
+            FOR TimeEntry s = timeEntry(RestApiXmlTimeEntry.id(INTEGER i), e) AND RestApiXmlTimeEntry.id(i) AND 
+                                NOT daysBetweenDates(currentDate(), RestApiXmlTimeEntry.spent_on(i)) > daysImportTimeEntry() DO {
+                hours(s)    <- NUMERIC[7,2](RestApiXmlTimeEntry.hours(i));
+                comments(s) <- RestApiXmlTimeEntry.comments(i);
+                date(s)     <- RestApiXmlTimeEntry.spent_on(i);
+                activity(s) <- activity(RestApiXmlTimeEntry.name2(i));
+                project(s)  <- project(RestApiXmlTimeEntry.id1(i), e);
+                employee(s) <- GROUP MAX Employee m IF name(m) = RestApiXmlTimeEntry.name1(i);
+                issue(s)    <- issue(RestApiXmlTimeEntry.id2(i), e);
+            }
+//        FOR external(TimeEntry s) == e AND NOT daysBetweenDates(currentDate(), date(s)) > daysImportTimeEntry() AND 
+//            NOT [GROUP SUM 1 IF imported(INTEGER i3) AND 
+//              NOT daysBetweenDates(currentDate(), RestApiXmlTimeEntry.spent_on(i3)) > daysImportTimeEntry() 
+//                 BY STRING[15](RestApiXmlTimeEntry.id(i3))](id(s)) DO {
+//            DELETE s;
+//        }
+        // ----- ЗАПОЛНЕНИЕ ОТМЕТОК ВРЕМЕНИ -----
+            noffset() <- noffset() + 98;
+        }
+        APPLY ;
+    }    
+}
+
+onRestApiImport 'Импорт из RM по Rest Api' () {
+    IF NOT external() THEN RETURN ;
+    onRestApiProject(external());
+    onRestApiTracker(external());
+    onRestApiStatus(external());
+    onRestApiActivity(external());
+    onRestApiIssue(external(),'/issues.xml?status_id=closed');
+    onRestApiIssue(external(),'/issues.xml?status_id=open');
+    onRestApiTimeEntry(external());
+}

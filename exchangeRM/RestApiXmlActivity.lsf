@@ -1,0 +1,14 @@
+MODULE RestApiXmlActivity;
+
+id = DATA LOCAL STRING(INTEGER);
+name = DATA LOCAL STRING(INTEGER);
+is_default = DATA LOCAL STRING(INTEGER);
+active = DATA LOCAL STRING(INTEGER);
+type = DATA LOCAL STRING();
+
+FORM RestApiActivity
+PROPERTIES() type ATTR
+
+OBJECTS time_entry_activity = INTEGER
+PROPERTIES(time_entry_activity) id, name, is_default, active
+FILTERS imported(time_entry_activity);

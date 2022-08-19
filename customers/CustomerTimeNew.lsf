@@ -183,9 +183,6 @@ onPrintIssueExt 'Печать' (Customer c, DATE df, DATE dt, IssueStatus st) {
     PRINT printIssueRepExt OBJECTS c = c, df = df, dt = dt, st = st XLS;
 }
 
-openER 'Redmine' (TimeEntry t) {
-    open(issue(t));   
-};
 
 attentionText '' = DATA STRING[50] () CHARWIDTH 50;
 
@@ -194,7 +191,7 @@ EXTEND FORM customerTimeDashboard
     PROPERTIES(c)   PANEL READONLY clientType, clientTypeInfo
     PROPERTIES(is)  READONLY nameStatus, priorityName, separateContract, calcHours
     PROPERTIES  noErrorIssue(), noSeparateContractIssue(), noAgreement(), addDescription(), lenDescription() 
-    PROPERTIES  onPrintIssueExt(c, df, dt, st), openER(t)
+    PROPERTIES  onPrintIssueExt(c, df, dt, st)
     PROPERTIES      READONLY attentionText() 
     PROPERTIES  onOpenHelp() TOOLBAR        
     EVENTS ON INIT {
@@ -239,7 +236,6 @@ DESIGN customerTimeDashboard {
     }
     TOOLBARRIGHT(t) {
         MOVE PROPERTY (attentionText());
-        MOVE PROPERTY (openER(t));
     } 
     head {
         caption = '';
@@ -256,3 +252,32 @@ DESIGN customerTimeDashboard {
     }
 }
 
+chkLuxsoft (STRING url) = isISubstring(url,'luxsoft'); 
+
+openRedmine '' (Issue i) {
+    IF NOT number(i) THEN { MESSAGE 'Задача не определена'; RETURN ; }
+    IF chkLuxsoft(url(external(i))) THEN {
+        open(i);   
+    } ELSE {
+        open(LINK(url(external(i)) + '/issues/' + number(i)));    
+    }
+}
+
+
+openRedmineTimeEntry 'Redmine' (TimeEntry t) { openRedmine(issue(t)); } TOOLBAR; 
+openRedmineIssue 'Redmine' (Issue i) { openRedmine(i); } TOOLBAR ;
+
+externalNameTimeEntry 'Источник' (TimeEntry o) = name(external(o));
+externalNameIssue 'Источник' (Issue o) = name(external(o));
+
+EXTEND FORM customerTimeDashboard
+    PROPERTIES (t) READONLY externalNameTimeEntry
+    PROPERTIES (is) READONLY externalNameIssue
+    PROPERTIES openRedmineTimeEntry(t), openRedmineIssue(is) 
+;
+
+
+DESIGN customerTimeDashboard {
+    PROPERTY (openRedmineTimeEntry(t)) {background = #D7FFD7;}
+    PROPERTY (openRedmineIssue(is))  {background = #D7FFD7;}
+}

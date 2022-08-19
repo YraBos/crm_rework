@@ -1,0 +1,36 @@
+MODULE RestApiXmlTimeEntry;
+
+GROUP project;
+GROUP issue;
+GROUP user;
+GROUP activity;
+
+id = DATA LOCAL STRING[15](INTEGER);
+id1 = DATA LOCAL STRING[15](INTEGER);
+name = DATA LOCAL STRING(INTEGER);
+id2 = DATA LOCAL STRING[15](INTEGER);
+id3 = DATA LOCAL STRING(INTEGER);
+name1 = DATA LOCAL STRING(INTEGER);
+id4 = DATA LOCAL STRING(INTEGER);
+name2 = DATA LOCAL STRING(INTEGER);
+hours = DATA LOCAL STRING(INTEGER);
+comments = DATA LOCAL STRING(INTEGER);
+spent_on = DATA LOCAL DATE(INTEGER);
+created_on = DATA LOCAL STRING(INTEGER);
+updated_on = DATA LOCAL STRING(INTEGER);
+total_count = DATA LOCAL INTEGER ();
+offset = DATA LOCAL STRING();
+limit = DATA LOCAL STRING();
+type = DATA LOCAL STRING();
+
+FORM RestApiTimeEntries
+PROPERTIES() total_count ATTR, offset ATTR, limit ATTR, type ATTR
+
+OBJECTS time_entry = INTEGER
+
+PROPERTIES(time_entry) id, hours, comments, spent_on, created_on, updated_on
+PROPERTIES(time_entry) IN project id1 EXTID 'id' ATTR, name ATTR
+FILTERS imported(time_entry)
+PROPERTIES(time_entry) IN issue id2 EXTID 'id' ATTR
+PROPERTIES(time_entry) IN user id3 EXTID 'id' ATTR, name1 EXTID 'name' ATTR
+PROPERTIES(time_entry) IN activity id4 EXTID 'id' ATTR, name2 EXTID 'name' ATTR;

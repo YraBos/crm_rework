@@ -1,10 +1,11 @@
 MODULE ProjectRedmineNew;
 
-REQUIRE ImportRmExt;
+REQUIRE ImportRmExt, RestApiMain;
 
 NAMESPACE Project;
 
 importExternalNew 'Импорт из RM' () {
+    IF NOT external() THEN RETURN ;
     importProject(external());
     importTracker(external());
     importIssueStatus(external());
