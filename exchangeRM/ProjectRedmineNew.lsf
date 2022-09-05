@@ -1,6 +1,6 @@
 MODULE ProjectRedmineNew;
 
-REQUIRE ImportRmExt, RestApiMain;
+REQUIRE ImportRmExt;
 
 NAMESPACE Project;
 

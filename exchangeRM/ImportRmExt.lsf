@@ -6,44 +6,47 @@ NAMESPACE Project;
 
 importRmExt 'Импорт отд. полей' (External e) {
     NEWSESSION {
-        // импорт приоритета и метки отдельного договора
-        // -----------------------------------------------------------------------------------------------  
-        LOCAL id        = INTEGER(INTEGER);             // номер задачи в РМ
-        LOCAL fid       = INTEGER(INTEGER);             // id от custom_fields
-        LOCAL fvalue    = STRING[1](INTEGER);           // значение = '1' если отдельный договор
-        LOCAL pvalue    = STRING[15](INTEGER);          // название приоритета
-
+        LOCAL id = INTEGER(INTEGER);             
+        LOCAL nid1, nid2 = INTEGER ();
+        LOCAL ctype, cname = STRING(INTEGER);
         LOCAL file = FILE ();
-        EXTERNAL SQL path(e) EXEC 
-                    'SELECT issues.id, f.id AS fid,v.value AS fvalue, e.name AS pvalue ' +
-                    'FROM issues ' + 
-                    'LEFT JOIN custom_values v ON v.customized_type = \'Issue\' AND v.customized_id = issues.id ' + 
-                    'LEFT JOIN custom_fields f ON v.custom_field_id = f.id ' +				
-                    'LEFT JOIN enumerations e ON issues.priority_id = e.id AND e.type = \'IssuePriority\' '  
-            TO file;
-        IMPORT TABLE FROM file() TO id, fid, fvalue, pvalue;
-        FOR Issue s = issue(STRING[15](id(INTEGER i)), e) AND id(i) DO {
-            IF fid(i) = 3 THEN {
-                separateContract(s) <- NULL; 
-                IF fvalue(i) == '1' THEN separateContract(s) <- TRUE;    
-            }
-            priorityName(s) <- pvalue(i);
-        }   
-        // импорт количества времени, которое не должно быть выставлено клиенту
-        // -----------------------------------------------------------------------------------------------  
-        EXTERNAL SQL path(e) EXEC
-                    'SELECT t.id, v.value AS pvalue ' + 
+        EXTERNAL SQL path(e) EXEC 'SELECT id, type, name FROM custom_fields ' TO file;
+        IMPORT TABLE FROM file() TO id, ctype, cname;
+        FOR imported(INTEGER i) AND id(i) AND ctype(i) = 'IssueCustomField' AND cname(i) = 'По отдельному договору' DO nid1() <- id(i); 
+        FOR imported(INTEGER i) AND id(i) AND ctype(i) = 'TimeEntryCustomField' AND cname(i) = 'Не выставлять клиенту (часов)' DO nid2() <- id(i);
+        // по отдельному договору
+        IF nid1() THEN {
+            LOCAL svalue = STRING[1](INTEGER);
+            LOCAL sname = STRING[50](INTEGER);
+            EXTERNAL SQL path(e) EXEC
+                'SELECT issues.id,v.value,e.name ' +
+                    'FROM issues ' +
+                    'LEFT JOIN custom_values v ON v.customized_type = \'Issue\' AND v.customized_id = issues.id AND v.custom_field_id=$1' + 
+                    'LEFT JOIN enumerations  e ON issues.priority_id = e.id AND e.type = \'IssuePriority\' '
+                    PARAMS nid1()
+                    TO file;
+            IMPORT TABLE FROM file() TO id,svalue,sname;
+            FOR Issue s = issue(STRING[15](id(INTEGER i)), e) AND id(i) DO {
+                IF svalue(i) = '1' THEN separateContract(s) <- TRUE ; ELSE separateContract(s) <- NULL; 
+                priorityName(s) <- STRING[15](sname(i));
+            }   
+        }
+        // не выставлять клиенту часов
+        IF nid2() THEN {
+            LOCAL dhours = STRING(INTEGER);
+            EXTERNAL SQL path(e) EXEC
+                'SELECT t.id, v.value ' + 
                     'FROM time_entries t, custom_values v ' +
-                    'WHERE v.customized_id = t.id AND v.customized_type = \'TimeEntry\' AND v.custom_field_id = 7 AND v.value IS NOT NULL AND length(trim(v.value)) > 0'
-            TO file;                           
-        IMPORT TABLE FROM file() TO id, pvalue;
-        FOR TimeEntry t = timeEntry(STRING[15](id(INTEGER i)), e) AND id(i) DO {
-            discountHours(t) <- NUMERIC[5,2](pvalue(i));    
+                    'WHERE v.customized_id=t.id AND v.customized_type=\'TimeEntry\' AND v.custom_field_id=$1 AND v.value IS NOT NULL' 
+                PARAMS nid2()
+                TO file;                           
+            IMPORT TABLE FROM file() TO id, dhours;
+            FOR TimeEntry t = timeEntry(STRING[15](id(INTEGER i)), e) AND id(i) DO {
+                IF dhours(i) THEN discountHours(t) <- NUMERIC[5,2](dhours(i)); ELSE discountHours(t) <- NULL;     
+            }
         }
         // заполнение расширений для задач - не сбрасываемые при обновлении изменения 
-        // -----------------------------------------------------------------------------------------------
         onFillIssueExtension();
-        // -----------------------------------------------------------------------------------------------
         APPLY;        
     }
     
