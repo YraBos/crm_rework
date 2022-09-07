@@ -14,9 +14,11 @@ document 'Документ' = DATA STRING[20] (MSDFinance); // ndok
 code 'Код' = DATA STRING[4] (MSDFinance); // kod
 operation 'КО' = DATA STRING[2] (MSDFinance); // kop
 omes 'Месяц' = DATA STRING[8] (MSDFinance); // omes
-// prix, rasx, saldo - игнорируем
 source 'Источник данных' = DATA STRING[20]  (MSDFinance); // нет аналога
 update 'Дата обновления информации' = DATA DATE (MSDFinance); // нет аналога
+
+// prix, rasx, saldo - игнорируем, их заменяет moveBYN, moveUSD
+// memo - игнорируем, по жизни пустое, иначе надо будет выводить, как табло
 
 INDEX date(MSDFinance o);
 
