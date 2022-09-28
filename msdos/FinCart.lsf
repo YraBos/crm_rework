@@ -22,77 +22,42 @@ update 'Дата обновления информации' = DATA DATE (MSDFina
 
 INDEX date(MSDFinance o);
 
-path 'Каталог' = DATA LOCAL STRING ();
-
-FORM getdir 'Выбор каталога'
-    OBJECTS path = STRING PANEL
-    PROPERTIES path = VALUE(path)
-    EVENTS ON INIT {
-        SEEK getdir.path = 'e:/fort';
-    }
-    EVENTS ON OK {
-        path() <- path;
-    }
-;
-
-DESIGN getdir {
-    OBJECTS {
-        width = 300;
-        height = 40;
-        NEW cnt {
-            fill = 1;
-            MOVE PROPERTY (path) {fontSize=16;}
-        }
-    }
-}   
-
-onImportFin 'Импорт' (STRING fname, source) {
-    LOCAL data = DATE (INTEGER);
-    LOCAL naim, ndok, prim, prizn, kod, kop, omes = STRING (INTEGER);
-    LOCAL prix, rasx, saldo = NUMERIC[10,2] (INTEGER);
-    LOCAL upd = DATE (); upd() <- currentDate();
-    LOCAL impfile = FILE ();
-    DELETE MSDFinance m WHERE m IS MSDFinance AND source(m) = source;
-    READ fname TO impfile;
-    IMPORT DBF CHARSET 'CP866' FROM impfile() TO data, naim, ndok, prim, prizn, kod, kop, omes, prix, rasx, saldo;
-    FOR imported(INTEGER i) DO NEW o = MSDFinance {
-        source(o) <- source;
-        update(o) <- upd();
-        date(o) <- data(i);
-        name(o) <- STRING[200](naim(i));
-        moveBYN(o) <- IF source = 'balrub' THEN (IF prix(i) != 0 THEN prix(i) ELSE -rasx(i)) ELSE NULL;
-        moveUSD(o) <- IF source = 'bal'    THEN (IF prix(i) != 0 THEN prix(i) ELSE -rasx(i)) ELSE NULL;
-        document(o) <- STRING[20](ndok(i));
-        note(o) <- STRING[100](prim(i));
-        sign(o) <- STRING[25](prizn(i));
-        code(o) <- STRING[4](kod(i));
-        operation(o) <- STRING[2](kop(i));
-        omes(o) <- STRING[8](omes(i));      
-    }
-}
-
-onUpdateFin 'Обновление' () {
-    NEWSESSION {
-        DIALOG getdir;
-        IF NOT path() THEN {
-            MESSAGE 'Каталог импорта данных не определен\nОперация импорта данных прервана';
-            RETURN;
-        }
-        fileExists(path() + '/BAL.DBF');
-        IF NOT fileExists() THEN {
-            MESSAGE 'Импортируемый файл < BAL.DBF > не найден\nОперация импорта данных прервана';
+onImportFin 'Импорт' (STRING[20] source) {
+    INPUT dbfile = NAMEDFILE DO {;
+        IF NOT (upper(name(dbfile)) = source AND upper(extension(dbfile)) = 'DBF') THEN {
+            MESSAGE 'Не ожидаемое имя файла: ' + source + '.DBF\n' + 
+                    '-------------------------------------\n' +
+                    'Выбранный файл: ' + name(dbfile) + '.' + extension(dbfile);
             RETURN;
         }  
-        fileExists(path() + '/BALRUB.DBF');
-        IF NOT fileExists() THEN {
-            MESSAGE 'Импортируемый файл < BALRUB.DBF > не найден\nОперация импорта данных прервана';
-            RETURN;
-        }
-        onImportFin(path() + '/BAL.DBF','bal');  
-        onImportFin(path() + '/BALRUB.DBF','balrub');  
-        APPLY ;
-    }       
+        NEWSESSION {         
+            LOCAL data = DATE (INTEGER);
+            LOCAL naim, ndok, prim, prizn, kod, kop, omes = STRING (INTEGER);
+            LOCAL prix, rasx, saldo = NUMERIC[10,2] (INTEGER);
+            LOCAL upd = DATE (); upd() <- currentDate();
+            DELETE MSDFinance m WHERE m IS MSDFinance AND source(m) = source;
+            IMPORT DBF CHARSET 'CP866' FROM dbfile TO data, naim, ndok, prim, prizn, kod, kop, omes, prix, rasx, saldo;
+            FOR imported(INTEGER i) DO NEW o = MSDFinance {
+                source(o) <- STRING[20](source);
+                update(o) <- upd();
+                date(o) <- data(i);
+                name(o) <- STRING[200](naim(i));
+                moveBYN(o) <- IF source = 'BALRUB' THEN (IF prix(i) != 0 THEN prix(i) ELSE -rasx(i)) ELSE NULL;
+                moveUSD(o) <- IF source = 'BAL'    THEN (IF prix(i) != 0 THEN prix(i) ELSE -rasx(i)) ELSE NULL;
+                document(o) <- STRING[20](ndok(i));
+                note(o) <- STRING[100](prim(i));
+                sign(o) <- STRING[25](prizn(i));
+                code(o) <- STRING[4](kod(i));
+                operation(o) <- STRING[2](kop(i));
+                omes(o) <- STRING[8](omes(i));
+            }
+            APPLY ;
+        }             
+    }
 }
+
+onUpdateBalRub 'Импорт BYN' () {onImportFin('BALRUB');}
+onUpdateBal 'Импорт USD' () {onImportFin('BAL');}
 
 saldoBYN 'Сальдо, BYN'  = GROUP SUM moveBYN(MSDFinance o) MATERIALIZED ;
 saldoUSD 'Сальдо, USD'  = GROUP SUM moveUSD(MSDFinance o) MATERIALIZED ;
@@ -103,7 +68,7 @@ FORM viewFinance 'Учет финансов'
     OBJECTS b = MSDFinance PANEL 
     PROPERTIES (b) READONLY update
     PROPERTIES () READONLY saldoBYN, saldoUSD
-    PROPERTIES onUpdateFin() TOOLBAR 
+    PROPERTIES onUpdateBalRub() TOOLBAR , onUpdateBal() TOOLBAR 
     FILTERS b=o
     ORDERS date(o) 
 ;
