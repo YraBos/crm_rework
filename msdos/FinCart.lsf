@@ -64,19 +64,39 @@ saldoUSD 'Сальдо, USD'  = GROUP SUM moveUSD(MSDFinance o) MATERIALIZED ;
 
 FORM viewFinance 'Учет финансов'
     OBJECTS o = MSDFinance LAST 
-    PROPERTIES (o) READONLY date, document, name, moveBYN, moveUSD, note, sign, code, operation, omes, source
+    PROPERTIES (o) READONLY date, document, name, moveBYN, moveUSD, note, sign, code, operation, omes, source, update
     OBJECTS b = MSDFinance PANEL 
-    PROPERTIES (b) READONLY update
+    PROPERTIES (b) READONLY name, note 
     PROPERTIES () READONLY saldoBYN, saldoUSD
     PROPERTIES onUpdateBalRub() TOOLBAR , onUpdateBal() TOOLBAR 
-    FILTERS b=o
+    FILTERS b=o 
     ORDERS date(o) 
 ;
 
 DESIGN viewFinance {
-    PROPERTY (saldoUSD()) {background=#D7D7FF;}
-    PROPERTY (saldoBYN()) {background=#D7FFD7;}
-    PROPERTY (update(b)) {background=#E8E8E8;}
+    OBJECTS {
+        NEW cntmain {
+            horizontal = TRUE ;
+            fill = 0.01;
+            NEW cnt1 {
+                fill = 1;
+                caption = 'Сальдо';
+                foreground = #000000;
+                horizontal = FALSE ;
+                MOVE PROPERTY (saldoBYN()) {background=#D7FFD7; caption = 'BYN';}
+                MOVE PROPERTY (saldoUSD()) {background=#D7D7FF; caption = 'USD';}
+            }
+            NEW cnt2 {
+                fill = 10;
+                caption = 'Информация';
+                foreground = #000000;
+                horizontal = FALSE ;
+                MOVE PROPERTY (name(b));
+                MOVE PROPERTY (note(b));
+            }
+        }
+        MOVE BOX(o);
+    }   
 }
 
 NAVIGATOR {
