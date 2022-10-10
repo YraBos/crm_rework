@@ -22,6 +22,19 @@ update 'Дата обновления информации' = DATA DATE (MSDFina
 
 INDEX date(MSDFinance o);
 
+saldoBYN 'Сальдо, BYN'  = GROUP SUM moveBYN(MSDFinance o) MATERIALIZED ;
+saldoUSD 'Сальдо, USD'  = GROUP SUM moveUSD(MSDFinance o) MATERIALIZED ;
+
+FORM viewFinance 'Учет финансов'
+    OBJECTS o = MSDFinance LAST 
+    PROPERTIES (o) READONLY date, document, name, moveBYN, moveUSD, note, sign, code, operation, omes, source, update
+    OBJECTS b = MSDFinance PANEL 
+    PROPERTIES (b) READONLY name, note 
+    PROPERTIES () READONLY saldoBYN, saldoUSD
+    FILTERS b=o 
+    ORDERS date(o) 
+;
+
 onImportFin 'Импорт' (STRING[20] source) {
     INPUT dbfile = NAMEDFILE DO {;
         IF NOT (upper(name(dbfile)) = source AND upper(extension(dbfile)) = 'DBF') THEN {
@@ -52,6 +65,8 @@ onImportFin 'Импорт' (STRING[20] source) {
                 omes(o) <- STRING[8](omes(i));
             }
             APPLY ;
+            
+            SEEK viewFinance.o;
         }             
     }
 }
@@ -59,18 +74,8 @@ onImportFin 'Импорт' (STRING[20] source) {
 onUpdateBalRub 'Импорт BYN' () {onImportFin('BALRUB');}
 onUpdateBal 'Импорт USD' () {onImportFin('BAL');}
 
-saldoBYN 'Сальдо, BYN'  = GROUP SUM moveBYN(MSDFinance o) MATERIALIZED ;
-saldoUSD 'Сальдо, USD'  = GROUP SUM moveUSD(MSDFinance o) MATERIALIZED ;
-
-FORM viewFinance 'Учет финансов'
-    OBJECTS o = MSDFinance LAST 
-    PROPERTIES (o) READONLY date, document, name, moveBYN, moveUSD, note, sign, code, operation, omes, source, update
-    OBJECTS b = MSDFinance PANEL 
-    PROPERTIES (b) READONLY name, note 
-    PROPERTIES () READONLY saldoBYN, saldoUSD
+EXTEND FORM viewFinance
     PROPERTIES onUpdateBalRub() TOOLBAR , onUpdateBal() TOOLBAR 
-    FILTERS b=o 
-    ORDERS date(o) 
 ;
 
 DESIGN viewFinance {
