@@ -1,0 +1,92 @@
+MODULE EquipmentDasboardChange;
+
+REQUIRE EquipmentDashboardNew, Time;
+
+NAMESPACE Equipment;
+
+// Сохраняем в EquipmentSerial - данные о последнем изменении
+// Сохраняем в EquipmentSerialChange - все изменения
+CLASS EquipmentSerialChange 'История замены серийных номеров';
+equipmentSerial 'ID' = DATA EquipmentSerial (EquipmentSerialChange) AUTOSET ;
+numberChange 'Замененный номер' = DATA ISTRING[250] (EquipmentSerialChange) CHARWIDTH 15;
+numberNew 'Новый номер' = DATA ISTRING[250] (EquipmentSerialChange) NONULL  CHARWIDTH 15;
+date 'Дата замены' = DATA DATE (EquipmentSerialChange);
+note 'Примечание' = DATA STRING[200] (EquipmentSerialChange);
+
+// потом убрать
+// --------------------------------------------------
+CLASS EquipmentSerialChangeUpdate 'Флаг обновления';
+update 'Обновлено' = DATA BOOLEAN (EquipmentSerialChangeUpdate);
+
+FORM editEquipmentSerialChange 'Замена номера'
+    OBJECTS o = EquipmentSerialChange PANEL 
+    PROPERTIES (o) READONLY date, numberChange
+    PROPERTIES (o) note, numberNew
+    EDIT EquipmentSerialChange OBJECT o
+    EVENTS ON INIT {
+        LOCAL e = EquipmentSerial();
+        e() <- GROUP MAX (EquipmentSerial e) IF e = equipmentSerial(o);
+        numberChange(o) <- number(e());
+        date(o) <- currentDate();
+    }
+    EVENTS ON OK {
+        LOCAL e = EquipmentSerial();
+        e() <- GROUP MAX (EquipmentSerial e) IF e = equipmentSerial(o);
+        number(e()) <- numberNew(o);   
+        numberChange(e()) <- numberChange(o); 
+        note(e()) <- note(o);   
+    }
+;
+
+DESIGN editEquipmentSerialChange {
+    OBJECTS {
+        NEW cnt {
+            MOVE PROPERTY (date(o)) {background=#E6E6E6;}
+            MOVE PROPERTY (numberChange(o)) {caption = 'Заменяемый номер';background=#E6E6E6;}
+            MOVE PROPERTY (numberNew(o));
+            MOVE PROPERTY (note(o));
+        }
+    }
+}
+
+// потом убрать
+// --------------------------------------------------
+onUpdateChangeSerial 'Обновить' () {
+    IF  GROUP MAX (EquipmentSerialChangeUpdate t) IF update(t) THEN {
+        MESSAGE 'Операция выполнена ранее';
+        RETURN ;
+    }
+    FOR (EquipmentSerial es IS EquipmentSerial) AND numberChange(es) DO {
+        IF NOT GROUP MAX EquipmentSerialChange e IF equipmentSerial(e) = es THEN {
+            NEW o = EquipmentSerialChange {
+                equipmentSerial(o) <- es;
+                numberChange(o) <- numberChange(es);
+                numberNew(o) <- number(es);
+                date(o) <- dateChange(es);
+                note(o) <- note(es); 
+            }
+        }
+    }
+    NEW u = EquipmentSerialChangeUpdate {update(u)<-TRUE;} 
+    APPLY ;
+}
+
+EXTEND FORM equipmentDashboard
+    OBJECTS esc = EquipmentSerialChange LAST
+    PROPERTIES (esc) READONLY numberNew, date, numberChange,  note
+    PROPERTIES (esc) NEWSESSION NEW SHOWIF TRUE IF number(n) 
+    PROPERTIES onUpdateChangeSerial() SHOWIF TRUE IF number(n) 
+    FILTERS equipmentSerial(esc) = n 
+;
+
+
+DESIGN equipmentDashboard {
+    serials {
+        MOVE BOX(n);
+        MOVE BOX(esc) {fill=0.5;};
+        MOVE BOX(l);
+    }
+    TOOLBARBOX(esc) {
+        MOVE PROPERTY (onUpdateChangeSerial());
+    }
+}

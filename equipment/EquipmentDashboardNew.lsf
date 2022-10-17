@@ -4,31 +4,9 @@ MODULE EquipmentDashboardNew;
 REQUIRE CustomerNew, EquipmentDashboard, ContractSubject, CustomerAttachment, TempClassReports, Time;
 
 // --- задач - 13003, 12704
-numberChange 'Замена номера' = DATA ISTRING[250] (EquipmentSerial) CHARWIDTH 15;
+numberChange 'Замененный номер' = DATA ISTRING[250] (EquipmentSerial) CHARWIDTH 15;
 dateChange 'Дата замены' = DATA DATE (EquipmentSerial);
 note 'Примечание' = DATA STRING[200] (EquipmentSerial);
-
-FORM editNumberChange 'Редактирование замен'
-    OBJECTS n = EquipmentSerial PANEL  
-    PROPERTIES(n) number, numberChange, dateChange, note 
-    EDIT EquipmentSerial OBJECT n
-    EVENTS ON INIT {
-        IF NOT numberChange(n) THEN {
-            numberChange(n) <- number(n);
-            number(n) <- NULL; 
-        }
-        dateChange(n) <- currentDate(); 
-    }
-; 
-
-DESIGN editNumberChange {
-   BOX(n) {
-        MOVE PROPERTY (number(n)) {caption = 'Новый номер';} 
-        MOVE PROPERTY (dateChange(n));
-        MOVE PROPERTY (numberChange(n)) {caption = 'Старый номер';}
-        MOVE PROPERTY (note(n)); 
-   } 
-}
 
 createdDate 'Дата' (EquipmentSerial s) = createdDate(equipment(s)); // дата создания ключа
 nameLegalEntity 'Название организации' (EquipmentSerial s) = OVERRIDE ' ' + name(legalEntity(contract(equipment(s)))), '* Не связанные с договором';
@@ -271,7 +249,6 @@ onLoadLic 'Загрузить LIC в БД' (Equipment e) { INPUT f = FILE DO { f
 
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
-    PROPERTIES(n) NEWSESSION EDIT
     PROPERTIES onXlsDataLoad(e,t), onReviseTSD(e), onReviseS2(e), onGenLic(e), onPrintQR(e)
 //    PROPERTIES onLoadLic(e) // только для отладки
     PROPERTIES fltNumber(), clsExprEquipment()
