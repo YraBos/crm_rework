@@ -108,7 +108,7 @@ FORM repTempEQUReport 'Сверка торговых объектов'
   ORDERS pi(o1)   
 ;
 
-// R14583, сверка серийных номеров по договору
+// R14583, сверка серийных номеров по договору (упрощенный отчет)
 onReviseTSD 'Сверка раб. ТСД (упр.)' (Equipment e) {
     newTempClassReports();
     IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN; }
@@ -124,24 +124,21 @@ onReviseTSD 'Сверка раб. ТСД (упр.)' (Equipment e) {
         RETURN; 
     }
     IMPORT XLS NOHEADER FROM file(ot()) AS FILE TO colC = C, colE = E;
-    FOR imported(INTEGER i) AND i > 1 ORDER i DO {
-        colC(i) <- trim(OVERRIDE colC(i),'');
-        IF length(colC(i)) > 0 THEN NEW ob = TempClassReports {
-            cnt()  <- cnt() + 1;
-            number(ob) <- colC(i); 
-            dLast(ob) <- colE(i);
-            os() <- GROUP MAX (EquipmentSerial s) IF number(s) = number(ob);
-            IF os() THEN {
-                pi(ob) <- 2;
-                cnt2() <- cnt2() + 1;
-                found(ob) <- 'ок';
-                oe() <- GROUP MAX (Equipment e1) IF e1 = equipment(os());
-                IF oe() THEN dCreate(ob) <- createdDate(oe());
-            } ELSE {
-                pi(ob) <- 1;
-                cnt1() <- cnt1() + 1;
-                found(ob) <- 'не найден';
-            }
+    FOR imported(INTEGER i) AND i > 1 AND colC(i) ORDER i DO NEW ob = TempClassReports {
+        cnt()  <- cnt() + 1;
+        number(ob) <- colC(i); 
+        dLast(ob) <- colE(i);
+        os() <- GROUP MAX (EquipmentSerial s) IF number(s) = number(ob);
+        IF os() THEN {
+           pi(ob) <- 2;
+           cnt2() <- cnt2() + 1;
+           found(ob) <- 'ок';
+           oe() <- GROUP MAX (Equipment e1) IF e1 = equipment(os());
+           IF oe() THEN dCreate(ob) <- createdDate(oe());
+        } ELSE {
+            pi(ob) <- 1;
+            cnt1() <- cnt1() + 1;
+            found(ob) <- 'не найден';
         }
     }  
 //  SHOW repTempEQUReport; // Отладка

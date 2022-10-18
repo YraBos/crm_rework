@@ -187,19 +187,18 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
         LOCAL colC3 = STRING (INTEGER); 
         LOCAL colE3 = STRING (INTEGER);
         IMPORT XLS NOHEADER FROM file(ox3()) AS FILE TO colC3 = C,colE3 = E;
-        FOR imported(INTEGER i) AND i > 1 ORDER i DO {
-            colC3(i) <- upper(trim(OVERRIDE colC3(i), '')); 
+        FOR imported(INTEGER i) AND i > 1 AND colC3(i) ORDER i DO {
+            colC3(i) <- upper(trim(colC3(i))); 
             colE3(i) <- OVERRIDE colE3(i), ''; 
-            IF length(colC3(i)) > 0 THEN {
-                p6(oRep) <- p6(oRep) + 1;
-                // ищем работающие ключи в Список выданных ключей ТСД и замененные, которых не должно быть
-                err31() <- TRUE; err32() <- NULL; 
-                FOR iterate(INTEGER i2,1,imax2()) AND colE2(i2) = colC3(i) DO {
-                    err31() <- NULL; // работающий ТСД найден в списке выданных ТСД
-                    IF length(colG2(i2)) > 0 THEN err32() <- TRUE; // содержит информацию о замене, так не должно быть
-                }
-                IF err31() THEN {
-                    IF pnote3() THEN pnote3() <- pnote3() + ','; ELSE pnote3() <- '';
+            p6(oRep) <- p6(oRep) + 1;
+            // ищем работающие ключи в Список выданных ключей ТСД и замененные, которых не должно быть
+            err31() <- TRUE; err32() <- NULL; 
+            FOR iterate(INTEGER i2,1,imax2()) AND colE2(i2) = colC3(i) DO {
+                err31() <- NULL; // работающий ТСД найден в списке выданных ТСД
+                IF length(colG2(i2)) > 0 THEN err32() <- TRUE; // содержит информацию о замене, так не должно быть
+            }
+            IF err31() THEN {
+                IF pnote3() THEN pnote3() <- pnote3() + ','; ELSE pnote3() <- '';
                     pnote3() <- pnote3() + colC3(i);
                     t1(oRep) <- (OVERRIDE t1(oRep),'') + colC3(i) + '=' + colE3(i) + '\n';
                     n3() <- n3() (+) 1;
@@ -210,7 +209,6 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
                     n4() <- n4() (+) 1;
                 }
             }
-        }
     } ELSE {
         IF pnote() THEN pnote() <- pnote() + ', ';
         pnote() <- (OVERRIDE pnote(),'') + cRepName3;
