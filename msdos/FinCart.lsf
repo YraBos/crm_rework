@@ -24,13 +24,15 @@ INDEX date(MSDFinance o);
 
 saldoBYN 'Сальдо, BYN'  = GROUP SUM moveBYN(MSDFinance o) MATERIALIZED ;
 saldoUSD 'Сальдо, USD'  = GROUP SUM moveUSD(MSDFinance o) MATERIALIZED ;
+updBYN ', обновлено' = GROUP MAX update(MSDFinance o) IF source(o) = 'BALRUB';
+updUSD ', обновлено' = GROUP MAX update(MSDFinance o) IF source(o) = 'BAL';
 
 FORM viewFinance 'Учет финансов'
     OBJECTS o = MSDFinance LAST 
     PROPERTIES (o) READONLY date, document, name, moveBYN, moveUSD, note, sign, code, operation, omes, source, update
     OBJECTS b = MSDFinance PANEL 
     PROPERTIES (b) READONLY name, note 
-    PROPERTIES () READONLY saldoBYN, saldoUSD
+    PROPERTIES () READONLY saldoBYN, updBYN, saldoUSD, updUSD
     FILTERS b=o 
     ORDERS date(o) 
 ;
@@ -88,8 +90,16 @@ DESIGN viewFinance {
                 caption = 'Сальдо';
                 foreground = #000000;
                 horizontal = FALSE ;
-                MOVE PROPERTY (saldoBYN()) {background=#D7FFD7; caption = 'BYN';}
-                MOVE PROPERTY (saldoUSD()) {background=#D7D7FF; caption = 'USD';}
+                NEW cnt1a { 
+                    horizontal = TRUE ;
+                    MOVE PROPERTY (saldoBYN()) {background=#D7FFD7; caption = 'BYN';}
+                    MOVE PROPERTY (updBYN());              
+                }
+                NEW cnt1b {
+                    horizontal = TRUE ;
+                    MOVE PROPERTY (saldoUSD()) {background=#D7D7FF; caption = 'USD';}
+                    MOVE PROPERTY (updUSD());              
+                }
             }
             NEW cnt2 {
                 fill = 10;
