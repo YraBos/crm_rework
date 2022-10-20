@@ -13,10 +13,6 @@ numberNew 'Новый номер' = DATA ISTRING[250] (EquipmentSerialChange) NO
 date 'Дата замены' = DATA DATE (EquipmentSerialChange);
 note 'Примечание' = DATA STRING[200] (EquipmentSerialChange);
 
-// потом убрать
-// --------------------------------------------------
-CLASS EquipmentSerialChangeUpdate 'Флаг обновления';
-update 'Обновлено' = DATA BOOLEAN (EquipmentSerialChangeUpdate);
 
 FORM editEquipmentSerialChange 'Замена номера'
     OBJECTS o = EquipmentSerialChange PANEL 
@@ -34,6 +30,7 @@ FORM editEquipmentSerialChange 'Замена номера'
         e() <- GROUP MAX (EquipmentSerial e) IF e = equipmentSerial(o);
         number(e()) <- numberNew(o);   
         numberChange(e()) <- numberChange(o); 
+        dateChange(e()) <- date(o);
         note(e()) <- note(o);   
     }
 ;
@@ -49,33 +46,11 @@ DESIGN editEquipmentSerialChange {
     }
 }
 
-// потом убрать
-// --------------------------------------------------
-onUpdateChangeSerial 'Обновить' () {
-    IF  GROUP MAX (EquipmentSerialChangeUpdate t) IF update(t) THEN {
-        MESSAGE 'Операция выполнена ранее';
-        RETURN ;
-    }
-    FOR (EquipmentSerial es IS EquipmentSerial) AND numberChange(es) DO {
-        IF NOT GROUP MAX EquipmentSerialChange e IF equipmentSerial(e) = es THEN {
-            NEW o = EquipmentSerialChange {
-                equipmentSerial(o) <- es;
-                numberChange(o) <- numberChange(es);
-                numberNew(o) <- number(es);
-                date(o) <- dateChange(es);
-                note(o) <- note(es); 
-            }
-        }
-    }
-    NEW u = EquipmentSerialChangeUpdate {update(u)<-TRUE;} 
-    APPLY ;
-}
 
 EXTEND FORM equipmentDashboard
     OBJECTS esc = EquipmentSerialChange LAST
     PROPERTIES (esc) READONLY numberNew, date, numberChange,  note
     PROPERTIES (esc) NEWSESSION NEW SHOWIF TRUE IF number(n) 
-    PROPERTIES onUpdateChangeSerial() SHOWIF TRUE IF number(n) 
     FILTERS equipmentSerial(esc) = n 
 ;
 
@@ -86,7 +61,40 @@ DESIGN equipmentDashboard {
         MOVE BOX(esc) {fill=0.5;};
         MOVE BOX(l);
     }
-    TOOLBARBOX(esc) {
-        MOVE PROPERTY (onUpdateChangeSerial());
+}
+
+FORM printHistory 'История замен'
+    PROPERTIES equTitle1(), equTitle2(), equTitle3()
+    OBJECTS e = Equipment
+    PROPERTIES (e) createdDate, createdTime, nameCreatedUser, nameContract, nameLegalEntityContract
+    FILTERS customer(e) = filterCustomer()  
+    OBJECTS es = EquipmentSerial
+    PROPERTIES (es) number, dateChange, numberChange, note
+    FILTERS equipment(es) = e, numberChange(es)
+    OBJECTS esc = EquipmentSerialChange
+    PROPERTIES (esc) numberNew, date, numberChange, note
+    FILTERS equipmentSerial(esc) = es 
+    ORDERS createdDate(e), date(esc)
+;
+
+cntChange (Equipment equ) = GROUP SUM 1 IF numberChange(EquipmentSerial es) AND equipment(es) = equ;
+
+onPrintHistory 'История замен' (Equipment e) {
+    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента';  RETURN; }
+    LOCAL ncnt = INTEGER ();
+    FOR (Equipment o IS Equipment) AND customer(o) = filterCustomer() DO ncnt() <- ncnt() (+) cntChange(o); 
+    equTitle1() <- name(filterCustomer());
+    equTitle2() <- toDateDDMMYY(currentDate());
+    equTitle3() <- toChar(ncnt(),'9999');
+    PRINT printHistory XLS;
+}
+
+EXTEND FORM equipmentDashboard
+    PROPERTIES onPrintHistory(e)
+;
+
+DESIGN equipmentDashboard {
+    head2 {
+        MOVE PROPERTY (onPrintHistory(e));
     }
 }
