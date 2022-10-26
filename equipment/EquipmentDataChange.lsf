@@ -1,0 +1,14 @@
+MODULE EquipmentDataChange;
+
+REQUIRE Equipment;
+
+NAMESPACE Equipment;
+
+// Сохраняем в EquipmentSerial - данные о последнем изменении
+// Сохраняем в EquipmentSerialChange - все изменения
+CLASS EquipmentSerialChange 'История замены серийных номеров';
+equipmentSerial 'ID' = DATA EquipmentSerial (EquipmentSerialChange) AUTOSET ;
+numberChange 'Замененный номер' = DATA ISTRING[250] (EquipmentSerialChange) CHARWIDTH 15;
+numberNew 'Новый номер' = DATA ISTRING[250] (EquipmentSerialChange) NONULL  CHARWIDTH 15;
+date 'Дата замены' = DATA DATE (EquipmentSerialChange);
+note 'Примечание' = DATA STRING[200] (EquipmentSerialChange);

@@ -1,0 +1,52 @@
+MODULE ReviseTSDAll;
+
+REQUIRE EquipmentDataExt, EquipmentDataChange, Customer, Time, Utils, CustomerAttachment;
+// Сверка ТСД: 
+// В отчет выбираются все выданные (приобретенные клиентом) ТСД
+// отдельно обрабатывается файл xls "Список работающих ТСД"
+
+subjectTypeCid 'ID тип предмета договора' = DATA SubjectType ();
+customerCid 'ID клиента' = DATA Customer (); 
+
+quantityChange 'Количество замен' (EquipmentSerial s) = 
+                        GROUP SUM 1 IF equipmentSerial(EquipmentSerialChange o) = s;
+
+FORM printReviseTSDAll ''
+    PROPERTIES() title1, title2, title3, title4 PANEL
+    OBJECTS e = Equipment
+    PROPERTIES (e) createdDate, quantitySerial, nameContract, nameLegalEntityContract
+    FILTERS subjectType(e) = subjectTypeCid(), customer(e) = customerCid() 
+    OBJECTS s = EquipmentSerial
+    PROPERTIES (s) number, useDataLast, numberChange, dateChange, note, quantityChange
+    FILTERS equipment(s) = e
+    ORDERS createdDate(e), nameLegalEntityContract(e), useDataLast(s)
+;
+
+onReviseTSDAll '' (Equipment ob) {
+    LOCAL ot = Attachment();
+    LOCAL cnt1,cnt2 = INTEGER ();
+    cnt1() <- 0; cnt2() <- 0;
+    subjectTypeCid() <- subjectType(ob);
+    customerCid() <- customer(ob);
+    FOR (Equipment e IS Equipment) AND customer(e) = customerCid() AND subjectType(e) = subjectTypeCid() 
+                                                                                        ORDER createdDateTime(e) DO {
+        FOR (EquipmentSerial s IS EquipmentSerial) AND equipment(s) = e DO {
+            useDataLast(s) <- NULL;
+            cnt1() <- cnt1() + 1;
+        }
+    }
+    ot() <- GROUP MAX Attachment a IF customer(a) = customerCid() AND name(type(a)) = 'Список работающих ТСД'; 
+    IF ot() THEN {
+        LOCAL colC = STRING[250] (INTEGER);
+        LOCAL colE = DATE (INTEGER);
+        IMPORT XLS NOHEADER FROM file(ot()) AS FILE TO colC = C, colE = E;
+        FOR imported(INTEGER i) AND i > 1 AND colC(i) AND oserial(customer(ob),colC(i)) ORDER i DO {
+            useDataLast(oserial(customer(ob),colC(i))) <- colE(i);
+            cnt2() <- cnt2() + 1; 
+        } // APPLY не выполняем
+    }
+    title1() <- name(customer(ob));
+    title2() <- toDateDDMMYYYY(currentDate());
+    title3() <- 'Выдано всего: ' + toChar(cnt1(),'99999') + ', используется: ' + toChar(cnt2(),'99999');
+    PRINT printReviseTSDAll XLS;
+}

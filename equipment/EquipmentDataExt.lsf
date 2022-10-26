@@ -1,0 +1,18 @@
+MODULE EquipmentDataExt;
+
+REQUIRE Equipment; 
+
+NAMESPACE EquipmentDashboardNew; // криво, конечно, по названию, но так уже сложилось
+
+useDataLast 'Дата последнего использования' = DATA DATE (EquipmentSerial);
+
+// --- задач - 13003, 12704
+numberChange 'Замененный номер' = DATA ISTRING[250] (EquipmentSerial) CHARWIDTH 15;
+dateChange 'Дата замены' = DATA DATE (EquipmentSerial);
+note 'Примечание' = DATA STRING[200] (EquipmentSerial);
+
+// заголовки отчета
+title1 = DATA LOCAL TEXT (); title2 = DATA LOCAL TEXT (); title3 = DATA LOCAL TEXT ();  title4 = DATA LOCAL TEXT (); 
+
+oserial 'ID s/n' (Customer c, STRING sn) = 
+    GROUP MAX (EquipmentSerial s) IF number(s) = sn AND customer(equipment(s)) = c; 
