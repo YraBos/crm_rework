@@ -1,164 +1,8 @@
 MODULE EquipmentDashboardNew;
 
 // можно подключить модуль для загрузки для отладки серийных номеров EquimpentImportSerial (скопировать из H:\Fusion_Arc\Old_Added\equipment\)
-REQUIRE CustomerNew, EquipmentDashboard, ContractSubject, CustomerAttachment, 
-        EquipmentDataExt, TempClassReports, Time, ReviseTSDAll;
+REQUIRE EquipmentDashboard, EquipmentDataImport, EquipmentReports, Time;
 
-createdDate 'Дата' (EquipmentSerial s) = createdDate(equipment(s)); // дата создания ключа
-nameLegalEntity 'Название организации' (EquipmentSerial s) = OVERRIDE ' ' + name(legalEntity(contract(equipment(s)))), '* Не связанные с договором';
-sumCustomer 'Итого по клиенту' (Customer c, SubjectType t) = GROUP SUM 1 IF subjectType(equipment(EquipmentSerial s)) = t BY customer(equipment(s));  
-nameAgrContract 'Название соглашения или контракта' (EquipmentSerial s) =
-            OVERRIDE description(agreement(equipment(s))), description(contract(equipment(s))), '';
- 
-FORM repOutSerials 'Данные'
-    OBJECTS c = Customer PROPERTIES name(c) PANEL
-    OBJECTS t = SubjectType PROPERTIES name(t), sumCustomer(c, t) PANEL
-    OBJECTS s = EquipmentSerial PROPERTIES(s) nameLegalEntity, createdDate, number, dateChange, numberChange, note, nameAgrContract
-    FILTERS customer(equipment(s)) = c, subjectType(equipment(s)) = t
-    ORDERS nameLegalEntity(s),createdDate(s) 
-;
-
-// Импортируемые данные
-CLASS XlsDataLoad 'Импорт данных' { 
-    p1 ' 1. Список выданных ключей ТСД (из отчета)', 
-    p2 ' 2. Список работающих ТСД (из XLS, посл. подключения)', 
-    p3 ' 3. Список всех подключений ТСД (из XLS, все подключения)'
-}
-
-FORM viewXlsDataLoad 'Импорт данных'
-    OBJECTS ob = XlsDataLoad
-    PROPERTIES(ob) READONLY staticCaption
-    ORDERS staticCaption(ob) 
-;
-
-DESIGN viewXlsDataLoad { PROPERTY (staticCaption(ob)) {caption = 'Название отчета';}}
-
-// Импорт данных из разных источников
-onXlsDataLoad 'Импорт данных' (Equipment e,SubjectType t) {
-    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN ; } 
-    LOCAL ov  = XlsDataLoad();
-    LOCAL ps  = STRING[3] ();
-    DIALOG viewXlsDataLoad OBJECTS ob INPUT DO { ov() <- ob; }
-    IF NOT ov() THEN RETURN;
-    LOCAL frep = FILE(); 
-    LOCAL ot = Attachment();
-    LOCAL at = AttachmentType();
-    LOCAL cNameType = STRING ();
-    ps() <- substr(staticCaption(ov()),1,3);
-    // -------------------------------------------------------------------------------
-    IF ps() = ' 1.' THEN {
-        IF NOT name(t) = 'LST ТСД' THEN { // просто отобразим отчет и выйдем 
-            PRINT repOutSerials OBJECTS c = customer(e),t = t XLS; RETURN; 
-        } 
-        PRINT repOutSerials OBJECTS c = customer(e),t = t XLS TO frep; 
-        open(frep());
-        cNameType() <- 'Список выданных ключей ТСД';
-    } 
-    // -------------------------------------------------------------------------------
-    ELSE IF ps() = ' 2.' THEN {
-        INPUT fx = FILE DO frep() <- fx;
-        IF NOT frep() THEN { MESSAGE 'Выполнение операции отменено'; RETURN; }    
-        cNameType() <- 'Список работающих ТСД';
-    }
-    // -------------------------------------------------------------------------------
-    ELSE IF ps() = ' 3.' THEN {
-        INPUT fx = FILE DO frep() <- fx;
-        IF NOT frep() THEN { MESSAGE 'Выполнение операции отменено'; RETURN; }    
-        cNameType() <- 'Список всех подключений ТСД';
-    } ELSE {
-        MESSAGE 'Неизвестный отчет';
-        RETURN;
-    }
-    // -------------------------------------------------------------------------------
-    // ищем тип предложения, если не нашли то создаем новое предложение в справочнике
-    at() <- GROUP MAX AttachmentType o IF name(o) = cNameType();
-    IF NOT at() THEN NEW o = AttachmentType {
-        at() <- o; 
-        name(o) <- ISTRING[100](cNameType());    
-    }
-    // ищем для клиента тип предложения, если нет, то создаем новую запись, иначе замещаем данные
-    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND type(a) = at();
-    IF NOT ot() THEN NEW a = Attachment {
-        ot() <- a; 
-        customer(a) <- customer(e); 
-        type(a) <- at();
-    }
-    date(ot()) <- currentDate(); 
-    file(ot()) <- frep();
-    apply();
-    MESSAGE 'Данные импортированы';   
-}
-
-number 'Номер'          = DATA STRING[250]  (TempClassReports);
-dLast 'Дата пос. исп.'  = DATA DATE         (TempClassReports);
-dCreate 'Дата выдачи'     = DATA DATE       (TempClassReports);
-found 'Найден'          = DATA STRING[20]   (TempClassReports);
-
-FORM repTempEQUReport 'Сверка торговых объектов'
-  PROPERTIES() title1, title2, title3, title4 PANEL  
-  OBJECTS o1 = TempClassReports
-  PROPERTIES(o1) pi, number, dLast, dCreate, found
-  ORDERS pi(o1)   
-;
-
-// R14583, сверка серийных номеров по договору (упрощенный отчет)
-onReviseTSD 'Сверка раб. ТСД (упр.)' (Equipment e) {
-    newTempClassReports();
-    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN; }
-    LOCAL ot = Attachment();
-    LOCAL colC = STRING[250] (INTEGER);
-    LOCAL colE = DATE (INTEGER);
-    LOCAL ctxt = STRING[250] ();
-    LOCAL cnt, cnt1, cnt2 = INTEGER(); cnt() <- 0; cnt1() <- 0; cnt2() <- 0; 
-    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND name(type(a)) = 'Список работающих ТСД';
-    IF NOT ot() THEN { 
-        MESSAGE 'Не найден документ:\nСписок работающих ТСД'; 
-        RETURN; 
-    }
-    IMPORT XLS NOHEADER FROM file(ot()) AS FILE TO colC = C, colE = E;
-    FOR imported(INTEGER i) AND i > 1 AND colC(i) AND oserial(filterCustomer(), colC(i)) ORDER i DO NEW ob = TempClassReports {
-        cnt()  <- cnt() + 1;
-        number(ob) <- colC(i); 
-        dLast(ob) <- colE(i);
-        pi(ob) <- 2;
-        cnt2() <- cnt2() + 1;
-        found(ob) <- 'ок';
-        dCreate(ob) <- createdDate(GROUP MAX (Equipment e1) IF e1 = equipment(oserial(filterCustomer(), colC(i))));
-    }    
-    FOR imported(INTEGER i) AND i > 1 AND colC(i) AND NOT oserial(filterCustomer(), colC(i)) ORDER i DO NEW ob = TempClassReports {
-        cnt()  <- cnt() + 1;
-        number(ob) <- colC(i); 
-        dLast(ob) <- colE(i);
-        pi(ob) <- 1;
-        cnt1() <- cnt1() + 1;
-        found(ob) <- 'не найден';
-    }    
-//  SHOW repTempEQUReport; // Отладка
-    title1() <- 'Отчет по сверке работающих ТСД';
-    title2() <- 'по клиенту: ' + name(customer(e));
-    title3() <- 'Обработано всего: ' + trim(toChar(cnt(),'999999')) + ', ' + 
-                'найдено в БД: ' + trim(toChar(cnt2(),'999999')) + ', не найдено: ' + trim(toChar(cnt1(),'999999')); 
-    title4() <- 'Отчет формируется относительно содержимого документа "Список работающих ТСД". ' + 
-                'Серийные номера (sn) из документа последовательно сверяются с sn в базе данных по клиенту.\n' +
-                'Если sn найден, то заполняется дата выдачи и значение колонки "выдан" - ok, иначе пишется: не найден';
-    PRINT repTempEQUReport XLS; // XLS
-}
-
-onReviseS2 'Сверка лицензий ТСД' (Equipment e) {
-    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента';  RETURN; }
-    newTempClassReports();    
-    title() <- 'Отчет по сверке выданных лицензий ТСД';
-    date() <- currentDate();
-    FOR (Customer c IS Customer) DO inReport(c) <- NULL;
-    FOR (Customer c IS Customer) AND c=customer(e) DO inReport(c) <- TRUE;
-    onRevise(3,'Список лицензий ТСД','Список выданных ключей ТСД','S2',NULL);
-    PRINT repReviseTSD XLS; // XLS;
-}
-
-onReviseTSDAll 'Выданные s/n ТСД' (Equipment e) {
-    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента';  RETURN; }
-    ReviseTSDAll.onReviseTSDAll(e);  
-}
 
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] (); 
 // вычисление ID equipment от значения ключа оборудования
@@ -171,9 +15,7 @@ inMark 'Отм.' = DATA LOCAL BOOLEAN (Equipment);
 
 onGenLic 'Создать LIC (по клиенту)' (Equipment ob) {
     LOCAL ctxt = TEXT(); 
-    IF NOT filterCustomer() THEN {
-        MESSAGE 'Определите клиента'; RETURN ;
-    }
+    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN ; }
     inMark(Equipment e) <- NULL;
     FOR [FILTER equipmentDashboard.e](Equipment e) DO inMark(e) <- TRUE;
     FOR (Equipment e IS Equipment) AND customer(e) = customer(ob) AND inMark(e) DO {
@@ -190,11 +32,6 @@ CLASS TempLicQR 'QR коды';
 qrtext 'QR код' = DATA STRING[3200] (TempLicQR); // на 100 лицензий, 3200
 snum 'ID ТСД' = DATA STRING (TempLicQR);
 cnt 'Количество' = DATA INTEGER (TempLicQR);
-
-equTitle1 = DATA LOCAL STRING ();
-equTitle2 = DATA LOCAL STRING ();
-equTitle3 = DATA LOCAL STRING ();
-equTitle4 = DATA LOCAL TEXT ();
 
 FORM prnTempLicQR 'Печатаная форма'
     PROPERTIES () equTitle1, equTitle2, equTitle3, equTitle4 
@@ -243,7 +80,7 @@ onLoadLic 'Загрузить LIC в БД' (Equipment e) { INPUT f = FILE DO { f
 
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
-    PROPERTIES onXlsDataLoad(e,t), onReviseTSD(e), onReviseTSDAll(e), onReviseS2(e), onGenLic(e), onPrintQR(e)
+    PROPERTIES onMenuDataImoort(e,t), onMenuReports(e,t), onGenLic(e), onPrintQR(e)
 //    PROPERTIES onLoadLic(e) // только для отладки
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
@@ -266,12 +103,10 @@ DESIGN equipmentDashboard {
             NEW head2 {
                 horizontal = TRUE ;
                 MOVE PROPERTY (quantitySerial(t)) {background=#E1E1E1;};
-                MOVE PROPERTY (onXlsDataLoad(e,t));
+                MOVE PROPERTY (onMenuDataImoort(e,t)) {background=#DFDFFF;};
+                MOVE PROPERTY (onMenuReports(e,t)) {background=#DFFFDF;};
                 MOVE PROPERTY (onGenLic(e));
                 MOVE PROPERTY (onPrintQR(e));
-                MOVE PROPERTY (onReviseTSD(e));
-                MOVE PROPERTY (onReviseS2(e));
-                MOVE PROPERTY (onReviseTSDAll(e));
             }
         }
     }

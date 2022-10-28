@@ -1,0 +1,84 @@
+MODULE EquipmentDataImport;
+
+REQUIRE EquipmentDashboard, EquipmentDataExt, CustomerNew, CustomerAttachment;
+
+createdDate 'Дата' (EquipmentSerial s) = createdDate(equipment(s)); // дата создания ключа
+nameLegalEntity 'Название организации' (EquipmentSerial s) = OVERRIDE ' ' + name(legalEntity(contract(equipment(s)))), '* Не связанные с договором';
+sumCustomer 'Итого по клиенту' (Customer c, SubjectType t) = GROUP SUM 1 IF subjectType(equipment(EquipmentSerial s)) = t BY customer(equipment(s));  
+nameAgrContract 'Название соглашения или контракта' (EquipmentSerial s) =
+            OVERRIDE description(agreement(equipment(s))), description(contract(equipment(s))), '';
+ 
+FORM repOutSerials 'Данные'
+    OBJECTS c = Customer PROPERTIES name(c) PANEL
+    OBJECTS t = SubjectType PROPERTIES name(t), sumCustomer(c, t) PANEL
+    OBJECTS s = EquipmentSerial PROPERTIES(s) nameLegalEntity, createdDate, number, dateChange, numberChange, note, nameAgrContract
+    FILTERS customer(equipment(s)) = c, subjectType(equipment(s)) = t
+    ORDERS nameLegalEntity(s),createdDate(s) 
+    REPORT 'EquipmentDashboardNew_repOutSerials.jrxml'
+;
+
+CLASS MenuDataImport 'Импорт данных' { 
+    p1 ' 1. Список выданных ключей ТСД. Импорт созданного отчета',
+    p2 ' 2. Список работающих ТСД. Импорт из XLS файла', 
+    p3 ' 3. Список всех подключений ТСД. Импорт из XLS файла'
+}
+
+FORM viewMenuDataImport 'Импорт данных'
+    OBJECTS ob = MenuDataImport
+    PROPERTIES(ob) READONLY staticCaption
+    ORDERS staticCaption(ob) 
+;
+
+DESIGN viewMenuDataImport { 
+    width = 400;
+    caption = 'Импорт данных в документы Клиента';
+    PROPERTY (staticCaption(ob)) {
+        caption = 'Вид импорта данных';
+    }
+}
+
+// Импорт данных из разных источников
+onMenuDataImoort 'Меню: Импорт данных' (Equipment e,SubjectType t) {
+    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента'; RETURN ; } 
+    LOCAL ov  = MenuDataImport();
+    LOCAL ps  = STRING[3] ();
+    DIALOG viewMenuDataImport OBJECTS ob INPUT DO { ov() <- ob; }
+    IF NOT ov() THEN RETURN;
+    LOCAL frep = FILE(); 
+    LOCAL ot = Attachment();
+    LOCAL at = AttachmentType();
+    LOCAL cNameType = STRING ();
+    ps() <- substr(staticCaption(ov()),1,3);
+    IF ps() = ' 1.' THEN {
+        PRINT repOutSerials OBJECTS c = customer(e),t = t XLS TO frep; 
+        open(frep());
+        cNameType() <- 'Список выданных ключей ТСД';
+    } ELSE IF ps() = ' 2.' THEN {
+        INPUT fx = FILE DO frep() <- fx;
+        IF NOT frep() THEN { MESSAGE 'Выполнение операции отменено'; RETURN; }    
+        cNameType() <- 'Список работающих ТСД';
+    } ELSE IF ps() = ' 3.' THEN {
+        INPUT fx = FILE DO frep() <- fx;
+        IF NOT frep() THEN { MESSAGE 'Выполнение операции отменено'; RETURN; }    
+        cNameType() <- 'Список всех подключений ТСД';
+    } ELSE {
+        MESSAGE 'Неизвестный тип импорта'; RETURN;
+    }
+    // ищем тип предложения, если не нашли то создаем новое предложение в справочнике предложений
+    at() <- GROUP MAX AttachmentType o IF name(o) = cNameType();
+    IF NOT at() THEN NEW o = AttachmentType {
+        at() <- o; 
+        name(o) <- ISTRING[100](cNameType());    
+    }
+    // ищем для клиента тип предложения, если нет, то создаем новую запись, иначе замещаем данные
+    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND type(a) = at();
+    IF NOT ot() THEN NEW a = Attachment {
+        ot() <- a; 
+        customer(a) <- customer(e); 
+        type(a) <- at();
+    }
+    date(ot()) <- currentDate(); 
+    file(ot()) <- frep();
+    apply();
+    MESSAGE 'Данные импортированы';   
+}

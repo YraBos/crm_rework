@@ -13,6 +13,7 @@ note 'Примечание' = DATA STRING[200] (EquipmentSerial);
 
 // заголовки отчета
 title1 = DATA LOCAL TEXT (); title2 = DATA LOCAL TEXT (); title3 = DATA LOCAL TEXT ();  title4 = DATA LOCAL TEXT (); 
+equTitle1 = DATA LOCAL STRING (); equTitle2 = DATA LOCAL STRING (); equTitle3 = DATA LOCAL STRING (); equTitle4 = DATA LOCAL TEXT ();
 
 oserial 'ID s/n' (Customer c, STRING sn) = 
     GROUP MAX (EquipmentSerial s) IF number(s) = sn AND customer(equipment(s)) = c; 

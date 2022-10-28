@@ -51,38 +51,14 @@ DESIGN equipmentDashboard {
     }
 }
 
-FORM printHistory 'История замен'
-    PROPERTIES equTitle1(), equTitle2(), equTitle3()
-    OBJECTS e = Equipment
-    PROPERTIES (e) createdDate, createdTime, nameCreatedUser, nameContract, nameLegalEntityContract
-    FILTERS customer(e) = filterCustomer()  
-    OBJECTS es = EquipmentSerial
-    PROPERTIES (es) number, dateChange, numberChange, note
-    FILTERS equipment(es) = e, numberChange(es)
-    OBJECTS esc = EquipmentSerialChange
-    PROPERTIES (esc) numberNew, date, numberChange, note
-    FILTERS equipmentSerial(esc) = es 
-    ORDERS createdDate(e), date(esc)
-;
 
-cntChange (Equipment equ) = GROUP SUM 1 IF numberChange(EquipmentSerial es) AND equipment(es) = equ;
 
-onPrintHistory 'История замен' (Equipment e) {
-    IF NOT filterCustomer() THEN { MESSAGE 'Определите клиента';  RETURN; }
-    LOCAL ncnt = INTEGER ();
-    FOR (Equipment o IS Equipment) AND customer(o) = filterCustomer() DO ncnt() <- ncnt() (+) cntChange(o); 
-    equTitle1() <- name(filterCustomer());
-    equTitle2() <- toDateDDMMYY(currentDate());
-    equTitle3() <- toChar(ncnt(),'9999');
-    PRINT printHistory XLS;
-}
-
-EXTEND FORM equipmentDashboard
-    PROPERTIES onPrintHistory(e)
-;
-
-DESIGN equipmentDashboard {
-    head2 {
-        MOVE PROPERTY (onPrintHistory(e));
-    }
-}
+//EXTEND FORM equipmentDashboard
+//    PROPERTIES onPrintHistory(e)
+//;
+//
+//DESIGN equipmentDashboard {
+//    head2 {
+//        MOVE PROPERTY (onPrintHistory(e));
+//    }
+//}
