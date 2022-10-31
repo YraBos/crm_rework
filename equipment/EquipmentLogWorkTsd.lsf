@@ -113,7 +113,7 @@ FORM viewTSD 'Журнал Fusion ТСД'
     FILTERS IF fltAttention() THEN atr(h) = '*' ELSE TRUE
     
     OBJECTS l = LWorkTsd
-    PROPERTIES (l) READONLY BACKGROUND (IF atr(l) THEN RGB(235,215,255)) atr,date, time, place, ipAddress,  user, idApp, number
+    PROPERTIES (l) READONLY BACKGROUND (IF atr(l) THEN RGB(235,215,255)) atr, date, time, place, ipAddress,  user, idApp, number
     FILTERS customer(l) = o AND number(l) = number(h)
     ORDERS date(l), place(l), time(l)
     

@@ -1,7 +1,7 @@
 MODULE EquipmentDashboardNew;
 
 // можно подключить модуль для загрузки для отладки серийных номеров EquimpentImportSerial (скопировать из H:\Fusion_Arc\Old_Added\equipment\)
-REQUIRE EquipmentDashboard, EquipmentDataImport, EquipmentReports, Time;
+REQUIRE EquipmentDashboard, EquipmentDataImport, EquipmentReports, Time, RevisionHelp;
 
 
 fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] (); 
@@ -80,7 +80,7 @@ onLoadLic 'Загрузить LIC в БД' (Equipment e) { INPUT f = FILE DO { f
 
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
-    PROPERTIES onMenuDataImoort(e,t), onMenuReports(e,t), onGenLic(e), onPrintQR(e)
+    PROPERTIES onMenuDataImoort(e,t), onMenuReports(e,t), onGenLic(e), onPrintQR(e), onOpenHelp()
 //    PROPERTIES onLoadLic(e) // только для отладки
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
