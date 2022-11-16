@@ -39,19 +39,32 @@ FORM prnTempLicQR 'Печатаная форма'
     PROPERTIES(t) READONLY cnt, snum, qrtext 
 ;
 
+CLASS TypeRepQR 'Тип документа QR' {
+    p1 '1. Импорт в PDF', p2 '2. Импорт в DOCX', p3 '3. Импорт в XLSX', p4 '4. Вывод на экран'
+}
+
+typeRepQR 'ID Тип документа' = DATA LOCAL TypeRepQR;
+captionTypeRepQR 'Тип документа' = staticCaption(typeRepQR());
+
+FORM setRepQR 'Дополнительные реквизиты'
+    PROPERTIES () captionTypeRepQR
+;
+
 onPrintQR 'Печать QR (по текущему)' (Equipment e) {
     IF NOT file(e) THEN { MESSAGE 'Сгенерите лицензии\nи повторите операцию'; RETURN; }
     LOCAL cqrtext  = STRING[3200] (); cqrtext() <- '';
     LOCAL csnum, cid = STRING (); csnum() <- '';
     LOCAL ctxt = TEXT ();
     LOCAL ncnt = INTEGER (); ncnt() <- 0;
+        typeRepQR() <- GROUP MAX (TypeRepQR t) IF staticCaption(t) = '1. Импорт в PDF';
+        SHOW setRepQR;
     DELETE TempLicQR o1 WHERE o1 IS TempLicQR;
     fileToString(file(e));
     ctxt() <- replace(resultString(),'\n','');
     ctxt() <- replace(ctxt(),'\r','');
     FOR iterate(INTEGER i,1,length(ctxt())/32) DO {
         cid() <- substr(ctxt(),32 * (i-1) + 1,32);
-        IF ncnt() + 1 < 101 THEN {
+        IF ncnt() + 1 < 51 THEN { // было 101, тогда слишком плотно
             cqrtext() <- cqrtext() + cid();
             IF ncnt() > 0 THEN csnum() <- csnum() + ', ';
             csnum() <- csnum() + cid();  
@@ -71,8 +84,11 @@ onPrintQR 'Печать QR (по текущему)' (Equipment e) {
     // equTitle4() <- GROUP CONCAT number(EquipmentSerial s) IF equipment(s) = e, ', ' ORDER s; // CONCAT не тянет, если много (> 170)
     // по этому через FOR
     FOR (EquipmentSerial s IS EquipmentSerial) AND equipment(s) = e ORDER s DO 
-        IF NOT equTitle4() THEN equTitle4() <- number(s); ELSE equTitle4() <- equTitle4() + ', ' + number(s);  
-    PRINT prnTempLicQR PDF;
+        IF NOT equTitle4() THEN equTitle4() <- number(s); ELSE equTitle4() <- equTitle4() + ', ' + number(s);
+    IF left(captionTypeRepQR(),2) = '1.' THEN PRINT prnTempLicQR PDF;
+    ELSE IF left(captionTypeRepQR(),2) = '2.' THEN PRINT prnTempLicQR DOCX;
+    ELSE IF left(captionTypeRepQR(),2) = '3.' THEN PRINT prnTempLicQR XLSX;
+    ELSE PRINT prnTempLicQR;
 }
 
 // только для отладки, см ниже на форме equipmentDashboard, PROPERTIES onLoadLic(e) 
