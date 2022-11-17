@@ -138,4 +138,4 @@ onSetClientTypeProp '' () {
        fltClientType(i()) <- substr(staticCaption(ec),1,strpos(staticCaption(ec),':')-1) ; //+ IF cdop(ec) THEN '(' + trim(cdop(ec)) + '),' ELSE ',';
        i() <- i() + 1;
     } 
-}
+} 
