@@ -519,7 +519,7 @@ DESIGN customers {
 
 DESIGN customer {
     PROPERTY (nameGroup(o)) {hide = TRUE;} 
-}
+} 
 
 DESIGN dialogCustomers {
     PROPERTY (nameGroup(o)) {hide = TRUE;} 
