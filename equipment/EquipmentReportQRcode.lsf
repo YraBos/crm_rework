@@ -43,9 +43,9 @@ onPrintQR 'Печать QR (по текущему)' (Equipment e) {
     LOCAL csnum, cid = STRING (); csnum() <- '';
     LOCAL ctxt = TEXT ();
     LOCAL ncnt = INTEGER (); ncnt() <- 0;
-        typeRepQR() <- GROUP MAX (TypeRepQR t) IF staticCaption(t) = '1. Импорт в PDF';
-        qLicense() <- 50;
-        SHOW setRepQR;
+    typeRepQR() <- GROUP MAX (TypeRepQR t) IF staticCaption(t) = '1. Импорт в PDF';
+    qLicense() <- 50;
+    DIALOG setRepQR DO {} ELSE {MESSAGE 'Выполнение отменено'; RETURN;}
     DELETE TempLicQR o1 WHERE o1 IS TempLicQR;
     fileToString(file(e));
     ctxt() <- replace(resultString(),'\n','');
@@ -69,13 +69,14 @@ onPrintQR 'Печать QR (по текущему)' (Equipment e) {
     equTitle2() <- IF nameLegalEntityContract(e) THEN 'Организация: ' + nameLegalEntityContract(e) ELSE 'Клиент: ' + (OVERRIDE nameCustomer(e),'');
     equTitle3() <- 'Дата: ' + toDateDDMMYYYY(createdDate(e)) + ', всего номеров: ' + trim(toChar(quantitySerial(e),'99999'));
     equTitle4() <- NULL;
-    // equTitle4() <- GROUP CONCAT number(EquipmentSerial s) IF equipment(s) = e, ', ' ORDER s; // CONCAT не тянет, если много (> 170)
-    // по этому через FOR
+    // equTitle4() <- GROUP CONCAT number(EquipmentSerial s) IF equipment(s) = e, ', ' ORDER s;
+    // CONCAT не тянет, если много (> 170), по этому через FOR
     FOR (EquipmentSerial s IS EquipmentSerial) AND equipment(s) = e ORDER s DO 
         IF NOT equTitle4() THEN equTitle4() <- number(s); ELSE equTitle4() <- equTitle4() + ', ' + number(s);
     IF left(captionTypeRepQR(),2) = '1.' THEN PRINT prnTempLicQR PDF;
     ELSE IF left(captionTypeRepQR(),2) = '2.' THEN PRINT prnTempLicQR DOCX;
     ELSE IF left(captionTypeRepQR(),2) = '3.' THEN PRINT prnTempLicQR XLSX;
     ELSE PRINT prnTempLicQR;
+    CANCEL; // для TempLicQR, чтобы не светилось в конце "Сохранить"
 }
 
