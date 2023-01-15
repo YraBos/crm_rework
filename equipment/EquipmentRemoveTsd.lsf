@@ -1,0 +1,76 @@
+MODULE EquipmentRemoveTsd;
+
+REQUIRE EquipmentDashboard, Time, EquipmentDataExt;
+
+fromClientName 'Клиент источник' (Customer o) = name(o);
+toClientName 'Клиент получатель' (Customer o) = name(o);
+
+
+FORM removeTSD 'Перемещение ТСД'
+    OBJECTS client1 = Customer PANEL 
+        PROPERTIES READONLY toClientName(client1) 
+    OBJECTS client2 = Customer PANEL NULL 
+        PROPERTIES fromClientName(client2) SELECTOR 
+    EVENTS ON INIT {
+        SEEK removeTSD.client1 = filterCustomer();
+    }    
+;
+
+DESIGN removeTSD {
+    height = 100;
+    OBJECTS {
+        NEW cnt {
+            horizontal = FALSE ;
+            MOVE PROPERTY (toClientName(client1));
+            MOVE PROPERTY (fromClientName(client2));
+        }
+    }
+}
+
+onRemoveTSD 'Перенос ТСД' (SubjectType t) {
+    DIALOG removeTSD OBJECTS client1 INPUT, client2 INPUT DO {
+        IF NOT client2 THEN {
+            MESSAGE 'Клиент - источник данных\nне определен!'; RETURN;
+        }
+        INPUT xfile = EXCELFILE DO {
+            LOCAL sn = STRING (INTEGER);
+            LOCAL old = EquipmentSerial ();
+            LOCAL e = Equipment ();
+            LOCAL ctxt = STRING ();
+            IMPORT XLS FROM xfile TO sn = B;
+            FOR imported(INTEGER i) AND i > 0 ORDER i DO {
+                old() <- GROUP MAX (EquipmentSerial es) IF number(es) = sn(i) AND 
+                                                            equipment(es) = (GROUP MAX (Equipment e) IF customer(e) = client2);
+                IF old() THEN {
+                    IF NOT e() THEN {
+                        NEW e = Equipment {
+                            e() <- e;
+                            createdUser(e) <- currentUser();
+                            createdDate(e) <- currentDate();
+                            createdTime(e) <- currentTime();
+                            subjectType(e) <- t;
+                            customer(e)    <- client1;
+                        }   
+                    }
+                    NEW es2 = EquipmentSerial {
+                        equipment(es2) <- e();
+                        number(es2) <- number(old());
+                        note(es2) <-  STRING[200]('Перемещен из: ' + name(client2) + ', ' + toDateDDMMYY(currentDate()) + 'г.');
+                    } 
+                    number(old()) <- '*' + number(old());
+                    note(old()) <- STRING[200]('Перемещен в: ' + name(client1) + ', ' + toDateDDMMYY(currentDate()) + 'г.');
+                } ELSE {
+                    IF NOT ctxt() THEN ctxt() <- 'Не найденные S/N:\n' + sn(i); ELSE ctxt() <- ctxt() + ',\n ' + sn(i);  
+                }
+            }
+            IF e() THEN {
+                APPLY ;
+                IF NOT ctxt() THEN MESSAGE 'Операция выполнена\nполностью!'; 
+                ELSE MESSAGE 'Операция выполнена\n-----------------------\n' + ctxt();
+            } ELSE {
+                IF NOT ctxt() THEN MESSAGE 'Нет данных для записи\nв реестре оборудования';
+            }
+        }
+    } 
+}
+

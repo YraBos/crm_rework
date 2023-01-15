@@ -36,7 +36,8 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         TimeEntryTotalDashboardNew, // RM18251, Контроль отмеченного времени
         BankImport1c,               // RM19826, Импорт банковской выписки из 1с
         FinCart,
-        EquipmentDasboardChange
+        EquipmentDasboardChange,
+        EquipmentRemoveTsd          // RM22298, Перемещение ТСД
 ;
 
  

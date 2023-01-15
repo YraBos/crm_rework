@@ -29,6 +29,7 @@ onGenLic 'Создать LIC (по клиенту)' (Equipment ob) {
 
 // только для отладки, см ниже на форме equipmentDashboard, PROPERTIES onLoadLic(e) 
 onLoadLic 'Загрузить LIC в БД' (Equipment e) { INPUT f = FILE DO { file(e) <- f; APPLY; } } TOOLBAR ;
+nameClientEquipment 'Клиент' (EquipmentSerial o) = name(customer(equipment(o)));
 
 EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
@@ -37,6 +38,7 @@ EXTEND FORM equipmentDashboard
     PROPERTIES fltNumber(), clsExprEquipment()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
     FILTERS IF fltNumber() THEN upper(number(n)) = upper(fltNumber()) ELSE TRUE
+    PROPERTIES (es) READONLY nameClientEquipment, note
 ;
 
 
