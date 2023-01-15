@@ -40,4 +40,5 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         EquipmentRemoveTsd          // RM22298, Перемещение ТСД
 ;
 
+
  

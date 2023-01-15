@@ -82,3 +82,4 @@ onDeleteSerial 'Удалить СН' (EquipmentSerial o) {
 EXTEND FORM equipmentDashboard
     PROPERTIES(es) TOOLBAR onDeleteSerial
 ;
+
