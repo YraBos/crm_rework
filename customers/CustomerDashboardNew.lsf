@@ -144,4 +144,3 @@ EXTEND FORM dashboardCustomer
 EXTEND FORM dashboardCustomer
     PROPERTIES (pm) nameType 
 ;
- 
