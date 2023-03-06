@@ -140,7 +140,7 @@ DESIGN dashboardCustomer {
 EXTEND FORM dashboardCustomer
    FILTERGROUP activeAgreement FILTER 'Активные' NOT dateClosing(ag) DEFAULT 
 ;
-
+// RM22985
 EXTEND FORM dashboardCustomer
     PROPERTIES (pm) nameType 
 ;
