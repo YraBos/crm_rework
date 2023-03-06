@@ -141,4 +141,7 @@ EXTEND FORM dashboardCustomer
    FILTERGROUP activeAgreement FILTER 'Активные' NOT dateClosing(ag) DEFAULT 
 ;
 
+EXTEND FORM dashboardCustomer
+    PROPERTIES (pm) nameType 
+;
  
