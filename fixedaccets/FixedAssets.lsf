@@ -204,8 +204,8 @@ FORM viewFixedAssets 'Журнал основных средств'
     PROPERTIES(dc) READONLY name 
     ORDERS name(dc)
     
-    OBJECTS fa = FixedAssets       // GRID журнал ОС  
-    GRID PROPERTIES(fa) READONLY 
+    OBJECTS fa = FixedAssets LAST      // GRID журнал ОС  
+    GRID PROPERTIES(fa) READONLY  
         inventoryNumber,passport,inputDoc,inputDate,name,fullName,fmol,docOfDisposal,dateOfDisposal,dateFactDisposal,
         classifier,storage,provider,primaryBalanceValue,currentBalanceValue,primaryBalanceUsd,
         UOM,quantity,factoryNumer,userName,userDate,changeName,changeDate 
@@ -242,8 +242,8 @@ DESIGN viewFixedAssets {
         }
         MOVE BOX(ft1) {
             horizontal = FALSE;
-            MOVE PROPERTY(other(ft1)) {background=#F4FFF4;}; 
-            MOVE PROPERTY(note(ft1)) {background=#EEF7F7;fontSize=9;};
+            MOVE PROPERTY(other(ft1)) {background=#F4FFF4;charHeight=8;}; 
+            MOVE PROPERTY(note(ft1)) {background=#EEF7F7;charHeight=1;};
         }
         NEW cnt1 {
             horizontal = TRUE;
