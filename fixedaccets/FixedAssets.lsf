@@ -198,6 +198,26 @@ nameFilterEmployee      'ФИО МОЛ' () = name(filterEmployee()) CHARWIDTH 40
 filterStorage                                   = DATA LOCAL DirStorage();
 nameFilterStorage       'Место хранения' () = name(filterStorage()) CHARWIDTH 40;
 
+FORM showOther 'Информация'
+    OBJECTS o = FixedAssets PANEL 
+    PROPERTIES (o) READONLY other 
+;
+
+DESIGN showOther {
+    width = 600;
+    height = 600;
+    OBJECTS {
+        NEW cnt {
+            fill = 1;
+            MOVE PROPERTY (other(o)) {caption = '';charHeight=32;}
+        }
+    }
+} 
+
+onShowOther 'Информация' (FixedAssets a) {
+    SHOW showOther OBJECTS o = a;
+}
+
 // журнал ОС, поля как в ст. картотеке для АВ
 FORM viewFixedAssets 'Журнал основных средств'  
     OBJECTS dc = DirClassifier       // GRID классификатор
@@ -213,7 +233,8 @@ FORM viewFixedAssets 'Журнал основных средств'
     PROPERTIES(fa) NEWSESSION NEW, EDIT, DELETE
     PROPERTIES(fa) viewFoto SHOWIF image(fa) 
     PROPERTIES(fa) loadFoto
-    PROPERTIES(fa) delFoto  SHOWIF image(fa) 
+    PROPERTIES(fa) delFoto  SHOWIF image(fa)
+    PROPERTIES(fa) onShowOther 
     FILTERS IF NOT trim(name(dc)) = '!ВСЕ' THEN name(listClassifier(fa)) = name(dc) ELSE TRUE   // Упр. жур. ОС от классификатора 
 
     // типа информационого табло
@@ -335,8 +356,8 @@ DESIGN editFixedAssets {
             horizontal = FALSE;
             caption = 'Примечания';
             fill = 1;
-            MOVE PROPERTY(other(fa)) {background=#F4FFF4;}; 
-            MOVE PROPERTY(note(fa)) {background=#EEF7F7;fontSize=9;};
+            MOVE PROPERTY(other(fa)) {background=#F4FFF4;charHeight=12;}; 
+            MOVE PROPERTY(note(fa)) {background=#EEF7F7;charHeight=3;};
    }
         NEW cntC {
             horizontal = TRUE;
