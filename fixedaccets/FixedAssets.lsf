@@ -102,7 +102,6 @@ FORM viewFixedAssetsLog 'Журнал логирования ОС'
     OBJECTS p = FixedAssetsLog
     PROPERTIES(p) PANEL READONLY other, note
     FILTERS p = o              
-//    PROPERTIES(o) DELETE // для отладки
 ;  
 
 onSaveLog 'Запись данных в лог' (FixedAssets fa, BOOLEAN last, STRING[30] oname, INTEGER nstat) {
@@ -198,43 +197,20 @@ nameFilterEmployee      'ФИО МОЛ' () = name(filterEmployee()) CHARWIDTH 40
 filterStorage                                   = DATA LOCAL DirStorage();
 nameFilterStorage       'Место хранения' () = name(filterStorage()) CHARWIDTH 40;
 
-FORM showOther 'Информация'
-    OBJECTS o = FixedAssets PANEL 
-    PROPERTIES (o) READONLY other 
-;
-
-DESIGN showOther {
-    width = 600;
-    height = 600;
-    OBJECTS {
-        NEW cnt {
-            fill = 1;
-            MOVE PROPERTY (other(o)) {caption = '';charHeight=32;}
-        }
-    }
-} 
-
-onShowOther 'Информация' (FixedAssets a) {
-    SHOW showOther OBJECTS o = a;
-}
-
 // журнал ОС, поля как в ст. картотеке для АВ
 FORM viewFixedAssets 'Журнал основных средств'  
     OBJECTS dc = DirClassifier       // GRID классификатор
     PROPERTIES(dc) READONLY name 
-    ORDERS name(dc)
     
-    OBJECTS fa = FixedAssets LAST      // GRID журнал ОС  
+    OBJECTS fa = FixedAssets       // GRID журнал ОС  
     GRID PROPERTIES(fa) READONLY  
         inventoryNumber,passport,inputDoc,inputDate,name,fullName,fmol,docOfDisposal,dateOfDisposal,dateFactDisposal,
         classifier,storage,provider,primaryBalanceValue,currentBalanceValue,primaryBalanceUsd,
         UOM,quantity,factoryNumer,userName,userDate,changeName,changeDate 
-    ORDERS name(fa)    
     PROPERTIES(fa) NEWSESSION NEW, EDIT, DELETE
     PROPERTIES(fa) viewFoto SHOWIF image(fa) 
     PROPERTIES(fa) loadFoto
     PROPERTIES(fa) delFoto  SHOWIF image(fa)
-    PROPERTIES(fa) onShowOther 
     FILTERS IF NOT trim(name(dc)) = '!ВСЕ' THEN name(listClassifier(fa)) = name(dc) ELSE TRUE   // Упр. жур. ОС от классификатора 
 
     // типа информационого табло
@@ -248,6 +224,8 @@ FORM viewFixedAssets 'Журнал основных средств'
     FILTERS IF filterYearOfDisposal() > 0 THEN extractYear(dateOfDisposal(fa)) = filterYearOfDisposal() ELSE TRUE
     FILTERS IF filterFactYearDisposal() > 0 THEN extractYear(dateFactDisposal(fa)) = filterFactYearDisposal() ELSE TRUE
     FILTERS IF filterStorage() THEN storage(fa)  = nameFilterStorage() ELSE TRUE
+    
+    ORDERS name(dc), inputDate(fa)
 ;
 
 DESIGN viewFixedAssets {
@@ -274,11 +252,9 @@ DESIGN viewFixedAssets {
                 fill = 1;
                 MOVE BOX(dc) {
                     TOOLBARSYSTEM(dc) { 
-//                        showGroupChange = FALSE;
                         showGroup = FALSE;
                         showCountQuantity = FALSE;
                         showCalculateSum = FALSE;
-//                        showPrintGroup = FALSE;
                         showPrintGroupXls = FALSE;
                         showSettings = FALSE;
                     }    
@@ -287,7 +263,7 @@ DESIGN viewFixedAssets {
             MOVE BOX(fa) {
                 fill=8; 
                 defaultComponent = TRUE;
-            };
+            }
         }    
     }    
 }
@@ -395,7 +371,7 @@ copyRec '+ Копия' (FixedAssets m) {
             IF changeName(cfa) THEN SEEK FIRST viewFixedAssets.fa OBJECTS fa = cfa;
         }
     } 
-} TOOLBAR; 
+} 
 
 // открепить МОЛ
 unPin 'Открепить' (FixedAssets fa) {
@@ -406,11 +382,42 @@ unPin 'Открепить' (FixedAssets fa) {
             APPLY; 
         }
     } ELSE MESSAGE 'МОЛ не определено';     
-} TOOLBAR; 
+}  
+
+
+FORM showOther 'Информация'
+    OBJECTS o = FixedAssets PANEL 
+    PROPERTIES (o) READONLY other 
+;
+
+DESIGN showOther {
+    width = 600;
+    height = 600;
+    OBJECTS {
+        NEW cnt {
+            fill = 1;
+            MOVE PROPERTY (other(o)) {caption = '';charHeight=30;}
+        }
+    }
+} 
+
+onShowOther 'Информация' (FixedAssets a) {
+    SHOW showOther OBJECTS o = a;
+} 
 
 
 EXTEND FORM viewFixedAssets
-    PROPERTIES(fa) copyRec, unPin;
+    PROPERTIES(fa) copyRec, unPin, onShowOther;
+
+DESIGN viewFixedAssets {
+    OBJECTS {
+        TOOLBARRIGHT (fa) {
+            MOVE PROPERTY (copyRec(fa));
+            MOVE PROPERTY (unPin(fa));
+            MOVE PROPERTY (onShowOther(fa));
+        }
+    }
+}
 
 
 NAVIGATOR {
