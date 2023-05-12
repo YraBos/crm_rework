@@ -93,7 +93,7 @@ EXTEND FORM debtDashboard
 ;
 
 DESIGN debtDashboard {
-    right { 
+    right {
         MOVE BOX(p);
     }
 }
