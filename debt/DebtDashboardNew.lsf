@@ -83,3 +83,17 @@ nameCurrencyCustomer 'Валюта' (Customer c, ContractType t, DATE d) =
 EXTEND FORM debtDashboard
     PROPERTIES READONLY nameCurrencyCustomer(c, t, dd) 
 ;
+
+// RM23326
+EXTEND FORM debtDashboard
+    OBJECTS p = Payment
+    PROPERTIES (p) READONLY date, nameType, sum, shortNameCurrency, descriptionContract
+    ORDERS date(p) DESC 
+    FILTERS customer(p) == c
+;
+
+DESIGN debtDashboard {
+    right {
+        MOVE BOX(p);
+    }
+}
