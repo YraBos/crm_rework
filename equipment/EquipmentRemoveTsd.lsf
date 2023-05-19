@@ -1,10 +1,11 @@
 MODULE EquipmentRemoveTsd;
 
-REQUIRE EquipmentDashboard, Time, EquipmentDataExt;
+REQUIRE EquipmentDashboard, Time, Utils, EquipmentDataExt;
 
 fromClientName 'Клиент источник' (Customer o) = name(o);
 toClientName 'Клиент получатель' (Customer o) = name(o);
 
+clientFrom 'ID от кого' = DATA LOCAL Customer();
 
 FORM removeTSD 'Перемещение ТСД'
     OBJECTS client1 = Customer PANEL 
@@ -33,45 +34,69 @@ onRemoveTSD 'Перенос ТСД' (SubjectType t) {
             MESSAGE 'Клиент - источник данных\nне определен!'; RETURN;
         }
         INPUT xfile = EXCELFILE DO {
-            LOCAL sn = STRING (INTEGER);
+            LOCAL sn = ISTRING[250] (INTEGER);
             LOCAL old = EquipmentSerial ();
-            LOCAL e = Equipment ();
-            LOCAL ctxt = STRING ();
+            LOCAL cnt = INTEGER ();
+            LOCAL noteNew, noteOld = STRING[200] ();
+            noteNew() <- 'Перемещен из: ' + name(client2) + ', ' + toDateDDMMYY(currentDate()) + 'г.';
+            noteOld() <- 'Перемещен в: ' + name(filterCustomer()) + ', ' + toDateDDMMYY(currentDate()) + 'г.';
             IMPORT XLS FROM xfile TO sn = B;
-            FOR imported(INTEGER i) AND i > 0 ORDER i DO {
-                old() <- GROUP MAX (EquipmentSerial es) IF number(es) = sn(i) AND 
-                                                            equipment(es) = (GROUP MAX (Equipment e) IF customer(e) = client2);
-                IF old() THEN {
-                    IF NOT e() THEN {
-                        NEW e = Equipment {
-                            e() <- e;
-                            createdUser(e) <- currentUser();
-                            createdDate(e) <- currentDate();
-                            createdTime(e) <- currentTime();
-                            subjectType(e) <- t;
-                            customer(e)    <- client1;
-                        }   
+            NEW e = Equipment {
+                createdUser(e) <- currentUser();
+                createdDate(e) <- currentDate();
+                createdTime(e) <- currentTime();
+                subjectType(e) <- t;
+                customer(e) <- filterCustomer();
+                FOR imported(INTEGER i) AND i > 0 ORDER i DO {
+                    old() <- GROUP MAX (EquipmentSerial o) IF trim(number(o)) == trim(sn(i)) AND customer(equipment(o)) = client2;
+                    IF old() THEN {
+                        NEW es = EquipmentSerial {
+                            cnt() <- cnt() (+) 1;
+                            equipment(es) <- e;
+                            number(es) <- sn(i);
+                            note(es) <- noteNew();
+                        }
+                        number(old()) <- '*' + number(old());
+                        note(old()) <- noteOld();
                     }
-                    NEW es2 = EquipmentSerial {
-                        equipment(es2) <- e();
-                        number(es2) <- number(old());
-                        note(es2) <-  STRING[200]('Перемещен из: ' + name(client2) + ', ' + toDateDDMMYY(currentDate()) + 'г.');
-                    } 
-                    number(old()) <- '*' + number(old());
-                    note(old()) <- STRING[200]('Перемещен в: ' + name(client1) + ', ' + toDateDDMMYY(currentDate()) + 'г.');
-                } ELSE {
-                    IF NOT ctxt() THEN ctxt() <- 'Не найденные S/N:\n' + sn(i); ELSE ctxt() <- ctxt() + ',\n ' + sn(i);  
                 }
-            }
-            IF e() THEN {
-                APPLY ;
-                IF NOT ctxt() THEN MESSAGE 'Операция выполнена\nполностью!'; 
-                ELSE MESSAGE 'Операция выполнена\n-----------------------\n' + ctxt();
-            } ELSE {
-                IF NOT ctxt() THEN MESSAGE 'Нет данных для записи\nв реестре оборудования';
+                IF cnt() THEN {
+                    MESSAGE 'Перемещено ' + trim(toChar(cnt(), '999999')) + ' sn';
+                    APPLY;
+                } ELSE {
+                    CANCEL;
+                    MESSAGE 'Операция не выполнена\nНет данных для перемещения';
+                }
+            } // new equipment    
+        } // input
+    } // dialog
+}
+    
+    
+// делалось для переноса SN из Виталюра в Санту (май 2023), RM23792
+onLoadSerialXls 'Загрузка SN из Xls' (SubjectType t) {
+    INPUT xfile = EXCELFILE DO {
+        LOCAL sn = ISTRING[250](INTEGER);
+        LOCAL cnt = INTEGER ();
+        IMPORT XLS FROM xfile TO sn = B;
+        NEW e = Equipment {
+            createdUser(e) <- currentUser();
+            createdDate(e) <- currentDate();
+            createdTime(e) <- currentTime();
+            subjectType(e) <- t;
+            customer(e)    <- filterCustomer();
+            FOR imported(INTEGER i) AND i > 0 ORDER i DO NEW es = EquipmentSerial {
+                cnt() <- cnt() (+) 1; 
+                equipment(es) <- e;
+                number(es) <- sn(i);
             }
         }
-    } 
+        IF cnt() THEN {
+            MESSAGE 'Импортировано ' + trim(toChar(cnt(),'999999')) + ' sn';
+            APPLY;
+        } ELSE {
+            CANCEL;
+            MESSAGE 'Операция не выполнена\nДанные не импортированы';
+        }
+    }
 }
-
-

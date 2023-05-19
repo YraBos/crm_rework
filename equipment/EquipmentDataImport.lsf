@@ -21,7 +21,8 @@ CLASS MenuDataImport 'Импорт данных' {
     p1 ' 1. Список выданных ключей ТСД. Импорт в ДК созданного отчета',
     p2 ' 2. Список работающих ТСД. Импорт в ДК из XLS файла', 
     p3 ' 3. Список всех подключений ТСД. Импорт в ДК из XLS файла',
-    p4 ' 4. Перенос ТСД между клиентами на основании XLS файла'
+    p4 ' 4. Перенос ТСД между клиентами на основании XLS файла',
+    p5 ' 5. Загрузка SN на основании XLS файла (колонка B2)'
 }
 
 FORM viewMenuDataImport 'Импорт данных'
@@ -67,10 +68,15 @@ onMenuDataImoort 'Меню: Импорт данных' (Equipment e,SubjectType 
     }    
     ELSE IF ps() = ' 4.' THEN {
         onRemoveTSD(t);
-        RETURN ;
+        RETURN;
     }   
+    ELSE IF ps() = ' 5.' THEN {
+        onLoadSerialXls(t);
+        RETURN;            
+    }            
     ELSE {
-        MESSAGE 'Неизвестный тип импорта'; RETURN;
+        MESSAGE 'Неизвестный тип импорта';
+        RETURN;
     }
     // ищем тип предложения, если не нашли то создаем новое предложение в справочнике предложений
     at() <- GROUP MAX AttachmentType o IF name(o) = cNameType();
