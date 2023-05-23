@@ -87,13 +87,13 @@ EXTEND FORM debtDashboard
 // RM23326
 EXTEND FORM debtDashboard
     OBJECTS p = Payment
-    PROPERTIES (p) READONLY date, nameType, sum, shortNameCurrency, descriptionContract
+    PROPERTIES (p) READONLY date, nameLegalEntity, nameType, sum, shortNameCurrency, descriptionContract
     ORDERS date(p) DESC 
     FILTERS customer(p) == c
 ;
 
 DESIGN debtDashboard {
     right {
-        MOVE BOX(p);
+        MOVE BOX(p) AFTER BOX (db);
     }
 }
