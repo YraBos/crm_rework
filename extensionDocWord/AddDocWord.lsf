@@ -1,0 +1,64 @@
+MODULE AddDocWord;
+
+REQUIRE Contract, ContractSubject, ContractWord, AgreementWord,  Utils;
+
+discountSize    'Размер скидки'    = DATA NUMERIC[10,2] (ContractSubject) CHARWIDTH 10;
+discountSum     'Итого со скидкой' (ContractSubject o) =  sum(o) - discountSize(o);
+
+discountSize    'Размер скидки'    = DATA NUMERIC[10,2] (AgreementSubject) CHARWIDTH 10;
+discountPrice   'Цена со скидкой' (AgreementSubject o) = price(o) - discountSize(o);
+discountSum     'Итого со скидкой' (AgreementSubject o) = quantity(o) * discountPrice(o);
+
+chkValue (Contract o)    = IF (nameType(o) = 'Лицензия' OR nameType(o) = 'Лицензия ТСД') THEN TRUE ;
+
+EXTEND FORM contract
+    PROPERTIES (s )  SHOWIF chkValue(o) discountSize
+    PROPERTIES (s )  SHOWIF chkValue(o) READONLY discountSum
+    PROPERTIES (as)  SHOWIF chkValue(o) discountSize
+    PROPERTIES (as)  SHOWIF chkValue(o) READONLY discountPrice, discountSum
+;
+
+EXTEND FORM agreement
+    PROPERTIES (s) SHOWIF chkValue(contractAgreement(s)) discountSize
+    PROPERTIES (s) SHOWIF chkValue(contractAgreement(s)) READONLY discountPrice, discountSum
+;
+
+
+// Договора: значение свойств для свойств шаблона
+ocs (Contract o) = GROUP MAX (ContractSubject cs) IF contract(cs) = o AND chkValue(o);
+contractDiscountSize (Contract o) =   OVERRIDE toChar(discountSize(ocs(o)),'9999999.99'),'';
+contractDiscountSum (Contract o) =    OVERRIDE toChar(discountSum(ocs(o)),'9999999.99'),'';
+
+// Соглашение: значение свойств для свойств шаблона
+oas (Contract o) = GROUP MAX (AgreementSubject as)  IF contractAgreement(as) = o;
+agreementDiscountSize (Contract o) =  OVERRIDE toChar(discountSize(oas(o)),'9999999.99'),'';
+agreementDiscountPrice (Contract o) = OVERRIDE toChar(discountPrice(oas(o)),'9999999.99'),'';
+agreementDiscountSum (Contract o) =   OVERRIDE toChar(discountSum(oas(o)),'9999999.99'),'';
+
+
+overPrintContractWord (Contract ct, Template t) + {
+    value(TemplateEntry d) <- contractDiscountSize(ct)  WHERE key(d) = 'CONTRACT_DISCOUNT_SIZE' AND template (d) == t;
+    value(TemplateEntry d) <- contractDiscountSum(ct)   WHERE key(d) = 'CONTRACT_DISCOUNT_SUM'  AND template (d) == t;
+}
+
+overPrintAgreementWord (Agreement ag, Template t) + {
+    value(TemplateEntry d) <- agreementDiscountSize(contract(ag))  WHERE key(d) = 'AGREEMENT_DISCOUNT_SIZE'  AND template (d) == t;
+    value(TemplateEntry d) <- agreementDiscountPrice(contract(ag)) WHERE key(d) = 'AGREEMENT_DISCOUNT_PRICE' AND template (d) == t;
+    value(TemplateEntry d) <- agreementDiscountSum(contract(ag))   WHERE key(d) = 'AGREEMENT_DISCOUNT_SUM'   AND template (d) == t;
+}
+
+createTemplateEntries(Template t, DocType d) + {
+    IF d IS DocType THEN {
+        NEW te = TemplateEntry { template(te) <- t; key(te) <- 'CONTRACT_DISCOUNT_SIZE'; description(te) <- 'Размер скидки';}
+        NEW te = TemplateEntry { template(te) <- t; key(te) <- 'CONTRACT_DISCOUNT_SUM';  description(te) <- 'Сумма со скидкой';}
+    }
+}
+
+
+createTemplateEntries(Template t, DocType d) + {
+    IF d == DocType.agreement THEN {
+        NEW te = TemplateEntry { template(te) <- t; key(te) <- 'AGREEEMENT_DISCOUNT_SIZE';  description(te) <- 'Размер скидки';}
+        NEW te = TemplateEntry { template(te) <- t; key(te) <- 'AGREEEMENT_DISCOUNT_PRICE'; description(te) <- 'Цена со скидкой';}
+        NEW te = TemplateEntry { template(te) <- t; key(te) <- 'AGREEEMENT_DISCOUNT_SUM';   description(te) <- 'Сумма со скидкой';}
+    }
+}

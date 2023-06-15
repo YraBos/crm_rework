@@ -37,7 +37,8 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         BankImport1c,               // RM19826, Импорт банковской выписки из 1с
         FinCart,
         EquipmentDasboardChange,
-        EquipmentRemoveTsd          // RM22298, Перемещение ТСД
+        EquipmentRemoveTsd,         // RM22298, Перемещение ТСД
+        AddDocWord                  // RM23988 Скидка и размер скидки в договорах и соглащшениях
 ;
 
 
