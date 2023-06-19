@@ -26,14 +26,14 @@ EXTEND FORM agreement
 
 // Договора: значение свойств для свойств шаблона
 ocs (Contract o) = GROUP MAX (ContractSubject cs) IF contract(cs) = o AND chkValue(o);
-contractDiscountSize (Contract o) =   OVERRIDE toChar(discountSize(ocs(o)),'9999999.99'),'';
-contractDiscountSum (Contract o) =    OVERRIDE toChar(discountSum(ocs(o)),'9999999.99'),'';
+contractDiscountSize (Contract o) =   OVERRIDE trim(toChar(discountSize(ocs(o)),'9999999.99')),'';
+contractDiscountSum (Contract o) =    OVERRIDE trim(toChar(discountSum(ocs(o)),'9999999.99')),'';
 
 // Соглашение: значение свойств для свойств шаблона
 oas (Contract o) = GROUP MAX (AgreementSubject as)  IF contractAgreement(as) = o;
-agreementDiscountSize (Contract o) =  OVERRIDE toChar(discountSize(oas(o)),'9999999.99'),'';
-agreementDiscountPrice (Contract o) = OVERRIDE toChar(discountPrice(oas(o)),'9999999.99'),'';
-agreementDiscountSum (Contract o) =   OVERRIDE toChar(discountSum(oas(o)),'9999999.99'),'';
+agreementDiscountSize (Contract o) =  OVERRIDE trim(toChar(discountSize(oas(o)),'9999999.99')),'';
+agreementDiscountPrice (Contract o) = OVERRIDE trim(toChar(discountPrice(oas(o)),'9999999.99')),'';
+agreementDiscountSum (Contract o) =   OVERRIDE trim(toChar(discountSum(oas(o)),'9999999.99')),'';
 
 
 overPrintContractWord (Contract ct, Template t) + {
