@@ -42,6 +42,7 @@ onCalcSeniority 'Обновить стаж' () {
     APPLY; 
 }
 
+
 // форма отображения
 EXTEND FORM employees
     PROPERTIES(o) READONLY dateBirthday, lstQualification, normDocAdmin, normDocCoordination, employmentDate, seniority
@@ -54,10 +55,13 @@ DESIGN employees {
     }
 }
 
+
+killDebt 'Закрытие задолженностей' = DATA BOOLEAN (Employee);
+
 // форма редактирования
 EXTEND FORM employee
     PROPERTIES(o)   dateBirthday, showMsgBirthdayStarted, dayDelta, onGetQualification, 
-                    normDocAdmin, normDocCoordination, employmentDate
+                    normDocAdmin, normDocCoordination, employmentDate, killDebt
     PROPERTIES(o) READONLY lstQualification, seniority
 ; 
 
@@ -88,6 +92,7 @@ DESIGN employee {
                 fill=1;
                 MOVE PROPERTY (normDocAdmin(o));
                 MOVE PROPERTY (normDocCoordination(o));
+                MOVE PROPERTY (killDebt(o));
             } 
         }     
     }

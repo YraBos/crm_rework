@@ -1,6 +1,6 @@
 MODULE DebtDashboardNew;
 
-REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew, AgreementNew, DocsInWork;
+REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew, AgreementNew, DocsInWork, EmployeeNew, RevisionHelp;
 
 filterSumDebt 'Размер задолженности' = DATA LOCAL INTEGER ();
 
@@ -52,7 +52,7 @@ EXTEND FORM debtDashboard
     PROPERTIES(d) READONLY clientTypeDebt AFTER nameCustomer(d)
     PROPERTIES READONLY clientType(c) AFTER name(c)
     OBJECTS le = LegalEntity
-    PROPERTIES filterSumDebt(), onReport(c, dd)
+    PROPERTIES filterSumDebt(), onReport(c, dd), onOpenHelp()
 //    PROPERTIES onRepDocsInWork()                                // Документы в работе
     EVENTS ON INIT {
         filterSumDebt() <- 100;
@@ -84,7 +84,7 @@ EXTEND FORM debtDashboard
     PROPERTIES READONLY nameCurrencyCustomer(c, t, dd) 
 ;
 
-// RM23326
+// RM23326, RM24026
 EXTEND FORM debtDashboard
     OBJECTS p = Payment
     PROPERTIES (p) READONLY date, nameLegalEntity, nameType, sum, shortNameCurrency, descriptionContract
@@ -92,8 +92,37 @@ EXTEND FORM debtDashboard
     FILTERS customer(p) == c
 ;
 
+
+
 DESIGN debtDashboard {
     right {
         MOVE BOX(p) AFTER BOX (db);
     }
 }
+
+//RM24026
+oldSum 'Старая значение задолженности' = DATA NUMERIC[16,5] (Debt);
+onReplaceSum 'Заменить' (Debt o) {
+    IF NOT killDebt(currentUser()) THEN { MESSAGE 'Недостаточно прав для выполнения операции'; RETURN; }
+    IF NOT paid(o) THEN {
+        MESSAGE 'Пустое значение суммы оплаты\nОперация отменена';
+        RETURN;
+    }
+    ASK 'Вы действительно хотите заменить\nСумму задолженности Суммой оплаты ?' DO {
+        IF NOT oldSum(o) THEN oldSum(o) <- sum(o); 
+        sum(o) <- paid(o);
+        APPLY;
+    }
+}
+
+onReturnSum 'Отменить' (Debt o) {
+    IF NOT killDebt(currentUser()) THEN { MESSAGE 'Недостаточно прав для выполнения операции'; RETURN; }
+    IF NOT oldSum(o) THEN {
+        MESSAGE 'Старое значение суммы неопределено';
+        RETURN;
+    }
+    sum(o) <- oldSum(o);
+    APPLY;    
+}
+
+EXTEND FORM debtDashboard PROPERTIES (db) TOOLBAR onReplaceSum, onReturnSum; 
