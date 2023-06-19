@@ -101,14 +101,14 @@ DESIGN debtDashboard {
 }
 
 //RM24026
-oldSum 'Старая значение задолженности' = DATA NUMERIC[16,5] (Debt);
+oldSum 'Старое значение задолженности' = DATA NUMERIC[16,5] (Debt);
 onReplaceSum 'Заменить' (Debt o) {
     IF NOT killDebt(currentUser()) THEN { MESSAGE 'Недостаточно прав для выполнения операции'; RETURN; }
     IF NOT paid(o) THEN {
         MESSAGE 'Пустое значение суммы оплаты\nОперация отменена';
         RETURN;
     }
-    ASK 'Вы действительно хотите заменить\nСумму задолженности Суммой оплаты ?' DO {
+    ASK 'Вы действительно хотите заменить\nСумму задолженности Суммой оплаты ?' DO NEWSESSION {
         IF NOT oldSum(o) THEN oldSum(o) <- sum(o); 
         sum(o) <- paid(o);
         APPLY;
