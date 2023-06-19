@@ -121,8 +121,10 @@ onReturnSum 'Отменить' (Debt o) {
         MESSAGE 'Старое значение суммы неопределено';
         RETURN;
     }
-    sum(o) <- oldSum(o);
-    APPLY;    
+    NEWSESSION {
+        sum(o) <- oldSum(o);
+        APPLY;
+    }    
 }
 
 EXTEND FORM debtDashboard PROPERTIES (db) TOOLBAR onReplaceSum, onReturnSum; 
