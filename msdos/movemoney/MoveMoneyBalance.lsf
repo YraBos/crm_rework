@@ -1,0 +1,56 @@
+MODULE MoveMoneyBalance;
+
+REQUIRE MoveMoney, Currency; 
+
+NAMESPACE MoveMoney;
+
+FORM editBalance 'Редактирование остатка'
+    OBJECTS m = MoveMoney PANEL 
+    PROPERTIES(m) date, nameCurrency, suma, note
+    EDIT MoveMoney OBJECT m
+    EVENTS ON INIT {
+        date(m) <- currentDate();
+        note(m) <- 'Сальдо на начало';
+        currency(m) <- GROUP MAX (Currency o) IF shortName(o) = 'BYN';
+        balance(m) <- TRUE;
+        customer(m) <- GROUP MAX (Customer o) IF id(o) = '1';
+        legalEntity(m) <- GROUP MAX (LegalEntity o) IF id(o) = '1';
+    }
+    EVENTS ON OK { 
+        yymm(m) <- toDateYYMM(date(m));
+        IF NOT note(m) THEN note(m) <- 'Сальдо на начало';
+        IF NOT nameCurrency(m) THEN currency(m) <- GROUP MAX (Currency o) IF shortName(o) = 'BYN';
+        IF shortName(currency(m)) = 'USD' THEN sumaUSD(m) <- suma(m);
+        ELSE MoveMoney.onCalcUSD( m, GROUP MAX (TypeExchange t) IF name(t) = 'НБРБ (BYN)' );
+    }
+    
+;
+
+DESIGN editBalance {
+    BOX (m) {
+        NEW cntEdit {
+            horizontal = FALSE;
+            MOVE PROPERTY (date(m));
+            MOVE PROPERTY (nameCurrency(m));
+            MOVE PROPERTY (suma(m));
+            MOVE PROPERTY (note(m));
+        }
+    }    
+}
+
+
+FORM viewBalance 'Остатки'
+    OBJECTS m = MoveMoney
+    PROPERTIES(m) READONLY BACKGROUND IF NOT shortName(currency(m)) = 'BYN' THEN RGB (225, 255, 225)
+            date, codeOperation, signOperation, nameCurrency, suma, sumaUSD, note
+    FILTERS balance(m)
+    PROPERTIES(m) NEWSESSION NEW, DELETE 
+;
+
+
+NAVIGATOR {
+    dosmove {
+        NEW FORM viewBalance;
+    }
+}
+

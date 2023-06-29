@@ -1,0 +1,46 @@
+MODULE MoveMoneyOpreration;
+
+REQUIRE menu;
+
+NAMESPACE MoveMoney;
+
+CLASS MoveMoneyOpreration 'Справочник операций';
+code 'Код операции' = DATA STRING[2] (MoveMoneyOpreration) NONULL CHARWIDTH 8;
+name 'Название' = DATA STRING[100] (MoveMoneyOpreration) NONULL;
+sign 'Вид операции' = DATA STRING[1] (MoveMoneyOpreration) NONULL;
+
+uniqueCode = GROUP AGGR (MoveMoneyOpreration o) BY code(o), sign(o);
+
+FORM viewMoveMoneyOpreration 'Справочник операций'
+    OBJECTS o = MoveMoneyOpreration
+    PROPERTIES (o) READONLY code, name, sign
+    PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE 
+;
+
+FORM listMoveMoneyOpreration 'Справочник операций'
+    OBJECTS o = MoveMoneyOpreration
+    PROPERTIES (o) READONLY code, name, sign
+    LIST MoveMoneyOpreration OBJECT o
+;    
+
+
+FORM ediMoveMoneyOpreration 'Операция'
+    OBJECTS o = MoveMoneyOpreration PANEL 
+    PROPERTIES (o) code, name, sign
+    EDIT MoveMoneyOpreration OBJECT o
+;
+
+DESIGN ediMoveMoneyOpreration {
+    BOX(o) {
+        horizontal = FALSE ;
+        MOVE PROPERTY (code(o));
+        MOVE PROPERTY (name(o));
+        MOVE PROPERTY (sign(o));
+    }
+}
+
+NAVIGATOR {
+    dosmove {
+        NEW FORM viewMoveMoneyOpreration;
+    }
+}

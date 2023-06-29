@@ -1,0 +1,11 @@
+MODULE menu;
+
+REQUIRE Finance;
+
+NAVIGATOR {
+    finance {
+        NEW FOLDER dosfin 'Журналы MS-DOS' {
+            NEW FOLDER dosmove 'Движение денег';
+        }
+    }
+}

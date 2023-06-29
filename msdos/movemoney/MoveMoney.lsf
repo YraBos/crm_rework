@@ -1,0 +1,222 @@
+MODULE MoveMoney;
+
+REQUIRE menu, MoveMoneyOpreration, FinCart, Payment, PaymentContract, Expense, Currency, Customer, LegalEntity, Time, Utils;
+
+NAMESPACE MoveMoney;
+
+// дата, код операции, валюта, сумма, организация, клиент, примечание, сумма в твердой валюте
+CLASS MoveMoney 'Движение денежных средства';
+date 'Дата' = DATA DATE (MoveMoney);
+yymm 'ГГММ' = DATA STRING[4] (MoveMoney);
+operation 'ID Код' = DATA MoveMoneyOpreration (MoveMoney);
+currency 'ID Валюта' = DATA Currency (MoveMoney);
+suma 'Сумма' = DATA NUMERIC[12,2] (MoveMoney);
+sumaUSD 'USD' = DATA NUMERIC[12,2] (MoveMoney);
+note 'Примечание' = DATA STRING  (MoveMoney);
+customer 'ID клиент' = DATA Customer (MoveMoney);
+legalEntity 'ID организации' = DATA LegalEntity (MoveMoney);
+update 'Обновление' = DATA DATE (MoveMoney);
+msdfinance 'ID MSDos журнал' = DATA MSDFinance (MoveMoney);
+payment 'ID платежи' = DATA Payment (MoveMoney);
+expense 'ID расходы' = DATA Expense (MoveMoney);
+balance 'Остаток' = DATA BOOLEAN (MoveMoney);
+
+nameCustomer 'Клиент' (MoveMoney o) = name(customer(o));
+nameLegalEntity 'Организация'(MoveMoney o) = name(legalEntity(o));
+nameCurrency 'Валюта' (MoveMoney o) = shortName(currency(o)) CHARWIDTH 3;
+codeOperation 'Код' (MoveMoney o) = code(operation(o)) CHARWIDTH 3;  
+nameOperation 'Операция' (MoveMoney o) = name(operation(o));
+signOperation 'Вид' (MoveMoney o) = sign(operation(o)) CHARWIDTH 3;
+
+FORM viewPayments 'Платежи'
+    OBJECTS o = Payment LAST
+    PROPERTIES(o) READONLY id, nameLegalEntity,nameCustomer, nameCompany, descriptionContract, number, date,
+        year, monthNumber, nameType, sum, shortNameCurrency, sumCurrency, note, numberAccount, numberAccountFrom
+    ORDERS date(o), nameLegalEntity(o), nameCompany(o)
+;
+
+FORM viewExpenses 'Расходы'
+    OBJECTS o = Expense
+    PROPERTIES(o) READONLY nameCompany, nameLegalEntity, nameCustomer, date, datePayment, nameType, sum, shortNameCurrency, sumCurrency, numberAccount, numberAccountTo, noteString
+    ORDERS date(o), datePayment(o)
+;
+
+FORM inputParameters 'Параметры импорта'
+    OBJECTS days = INTEGER PANEL
+    PROPERTIES days 'Кол. дней для импорта' = VALUE (days)
+    OBJECTS help = TEXT PANEL
+    PROPERTIES READONLY help '' = VALUE (help)
+    EVENTS ON INIT {
+        SEEK inputParameters.days = 90;
+        SEEK inputParameters.help = 'Кол. дней от даты операции\nили -1 импортировать за весь период';
+    }
+;
+
+DESIGN inputParameters { 
+    OBJECTS {
+        horizontal = FALSE;
+        NEW cnt {
+            fill = 1;
+            MOVE PROPERTY (help) {background = RGB(204, 255, 255); charHeight = 2;}
+        }
+    }
+}
+
+onOpenSource 'Источник' (MoveMoney m) {
+    CASE
+        WHEN msdfinance(m) THEN SHOW viewFinance OBJECTS o = msdfinance(m) DOCKED NOWAIT;
+        WHEN payment(m) THEN SHOW viewPayments OBJECTS o = payment(m) DOCKED NOWAIT;
+        WHEN expense(m) THEN SHOW viewExpenses OBJECTS o = expense(m) DOCKED NOWAIT;
+        ELSE MESSAGE 'Источник не определен';
+};
+
+toDateYYMM = FORMULA STRING[4] 'to_char(($1),\'YYMM\')';   ;
+
+onCalcUSD 'Перевод в USD' (MoveMoney o, TypeExchange typeBYN) {
+    IF shortName(currency(o)) = 'USD' THEN RETURN;
+    LOCAL s = NUMERIC[18,6] ();
+    IF shortName(currency(o)) = 'BYN' THEN s() <- suma(o);
+    ELSE s() <- round6(suma(o) * rateOn(typeBYN, currency(o), date(o))); // переводим в BYN
+    sumaUSD(o) <- round2(s() * rateOn(defaultTypeExchange(), currency(typeBYN), date(o)));
+}
+
+onImportDataMSDFinance 'Импорт финансы' (DATE dv) {
+    LOCAL luxCustomer = Customer ();
+    LOCAL luxLegalEntity = LegalEntity ();
+    LOCAL cbyn, cusd = Currency ();
+    luxCustomer() <- GROUP MAX (Customer o) IF id(o) = '1';
+    luxLegalEntity() <- GROUP MAX (LegalEntity o) IF id(o) = '1';
+    cbyn() <- GROUP MAX (Currency o) IF shortName(o) = 'BYN';
+    cusd() <- GROUP MAX (Currency o) IF shortName(o) = 'USD';
+    FOR (MSDFinance f IS MSDFinance) AND date(f) >= dv NEW m = MoveMoney DO {
+        date(m) <- date(f);
+        msdfinance(m) <- f;
+        yymm(m) <- toDateYYMM(date(m)); 
+        operation(m) <- GROUP MAX (MoveMoneyOpreration s) IF code(s) = operation(f);
+        IF source(f) = 'BALRUB' THEN {
+            suma(m) <- moveBYN(f);
+            currency(m) <- cbyn();
+        } ELSE {
+            suma(m) <- moveUSD(f);
+            sumaUSD(m) <- moveUSD(f);
+            currency(m) <- cusd();
+        }
+        customer(m) <- luxCustomer();
+        legalEntity(m) <- luxLegalEntity();
+        IF isSubstring(sign(f),'55 Сальдо*****') THEN balance(m) <- TRUE;
+        note(m) <- (OVERRIDE name(f) + '. ','') + (OVERRIDE note(f),'');
+    }
+}
+
+onImportDataPayment 'Импорт платежи' (DATE dv) {
+    FOR (Payment p IS Payment) AND date(p) >= dv NEW m = MoveMoney DO {
+        date(m) <- date(p);
+        yymm(m) <- toDateYYMM(date(m));
+        payment(m) <- p;
+        operation(m) <- GROUP MAX (MoveMoneyOpreration s) IF code(s) = nameType(p);
+        currency(m) <- currency(p);
+        suma(m) <- NUMERIC[12,2](sum(p));
+        IF shortNameCurrency(p) = 'USD' THEN sumaUSD(m) <- sumCurrency(p);
+        customer(m) <- customer(p);
+        legalEntity(m) <- legalEntity(p);
+        note(m) <- note(p);
+    }       
+}
+
+onImportDataExpense 'Импорт расходы' (DATE dv) {
+    FOR (Expense e IS Expense) AND date(e) >= dv NEW m = MoveMoney DO {
+        date(m) <- date(e);
+        yymm(m) <- toDateYYMM(date(m));
+        expense(m) <- e;
+        operation(m) <- GROUP MAX (MoveMoneyOpreration s) IF code(s) = nameType(e);
+        currency(m) <- currency(e);
+        suma(m) <- -NUMERIC[12,2](sum(e));
+        IF shortNameCurrency(e) = 'USD' THEN sumaUSD(m) <- -sumCurrency(e);
+        customer(m) <- customer(e);
+        legalEntity(m) <- legalEntity(e);
+        note(m) <- note(e);
+    }
+}
+
+
+onImportData 'Импорт данных' () {
+    DIALOG inputParameters OBJECTS days INPUT DO NEWSESSION {
+        LOCAL dv = DATE ();
+        LOCAL t = TypeExchange ();
+        IF days = -1 THEN dv() <- 1900_01_01; ELSE dv() <- subtract(currentDate(),days);
+        DELETE MoveMoney o WHERE o IS MoveMoney AND date(o) >= dv();
+        onImportDataMSDFinance(dv());
+        onImportDataPayment(dv());
+        onImportDataExpense(dv());
+        t() <- GROUP MAX (TypeExchange t) IF name(t) = 'НБРБ (BYN)';
+        FOR (MoveMoney m IS MoveMoney) AND nameCurrency(m) != 'USD' AND NOT sumaUSD(m) DO onCalcUSD(m,t()); 
+        APPLY ;
+    } ELSE MESSAGE 'Выполнение отменено';
+}
+
+
+CLASS Sources 'Источники' { p1 '1. Все', p2 '2. Касса', p3 '3. Платежи', p4 '4. Расходы', p5 '5. Остатки'}
+FORM viewSources OBJECTS o = Sources PROPERTIES(o) READONLY staticCaption LIST Sources OBJECT o ORDERS staticCaption(o);
+
+
+// фильтры
+fltYYMM 'ГГММ' = DATA LOCAL STRING[4];
+    fltCodeOperation 'ID Код' = DATA LOCAL MoveMoneyOpreration ();
+fltNameCodeOperation 'Код' = code(fltCodeOperation());
+fltSign 'Вид' = DATA LOCAL STRING[1] () CHARWIDTH 3;
+    fltSource 'ID источник' = DATA LOCAL Sources ();
+fltNameSource 'Источник' = STRING[10](staticCaption(fltSource()));
+fltNumberSource = left(fltNameSource(),1);
+fltCurrency 'ID валюты' = DATA LOCAL Currency ();
+fltNameCurrency 'Валюта' = shortName(fltCurrency());
+    fltCustomer 'ID клиента' = DATA LOCAL Customer ();
+fltNameCustomer 'Клиент' = name(fltCustomer());
+
+FORM viewMoveMoney 'Движение финансов'
+    OBJECTS m = MoveMoney
+    PROPERTIES(m) READONLY BACKGROUND IF NOT shortName(currency(m)) = 'BYN' THEN RGB (225, 255, 225) 
+                    date, codeOperation, signOperation, nameCurrency, suma, sumaUSD, nameCustomer, nameLegalEntity, note
+    PROPERTIES onImportData(), onOpenSource(m)
+    PROPERTIES() fltYYMM,fltNameCodeOperation, fltSign, fltNameCurrency, fltNameCustomer, fltNameSource
+    FILTERS IF fltYYMM() AND fltNumberSource()!='5' THEN yymm(m) = fltYYMM() ELSE TRUE
+    FILTERS IF fltCodeOperation() THEN codeOperation(m) = fltNameCodeOperation() ELSE TRUE
+    FILTERS IF fltSign() THEN signOperation(m) = fltSign() ELSE TRUE
+    FILTERS IF fltNumberSource() = '2' THEN (IF msdfinance(m) THEN TRUE ELSE NULL) ELSE TRUE
+    FILTERS IF fltNumberSource() = '3' THEN (IF payment(m) THEN TRUE ELSE NULL) ELSE TRUE
+    FILTERS IF fltNumberSource() = '4' THEN (IF expense(m) THEN TRUE ELSE NULL) ELSE TRUE
+    FILTERS IF fltNumberSource() = '5' THEN (IF balance(m) THEN TRUE ELSE NULL) ELSE TRUE
+    FILTERS IF fltCurrency() THEN nameCurrency(m) = fltNameCurrency() ELSE TRUE
+    FILTERS IF fltCustomer() THEN nameCustomer(m) = fltNameCustomer() ELSE TRUE
+    EVENTS ON INIT { 
+        fltYYMM() <-  toDateYYMM(currentDate());
+        fltSource() <- GROUP MAX (Sources s) IF left(staticCaption(s),1) = '1';
+    }
+;
+
+DESIGN viewMoveMoney {
+    FILTERBOX (m) {
+        NEW cntFilter {
+            horizontal = TRUE;
+            caption = 'фильтры';
+            MOVE PROPERTY (fltYYMM()) {charWidth = 6;}
+            MOVE PROPERTY (fltNameCodeOperation()) {charWidth = 6;}
+            MOVE PROPERTY (fltSign()) {charWidth = 4;}
+            MOVE PROPERTY (fltNameCurrency()) {charWidth = 6;}
+            MOVE PROPERTY (fltNameCustomer()) {charWidth = 20;}
+            MOVE PROPERTY (fltNameSource()) {charWidth = 12;};
+        }
+    }
+    TOOLBARRIGHT (m) {
+        MOVE PROPERTY (onImportData());
+        MOVE PROPERTY (onOpenSource(m)); 
+    }
+}
+
+
+
+NAVIGATOR {
+    dosmove {
+        NEW FORM viewMoveMoney FIRST ;
+    }
+}
+

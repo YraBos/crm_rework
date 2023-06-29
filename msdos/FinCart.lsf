@@ -1,6 +1,6 @@
 MODULE FinCart;
 
-REQUIRE Finance, Utils;
+REQUIRE menu, Utils;
 
 CLASS MSDFinance 'Учет финансов';
 
@@ -27,7 +27,7 @@ saldoUSD 'Сальдо, USD'  = GROUP SUM moveUSD(MSDFinance o) MATERIALIZED ;
 updBYN ', обновлено' = GROUP MAX update(MSDFinance o) IF source(o) = 'BALRUB';
 updUSD ', обновлено' = GROUP MAX update(MSDFinance o) IF source(o) = 'BAL';
 
-FORM viewFinance 'Учет финансов'
+FORM viewFinance 'Касса MS DOS'
     OBJECTS o = MSDFinance LAST 
     PROPERTIES (o) READONLY date, document, name, moveBYN, moveUSD, note, sign, code, operation, omes, source, update
     OBJECTS b = MSDFinance PANEL 
@@ -115,9 +115,7 @@ DESIGN viewFinance {
 }
 
 NAVIGATOR {
-   finance {
-        NEW FOLDER dosfin 'Журналы MS-DOS' {
-            NEW FORM viewFinance;  
-        }
-   } 
+   dosfin {
+       NEW FORM viewFinance FIRST;
+   }
 }

@@ -1,6 +1,6 @@
 MODULE PaymentProcessDashboardNew;
 
-REQUIRE PaymentProcessDashboard, Agreement, Contract, Payment, BankPrepare1c;
+REQUIRE PaymentProcessDashboard, Agreement, Contract, Payment;
 
 differenceSumPaid 'Разница (ст.-опл.)' (Agreement a) = sum(a) (-) paidPayment(a); 
 

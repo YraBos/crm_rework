@@ -34,11 +34,13 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         NormDocs,                   // RM16778, Нормативные документы
         EquipmentLogWorkTsd,        // Журнал, работающих ТСД
         TimeEntryTotalDashboardNew, // RM18251, Контроль отмеченного времени
-        BankImport1c,               // RM19826, Импорт банковской выписки из 1с
         FinCart,
         EquipmentDasboardChange,
         EquipmentRemoveTsd,         // RM22298, Перемещение ТСД
-        AddDocWord                  // RM23988 Скидка и размер скидки в договорах и соглащшениях
+        AddDocWord,                 // RM23988 Скидка и размер скидки в договорах и соглащшениях
+        MoveMoney,                  // RM24191 Движение денежных средств 
+        MoveMoneyOpreration,
+        MoveMoneyBalance
 ;
 
 
