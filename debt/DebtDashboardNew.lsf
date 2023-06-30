@@ -92,39 +92,44 @@ EXTEND FORM debtDashboard
     FILTERS customer(p) == c
 ;
 
-
-
 DESIGN debtDashboard {
     right {
         MOVE BOX(p) AFTER BOX (db);
     }
 }
 
-//RM24026
-oldSum 'Старое значение задолженности' = DATA NUMERIC[16,5] (Debt);
-onReplaceSum 'Заменить' (Debt o) {
+//RM24026 - отметка неактивных задолженностей
+fltInactive 'Неактивные' = DATA LOCAL BOOLEAN ();
+
+FORM editInactive 'Изменение активности' OBJECTS valueInactive = BOOLEAN PANEL NULL 
+    PROPERTIES valueInactive 'Активность' = VALUE(valueInactive)
+;
+
+EXTEND FORM debtDashboard 
+    PROPERTIES fltInactive() 
+    PROPERTIES(db) READONLY inactive FIRST
+    FILTERS IF fltInactive() THEN TRUE ELSE NOT inactive(db);  
+
+onChangeInactive 'Активность' (Debt o) {
     IF NOT killDebt(currentUser()) THEN { MESSAGE 'Недостаточно прав для выполнения операции'; RETURN; }
-    IF NOT paid(o) THEN {
-        MESSAGE 'Пустое значение суммы оплаты\nОперация отменена';
-        RETURN;
-    }
-    ASK 'Вы действительно хотите заменить\nСумму задолженности Суммой оплаты ?' DO NEWSESSION {
-        IF NOT oldSum(o) THEN oldSum(o) <- sum(o); 
-        sum(o) <- paid(o);
-        APPLY;
+    fltInactive() <- TRUE;
+    DIALOG editInactive OBJECTS valueInactive = inactive(o) INPUT DO NEWSESSION {
+        inactive(o) <- valueInactive;
+        APPLY; 
+    }       
+}
+
+EXTEND FORM debtDashboard PROPERTIES(db) SHOWIF killDebt(currentUser()) onChangeInactive;    
+
+DESIGN debtDashboard { 
+    PROPERTY(inactive(db)) {caption = 'ФЗ';} 
+    TOOLBARRIGHT (db) {
+        MOVE PROPERTY (fltInactive());
+        MOVE PROPERTY (onChangeInactive(db)); 
     }
 }
 
-onReturnSum 'Отменить' (Debt o) {
-    IF NOT killDebt(currentUser()) THEN { MESSAGE 'Недостаточно прав для выполнения операции'; RETURN; }
-    IF NOT oldSum(o) THEN {
-        MESSAGE 'Старое значение суммы неопределено';
-        RETURN;
-    }
-    NEWSESSION {
-        sum(o) <- oldSum(o);
-        APPLY;
-    }    
-}
 
-EXTEND FORM debtDashboard PROPERTIES (db) TOOLBAR onReplaceSum, onReturnSum; 
+
+
+

@@ -1,0 +1,13 @@
+MODULE ActsExport;
+
+REQUIRE DebtDashboardNew;
+
+onExportActs 'Экспорт в 1С' ABSTRACT ();
+
+EXTEND FORM debtDashboard PROPERTIES onExportActs();
+
+DESIGN debtDashboard { TOOLBAR(d) { MOVE PROPERTY (onExportActs()); } }
+
+onExportActs () + {
+    MESSAGE 'Ok';
+}

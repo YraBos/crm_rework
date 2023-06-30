@@ -41,6 +41,7 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         MoveMoney,                  // RM24191 Движение денежных средств 
         MoveMoneyOpreration,
         MoveMoneyBalance
+//        ActsExport                  // RM23738
 ;
 
 
