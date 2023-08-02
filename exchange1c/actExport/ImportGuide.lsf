@@ -1,0 +1,66 @@
+MODULE ImportGuide;
+
+REQUIRE Contract, LegalEntityBy, SetExport;
+
+CLASS TempClient 'Справочники клиентов';
+clientRef 'ID организации' = DATA STRING[36] (TempClient);
+name 'Название' = DATA STRING[100] (TempClient);
+unp 'УНП' = DATA STRING[9] (TempClient);
+
+CLASS TempContract 'Справочние договоров';
+clientRef 'ID организации' = DATA STRING[36] (TempContract);
+contractRef 'ID договора' = DATA STRING[36] (TempContract);
+number 'Номер' = DATA STRING[15] (TempContract);
+date 'Дата' = DATA DATE (TempContract);
+
+GROUP data EXTID 'V8Exch:Data';
+
+name = DATA LOCAL STRING[100] (INTEGER);
+unp = DATA LOCAL STRING[9] (INTEGER);
+number = DATA LOCAL STRING[15] (INTEGER);
+date = DATA LOCAL DATE (INTEGER);
+
+FORM importGuide 'Импорт справочников'
+    FORMEXTID 'V8Exch=http://www.1c.ru/V8/1CV8DtUD/:_1CV8DtUD'
+    PROPERTIES ATTR ='http://v8.1c.ru/data' EXTID 'xmlns:core', ='http://v8.1c.ru/8.1/data/enterprise/current-config' EXTID 'xmlns:v8', ='http://www.w3.org/2001/XMLSchema' EXTID 'xmlns:xs', ='http://www.w3.org/2001/XMLSchema-instance' EXTID 'xmlns:xsi'
+    OBJECTS client = INTEGER EXTID 'v8:CatalogObject.Контрагенты' IN data
+    PROPERTIES (client) name EXTID 'v8:ПолноеНаименование', unp EXTID 'v8:УНП'
+    FILTERS imported(client)
+    OBJECTS contract = INTEGER EXTID 'v8:CatalogObject.Договора' IN data
+    PROPERTIES (contract) number EXTID 'v8:НомерДоговора', date EXTID 'v8:ДатаДоговора'
+    FILTERS imported(contract)
+;
+
+META ImportRef(name,alias,groupExtid)
+    GROUP group##name EXTID groupExtid;
+    prop##name = DATA LOCAL STRING[36] (INTEGER);
+    EXTEND FORM importGuide PROPERTIES(alias) prop##name IN group##name EXTID 'value';
+END
+
+@ImportRef(Client,client,'v8:Ref');
+@ImportRef(Client2,contract,'v8:Owner');
+@ImportRef(Contract,contract,'v8:Ref');
+
+FORM tempClientContract 
+    OBJECTS cnt = TempClient PROPERTIES (cnt) READONLY clientRef, name, unp
+    OBJECTS ctr = TempContract PROPERTIES (ctr) READONLY clientRef, contractRef, number, date 
+    FILTERS clientRef(cnt) = clientRef(ctr) 
+;
+
+onImportGuid 'Импорт справочников' (STRING path) {
+    LOCAL xmlset = XMLFILE ();
+    LOCAL le = LegalEntity ();
+    READ path + 'sprav.xml' TO xmlset;
+    IMPORT importGuide XML FROM xmlset();
+    FOR name(INTEGER i) DO NEW o =TempClient {
+        clientRef(o) <- propClient(i);
+        name(o) <- STRING[100](name(i));
+        unp(o) <- STRING[9](unp(i));
+    }
+    FOR date(INTEGER j) DO NEW o =TempContract {
+        clientRef(o) <- propClient2(j);
+        contractRef(o) <- propContract(j);
+        number(o) <- number(j);
+        date(o) <- date(j);
+    }
+}

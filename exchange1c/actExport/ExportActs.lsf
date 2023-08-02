@@ -1,0 +1,70 @@
+MODULE ExportActs;
+
+REQUIRE DocDashboardNew, StructureXml, SetExport, ImportGuide, Utils;
+
+next = DATA LOCAL BOOLEAN ();
+
+onChkExport 'Проверка перед экспортом' (STRING path) {
+    next() <- NULL;
+    IF NOT path THEN {
+        MESSAGE 'Каталог экспорта не определен\nОперация прервана';
+        RETURN;
+    }
+    IF NOT GROUP MAX (Document d) IF in(d) AND nameType(d) = 'АСР' THEN {
+        MESSAGE 'Нет отмеченных актов для экспорта\nОперация прервана';
+        RETURN;
+    }
+    fileExists(path + 'bom.txt');
+    IF NOT fileExists() THEN {
+        MESSAGE 'Не найден файл < bom.txt > в каталоге экспорта\nОперация прервана';
+        RETURN;
+    }
+    fileExists(path + 'sprav.xml');
+    IF NOT fileExists() THEN {
+        MESSAGE 'Не найден файл < sprav.xml > в каталоге экспорта\nОперация прервана';
+        RETURN;
+    }
+    fileExists(path + 'document.xml');
+    IF fileExists() THEN delete(path + 'document.xml');
+    next() <- TRUE;
+    predefinedData() <- '';
+    onImportGuid(path);
+}
+
+onSaveBOM 'Запись результата с BOM' (STRING fname, fbname) {
+    LOCAL fbom = FILE(); LOCAL ctxt = TEXT();
+    READ fbname TO fbom;
+    fileToString(fbom(),'UTF-8');
+    ctxt() <- replace(resultString(),'\r\n','');
+    fileToString(exportFile(),'UTF-8');
+    appendToFile(fname,ctxt() + left(resultString(),length(resultString())-4));
+}
+
+
+onExportActs 'Экспорт 1С' () {
+    LOCAL path = STRING ();
+    path() <- value(GROUP MAX (set1C o) IF staticCaption(o) = 'КаталогЭкспорта'); 
+    onChkExport(path());
+    IF NOT next() THEN RETURN; 
+    FOR (Document d IS Document) AND in(d) AND nameType(d) = 'АСР' DO { 
+        generateUUID(); 
+        guid(d) <- generatedUUID(); // локальное свойство, чтобы не делать apply 
+    } 
+    EXPORT v_1CV8DtUD XML;
+    onSaveBOM(path() + 'document.xml',path() + 'bom.txt');
+    in(Document d) <- NULL;
+    MESSAGE 'Операция завершена';
+    // отменяем сохранение данных в TempClient и TempContract - временные данные из 1С. 
+    // Иначе будет светиться Сохранить / Отменить на форме    
+    CANCEL;
+}
+
+
+EXTEND FORM docDashboard PROPERTIES onExportActs(), onEditSet1C();
+
+DESIGN docDashboard {
+    filter {
+        MOVE PROPERTY (onExportActs());
+        MOVE PROPERTY (onEditSet1C());
+    }
+}

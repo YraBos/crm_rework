@@ -40,8 +40,8 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         AddDocWord,                 // RM23988 Скидка и размер скидки в договорах и соглащшениях
         MoveMoney,                  // RM24191 Движение денежных средств 
         MoveMoneyOpreration,
-        MoveMoneyBalance
-//        ActsExport                  // RM23738
+        MoveMoneyBalance,
+        ExportActs                  // RM23738
 ;
 
 

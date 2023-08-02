@@ -1,0 +1,122 @@
+MODULE SetExport;
+
+REQUIRE Utils;
+
+// Настройки экспорта в 1С
+CLASS set1C 'Настройки для экспорта 1С' {
+    p1 'v8:Организация', p2 'v8:СчетРеализации', p3 'v8:Автор', p4 'КаталогЭкспорта',
+    p5 'v8:Субконто1', p6 'v8:Субконто2', p7 'v8:Валюта=BYN', p8 'v8:ВидДокументаЭСЧФ', 
+    p9 'v8:ХозОперация', p10 'v8:СтавкаНДС'
+}
+value 'Значение' = DATA STRING (set1C);
+
+FORM editSet1C 'Настройки экспорта'
+    OBJECTS o = set1C PANEL
+    PROPERTIES (o) READONLY staticCaption PROPERTIES (o) value EDIT set1C OBJECT o;
+
+DESIGN editSet1C {
+    OBJECTS {
+        NEW cnt {
+            fill = 1;
+            horizontal = FALSE;
+            MOVE PROPERTY (staticCaption(o)) {caption = 'Параметр'; background= RGB(204, 204, 0);}
+            MOVE PROPERTY (value(o));
+        }
+    }
+}
+
+FORM viewSet1C 'Настройки экспорта'
+    OBJECTS o = set1C
+    PROPERTIES (o) READONLY staticCaption, value
+    PROPERTIES (o) NEWSESSION EDIT ORDERS staticCaption(o);
+
+DESIGN viewSet1C { PROPERTY (staticCaption(o)) {caption = 'Параметр';}}
+
+onEditSet1C 'Настройка экспорта 1C' {SHOW viewSet1C DOCKED;}
+
+emptyRef 'Пустая ссылка' = '00000000-0000-0000-0000-000000000000';
+
+// сойства-константы из настроек
+constBlankRef = emptyRef();
+constOrganization 'Люксофт' = OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Организация'), emptyRef();
+constHozOper 'Хоз. операция' = OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:ХозОперация'), emptyRef();
+constCurrency 'Валюта' = OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Валюта=BYN'), emptyRef();
+constAccountSale 'Счет реализации' =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:СчетРеализации'), emptyRef();
+constSubConto1 'Субконто1'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто1'), emptyRef();
+constSubConto2 'Субконто2'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто2'), emptyRef();
+constTypeDoc 'ВидДокументаЭСЧФ'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:ВидДокументаЭСЧФ'), emptyRef();
+constAuthor 'Автор документа'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Автор'), emptyRef();
+constVat 'Ставка НДС' = OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:СтавкаНДС'), emptyRef();
+
+
+// =================== АВТОМАТИЧЕСКОЕ ЗАПОЛНЕНИЕ СВОЙСТВ ===================
+GROUP data EXTID 'V8Exch:Data';
+GROUP uslugi EXTID 'v8:DocumentObject.ОказаниеУслуг';
+
+ref = DATA LOCAL STRING(INTEGER);
+
+FORM importSet FORMEXTID 'V8Exch=http://www.1c.ru/V8/1CV8DtUD/:_1CV8DtUD'
+    PROPERTIES ATTR ='http://v8.1c.ru/data' EXTID 'xmlns:core', ='http://v8.1c.ru/8.1/data/enterprise/current-config' EXTID 'xmlns:v8', ='http://www.w3.org/2001/XMLSchema' EXTID 'xmlns:xs', ='http://www.w3.org/2001/XMLSchema-instance' EXTID 'xmlns:xsi'
+    OBJECTS uslugi = INTEGER EXTID 'v8:DocumentObject.ОказаниеУслуг' IN data
+    PROPERTIES(uslugi) ref EXTID 'v8:Ref'
+    FILTERS imported(uslugi)
+;
+
+META ImportRef(name,groupExtid)
+    GROUP group##name EXTID groupExtid;
+    prop##name = DATA LOCAL STRING(INTEGER); 
+    EXTEND FORM importSet PROPERTIES(uslugi) prop##name IN group##name EXTID 'value';
+END
+
+@ImportRef(Organization,'v8:Организация');
+@ImportRef(HozOper,'v8:ХозОперация');
+@ImportRef(Currency,'v8:Валюта');
+@ImportRef(AccountSale,'v8:СчетРеализации');
+@ImportRef(SubConto1,'v8:Субконто1');
+@ImportRef(SubConto2,'v8:Субконто2');
+@ImportRef(TypeDoc,'v8:ВидДокументаЭСЧФ');
+@ImportRef(Author,'v8:Автор');
+@ImportRef(Vat,'v8:СтавкаНДС');
+
+onReplace 'Заполнение значения' (STRING caption,value) {
+    LOCAL o = set1C ();
+    o() <- GROUP MAX (set1C s) IF staticCaption(s) = caption;
+    IF o() THEN value(o()) <- value;    
+}
+
+onAutoFill 'Заполнить автоматически' () {
+    ASK 'Операция заполнит параметры типа < v8:* > автоматически\n' + 
+        'на основания файла < demoakt.xml > - импорт из 1С\n' +
+        'см. < Документы.ОказанныеУслуги >. Продолжить ?' DO {
+        LOCAL path = STRING ();
+        LOCAL xmlset = XMLFILE ();
+        path() <- value(GROUP MAX (set1C o) IF staticCaption(o) = 'КаталогЭкспорта');
+        IF NOT path() THEN {
+            MESSAGE 'Каталог экспорта не определен\nОперация прервана';
+            RETURN;
+        }
+        fileExists(path() + 'demoakt.xml');
+        IF NOT fileExists() THEN {
+            MESSAGE 'Не найден файл < demoakt.xml >\nОперация прервана';
+            RETURN;
+        }
+        READ path() + 'demoakt.xml' TO xmlset;
+        IMPORT importSet XML FROM xmlset();
+        FOR ref(INTEGER i) ORDER i DO {
+            IF i > 0 THEN BREAK;
+            onReplace('v8:Организация',propOrganization(i));
+            onReplace('v8:ХозОперация',propHozOper(i));
+            onReplace('v8:Валюта=BYN',propCurrency(i));
+            onReplace('v8:СчетРеализации',propAccountSale(i));
+            onReplace('v8:Субконто1',propSubConto1(i));
+            onReplace('v8:Субконто2',propSubConto2(i));
+            onReplace('v8:ВидДокументаЭСЧФ',propTypeDoc(i));
+            onReplace('v8:Автор',propAuthor(i));
+            onReplace('v8:СтавкаНДС',propVat(i));
+        }
+        APPLY;
+    } 
+}
+
+EXTEND FORM viewSet1C PROPERTIES onAutoFill() TOOLBAR;
+

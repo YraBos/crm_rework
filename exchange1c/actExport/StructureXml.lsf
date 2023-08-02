@@ -1,0 +1,204 @@
+MODULE StructureXml;
+
+REQUIRE DocDashboardNew, ImportGuide, SetExport, Utils;
+
+// Экспорт в 1с
+toDate1C = FORMULA STRING[19] 'to_char(($1),\'YYYY-MM-DDT00:00:00\')';
+
+GROUP data EXTID 'V8Exch:Data';
+predefinedData = DATA LOCAL STRING();
+guid 'GUID 1C' = DATA LOCAL STRING (Document);
+
+// вычисляемые свойства
+propContrAgent 'Контрагент' (Document o) =
+    OVERRIDE clientRef(GROUP MAX (TempClient t) IF unp(t) = UNP(legalEntity(o))), emptyRef();
+
+//propContract 'Договор с контрагентом' (Document o) = IF o THEN  emptyRef();
+propContract 'Договор с контрагентом' (Document o) = 
+    OVERRIDE contractRef(GROUP MAX (TempContract tc) 
+            IF clientRef(tc) = clientRef(GROUP MAX (TempClient t) IF unp(t) = UNP(legalEntity(o)))), emptyRef();
+
+// пока не надо, оставляем пустую ссылку
+propContrAgentAccount 'Основной счет контрагента' (Document o) = IF o THEN emptyRef();
+
+// Ссылки связанные с контрагентами (плательщики)
+META AddContrAgent(name,groupExtid,atrExtid)
+    GROUP group##name EXTID groupExtid;
+    EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d =atrExtid EXTID 'xsi:type' ATTR IN group##name, prop##name(d) IN group##name EXTID 'value';
+END
+
+// Ссылки на константные значения из настроек
+META AddRefConst(name,groupExtid,atrExtid)
+    GROUP group##name EXTID groupExtid;
+    EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d =atrExtid EXTID 'xsi:type' ATTR IN group##name, const##name() IN group##name EXTID 'value';
+END
+
+
+// Ссылки на незначимые свойства (name = ValueXXX), нужные для соблюдения струкутры
+META AddRefEmptyType(name,groupExtid,atrExtid)
+    GROUP group##name EXTID groupExtid;
+    empty##name = emptyRef();
+    EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d =atrExtid EXTID 'xsi:type' ATTR IN group##name, empty##name() IN group##name EXTID 'value';
+END
+
+// Ссылки на незначимые свойства (name = ValueXXX), нужные для соблюдения струкутры
+META AddRefEmptyNil(name,groupExtid,atrExtid)
+    GROUP group##name EXTID groupExtid;
+    EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d =atrExtid EXTID 'xsi:nil' ATTR IN group##name, ='' IN group##name EXTID 'value';
+END
+
+// ВНИМАНИЕ: экспорт сформирован в порядке следования тегов
+FORM v_1CV8DtUD FORMEXTID 'V8Exch=http://www.1c.ru/V8/1CV8DtUD/:_1CV8DtUD'
+    PROPERTIES ATTR ='http://v8.1c.ru/data' EXTID 'xmlns:core', ='http://v8.1c.ru/8.1/data/enterprise/current-config' EXTID 'xmlns:v8', ='http://www.w3.org/2001/XMLSchema' EXTID 'xmlns:xs', ='http://www.w3.org/2001/XMLSchema-instance' EXTID 'xmlns:xsi'
+    OBJECTS d = Document EXTID 'v8:DocumentObject.ОказаниеУслуг' IN data
+    PROPERTIES DRAW d 
+        guid(d) EXTID 'v8:Ref', =TFALSE EXTID 'v8:DeletionMark',  =toDate1C(date(d)) EXTID 'v8:Date',
+        =number(d) EXTID 'v8:Number', =TFALSE EXTID 'v8:Posted'
+    FILTERS in(d)
+;
+
+// Организация - это Люксофт только, см. контрагент
+@AddRefConst(Organization,'v8:Организация','v8:CatalogRef.Организации');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    ='' EXTID 'v8:Серия', ='Акт' EXTID 'v8:НаименованиеДокумента';
+
+@AddRefConst(HozOper,'v8:ХозОперация','v8:CatalogRef.ХозяйственныеОперации');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    ='ОказаниеУслуг' EXTID 'v8:ВидОказанияУслуг';
+
+// контрагенты - это организации клиентов Люксофта
+@AddContrAgent(ContrAgent,'v8:Контрагент','v8:CatalogRef.Контрагенты');
+@AddContrAgent(Contract,'v8:Договор','v8:CatalogRef.Договора');
+@AddRefEmptyType(Value1,'v8:Сделка','v8:CatalogRef.Сделки');
+@AddContrAgent(ContrAgentAccount,'v8:СчетКонтрагента','v8:ChartOfAccountsRef.Основной');
+@AddRefConst(Currency,'v8:Валюта','v8:CatalogRef.Валюты');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =toDate1C(date(d)) EXTID 'v8:ДатаКурса';
+
+@AddRefConst(AccountSale,'v8:СчетРеализации','v8:ChartOfAccountsRef.Основной');
+@AddRefConst(SubConto1,'v8:Субконто1','v8:CatalogRef.ВидыДеятельности');
+@AddRefConst(SubConto2,'v8:Субконто2','v8:CatalogRef.ВидыВариантовРеализации');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =round2(sum(d)) EXTID 'v8:СуммаБезНДС';
+
+@AddRefConst(Vat,'v8:СтавкаНДС','v8:CatalogRef.СтавкиНДС');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =0.00 EXTID 'v8:СуммаНДС', =round2(sum(d)) EXTID 'v8:СуммаСНДС';
+
+@AddRefEmptyType(Value3,'v8:СтавкаНП','v8:CatalogRef.СтавкиНП');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =0 EXTID 'v8:СуммаНП', =round2(sum(d)) EXTID 'v8:СуммаВсего';
+
+@AddRefEmptyType(Value4, 'v8:ТМЦ','v8:CatalogRef.Номенклатура');
+@AddRefEmptyType(Value5,'v8:ТипЦены','v8:CatalogRef.ТипыЦен');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =TFALSE EXTID 'v8:ФлагСторно', ='Оказание услуг, выполнение работ' EXTID 'v8:Содержание', =TFALSE EXTID 'v8:ФлагНП', 
+    =TFALSE EXTID 'v8:ФлагДляРасчетаСуммыИспользоватьКоличество', 
+    =TFALSE EXTID 'v8:ФлагДляРасчетаСуммыИспользоватьНаценки',
+    =TFALSE EXTID 'v8:ФлагВыставлятьСчетФактуру', =TFALSE EXTID 'v8:ФлагПодборНоменклатуры';
+
+@AddRefEmptyType(Value6,'v8:СчетПодрядчика', 'v8:ChartOfAccountsRef.Основной');
+@AddRefEmptyType(Value7,'v8:СчетЗаказчика', 'v8:ChartOfAccountsRef.Основной');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =TFALSE EXTID 'v8:ФлагНППодряд', =TFALSE EXTID 'v8:ФлагВалютныйЖурнал', =TTRUE EXTID 'v8:ФлагРублевыйЖурнал',
+    =round2(sum(d)) EXTID 'v8:СуммаВсегоДокумента', =0 EXTID 'v8:СуммаНДСДокумента', =TTRUE EXTID 'v8:ФлагЖурналУслуги', 
+    =TFALSE EXTID 'v8:ФлагВыставленаСчетФактураПоНДС', =TFALSE EXTID 'v8:ФлагОбратныйРасчет';
+
+@AddRefEmptyType(Manager,'v8:Менеджер','v8:CatalogRef.Менеджеры');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =toDate1C(date(d)) EXTID 'v8:СрокОплаты';
+
+@AddRefEmptyType(Value8,'v8:СчетУдержания', 'v8:ChartOfAccountsRef.Основной');
+@AddRefEmptyNil(Value9,'v8:Субконто1СчетаУдержания', 'true');
+@AddRefEmptyNil(Value10,'v8:Субконто2СчетаУдержания', 'true');
+@AddRefEmptyNil(Value11,'v8:Субконто3СчетаУдержания', 'true');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =emptyRef() EXTID 'v8:ДокументОснование', =toDate1C(date(d)) EXTID 'v8:ДатаЗаявки', ='' EXTID 'v8:НомерЗаявки';
+
+@AddRefEmptyType(Value14,'v8:ВидДокументаЭСЧФЗаявки','v8:CatalogRef.ВидыДокументовЭСЧФ');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    ='' EXTID 'v8:НазваниеДокументаЭСЧФЗаявки', 
+    ='0001-01-01T00:00:00' EXTID 'v8:ДатаНакладной', ='' EXTID 'v8:НомерНакладной';
+
+@AddRefEmptyType(Value15,'v8:ВидДокументаЭСЧФНакладной','v8:CatalogRef.ВидыДокументовЭСЧФ');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    ='' EXTID 'v8:НазваниеДокументаЭСЧФНакладной', ='' EXTID 'v8:МаршрутСледования',
+    =0 EXTID 'v8:КурсВалюты', =TFALSE EXTID 'v8:ФлагРасчетКурсаПоАвансам';
+
+@AddRefEmptyType(Value16,'v8:ВидВариантаРеализацииПодряд','v8:CatalogRef.ВидыВариантовРеализации');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW 
+    d =TFALSE EXTID 'v8:ФлагСубподрядУчаствуетВРасчетеПрибыли';
+
+@AddRefEmptyType(Value17,'v8:РасчетныйСчет','v8:CatalogRef.РасчетныеСчета');
+@AddRefEmptyType(Value18,'v8:КорСчетБанка','v8:CatalogRef.КоррСчетаБанков');
+@AddRefEmptyType(Value19,'v8:РасчетныйСчетКонтрагента','v8:CatalogRef.РасчетныеСчета');
+@AddRefEmptyType(Value20,'v8:СчетЗаказчикаПоУмолчанию', 'v8:ChartOfAccountsRef.Основной');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    ='Посредник' EXTID 'v8:СтатусПоставщикаПодряд', ='Потребитель' EXTID 'v8:СтатусПолучателяПодряд';
+
+@AddRefEmptyType(Value21,'v8:ОКЭД','v8:CatalogRef.КодыОКЭД');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =TFALSE EXTID 'v8:ФлагНеФормироватьПроводкиПоРеализацииСубподряд', 
+    =TFALSE EXTID 'v8:ФлагФормироватьЭСЧФПоОплате';
+
+@AddRefConst(TypeDoc,'v8:ВидДокументаЭСЧФ','v8:CatalogRef.ВидыДокументовЭСЧФ');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =TFALSE EXTID 'v8:ФлагНеФормироватьЭСЧФ', ='' EXTID 'v8:ТипЭСЧФ',
+    ='' EXTID 'v8:СтатусПолучателя', ='' EXTID 'v8:СтатусПоставщика';
+
+@AddRefEmptyNil(Value23,'v8:ДокументОснованиеИсходныйЭСЧФ', 'true');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    ='' EXTID 'v8:РеквизитыЭСЧФСтрока', =TFALSE EXTID 'v8:ФлагНачислятьНДСПодряд';
+
+@AddRefEmptyType(Value24,'v8:СчетНДСПодряд', 'v8:ChartOfAccountsRef.Основной');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =TFALSE EXTID 'v8:ФлагРасчетНДСОтСуммыРеализации';
+
+@AddRefEmptyType(Value25,'v8:СчетНДССубподряд', 'v8:ChartOfAccountsRef.Основной');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =TFALSE EXTID 'v8:ФлагРасчетВыручкиОтВалютыОтгрузкиПоКурсуАванса',
+    =0 EXTID 'v8:Надбавка', =TFALSE EXTID 'v8:ФлагЗаполнятьУсловияПоставкиДопЭСЧФ', 
+    =TFALSE EXTID 'v8:ФлагПодборТМЦпоТТН';
+
+@AddRefEmptyType(Value26,'v8:Ответственный','v8:CatalogRef.Сотрудники');
+@AddRefEmptyType(Value27,'v8:Руководитель','v8:CatalogRef.Сотрудники');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =TFALSE EXTID 'v8:ФлагВыводитьВсегоСтоимостьВВалюте',
+    ='' EXTID 'v8:РеквизитыСтрока', =TFALSE EXTID 'v8:ФлагИспользоватьСодержаниеУслугиДляСубподряда',
+    =0 EXTID 'v8:ВариантЗаполненияДокументаПоставкиДопЭСЧФ', =TFALSE EXTID 'v8:ФлагУчитыватьХарактеристики',
+    =TFALSE EXTID 'v8:ФлагФормироватьЭСЧФПриобретениеЗаПределамиРБ';
+
+@AddRefEmptyType(Value28,'v8:ВидДокументаЭСЧФПриобретениеЗаПределамиРБ','v8:CatalogRef.ВидыДокументовЭСЧФ');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    =TFALSE EXTID 'v8:ФлагЗакрыватьДолгКонтрагента',
+    =TFALSE EXTID 'v8:ФлагФормироватьЭСЧФПроцентыПоКредиту';
+
+@AddRefConst(Author,'v8:Автор','v8:CatalogRef.ПользователиСистемы');
+
+EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
+    ='' EXTID 'v8:Комментарий', =TFALSE EXTID 'v8:Проверен';
+
+
+// !!! predefinedData() всегда в конце - иначе будет ошибка структуры
+EXTEND FORM v_1CV8DtUD PROPERTIES() predefinedData EXTID 'PredefinedData';
