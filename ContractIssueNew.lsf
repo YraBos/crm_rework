@@ -1,0 +1,13 @@
+MODULE ContractIssueNew;
+
+REQUIRE ContractIssue, CustomerTime;
+
+NAMESPACE  Contract;
+
+EXTEND FORM contract 
+    PROPERTIES (i) hours 
+;
+
+DESIGN contract {
+    PROPERTY (hours(i)) {caption = 'Часы';}  
+}

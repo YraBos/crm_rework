@@ -40,3 +40,20 @@ EXTEND FORM paymentProcessDasboard
     PROPERTIES (p) onListDP TOOLBAR
     PROPERTIES (e) onListDE TOOLBAR 
 ;
+
+// --------------------------------------------------------------------
+// ТОЛЬКО ДЛЯ ОТЛАДКИ: 
+// --------------------------------------------------------------------
+// внесение платежа, как копия др. платежа для работы под фильтром
+//onCopy 'Копия' (Payment p) {
+//   NEW o = Payment {
+//      legalEntity(o) <- legalEntity(p);
+//      company(o) <- company(p); 
+//      contract(o) <- contract(p);
+//      date(o) <- currentDate();
+//      currency(o) <- currency(p);
+//      type(o) <- type(p); 
+//   }        
+//}
+//EXTEND FORM paymentProcessDasboard PROPERTIES (p) onCopy TOOLBAR ;
+// --------------------------------------------------------------------
