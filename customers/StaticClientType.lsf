@@ -17,7 +17,8 @@ CLASS EnumProducts 'Продукты' {
     p112 'FL:  Ls Fusion ERP – склад, логистический центр',
     p113 'FF:  Ls Fusion ERP - фармация',
     p114 'FR:  Ls Fusion ERP – специальная разработка',
-    p115 'KS:  LS Trade Сервер Торгового оборудования'
+    p115 'KS:  LS Trade Сервер Торгового оборудования',
+    p116 'FT:  LS Fusion ERP - Front-office'
 }
 
 CLASS EnumRevise 'Сверка' {
