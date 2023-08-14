@@ -176,7 +176,7 @@ FORM viewMoveMoney 'Движение финансов'
     OBJECTS m = MoveMoney
     PROPERTIES(m) READONLY BACKGROUND IF NOT shortName(currency(m)) = 'BYN' THEN RGB (225, 255, 225) 
                     date, codeOperation, signOperation, nameCurrency, suma, sumaUSD, nameCustomer, nameLegalEntity, note
-    PROPERTIES onImportData(), onOpenSource(m)
+    PROPERTIES onImportData(), onOpenSource(m), onOpenHelp()
     PROPERTIES() fltYYMM,fltNameCodeOperation, fltSign, fltNameCurrency, fltNameCustomer, fltNameSource
     FILTERS IF fltYYMM() AND fltNumberSource()!='5' THEN yymm(m) = fltYYMM() ELSE TRUE
     FILTERS IF fltCodeOperation() THEN codeOperation(m) = fltNameCodeOperation() ELSE TRUE

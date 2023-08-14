@@ -23,7 +23,6 @@ FORM editBalance 'Редактирование остатка'
         IF shortName(currency(m)) = 'USD' THEN sumaUSD(m) <- suma(m);
         ELSE MoveMoney.onCalcUSD( m, GROUP MAX (TypeExchange t) IF name(t) = 'НБРБ (BYN)' );
     }
-    
 ;
 
 DESIGN editBalance {
@@ -42,7 +41,8 @@ DESIGN editBalance {
 FORM viewBalance 'Остатки'
     OBJECTS m = MoveMoney
     PROPERTIES(m) READONLY BACKGROUND IF NOT shortName(currency(m)) = 'BYN' THEN RGB (225, 255, 225)
-            date, codeOperation, signOperation, nameCurrency, suma, sumaUSD, note
+            date, nameCurrency, suma, sumaUSD, note
+    PROPERTIES onOpenHelp()
     FILTERS balance(m)
     PROPERTIES(m) NEWSESSION NEW, DELETE 
 ;

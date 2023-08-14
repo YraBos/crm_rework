@@ -1,6 +1,6 @@
 MODULE MoveMoneyOpreration;
 
-REQUIRE menu;
+REQUIRE menu, RevisionHelp;
 
 NAMESPACE MoveMoney;
 
@@ -15,6 +15,7 @@ FORM viewMoveMoneyOpreration 'Справочник операций'
     OBJECTS o = MoveMoneyOpreration
     PROPERTIES (o) READONLY code, name, sign
     PROPERTIES (o) NEWSESSION NEW, EDIT, DELETE 
+    PROPERTIES onOpenHelp()
 ;
 
 FORM listMoveMoneyOpreration 'Справочник операций'

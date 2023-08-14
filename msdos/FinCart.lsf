@@ -1,6 +1,6 @@
 MODULE FinCart;
 
-REQUIRE menu, Utils;
+REQUIRE menu, Utils, RevisionHelp;
 
 CLASS MSDFinance 'Учет финансов';
 
@@ -77,7 +77,7 @@ onUpdateBalRub 'Импорт BYN' () {onImportFin('BALRUB');}
 onUpdateBal 'Импорт USD' () {onImportFin('BAL');}
 
 EXTEND FORM viewFinance
-    PROPERTIES onUpdateBalRub() TOOLBAR , onUpdateBal() TOOLBAR 
+    PROPERTIES onOpenHelp(), onUpdateBalRub(), onUpdateBal()  
 ;
 
 DESIGN viewFinance {
@@ -111,7 +111,11 @@ DESIGN viewFinance {
             }
         }
         MOVE BOX(o);
-    }   
+    }
+    TOOLBARRIGHT (o) {
+        MOVE PROPERTY (onUpdateBalRub());
+        MOVE PROPERTY (onUpdateBal());
+    }
 }
 
 NAVIGATOR {
