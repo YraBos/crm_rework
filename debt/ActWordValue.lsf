@@ -1,0 +1,6 @@
+MODULE ActWordValue;
+
+REQUIRE Employee;
+
+signerId 'ID подписанта' = DATA Employee ();
+signerName 'Подписант' = name(signerId());

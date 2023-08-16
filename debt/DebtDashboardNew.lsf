@@ -1,6 +1,6 @@
 MODULE DebtDashboardNew;
 
-REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew, AgreementNew, DocsInWork, EmployeeNew, RevisionHelp;
+REQUIRE DebtDashboard, Payment, Utils, Time, CustomerNew, AgreementNew, DocsInWork, EmployeeNew, RevisionHelp, ActWordValue;
 
 filterSumDebt 'Размер задолженности' = DATA LOCAL INTEGER ();
 
@@ -129,7 +129,12 @@ DESIGN debtDashboard {
     }
 }
 
+// RM24675, Добавить подписанта, см. ActWordValue
+EXTEND FORM requiredTemplateEntries
+    PROPERTIES signerName() SELECTOR
+    EVENTS ON INIT { ActWordValue.signerId() <- NULL; }
+;
 
-
-
-
+DESIGN requiredTemplateEntries {
+    PROPERTY (signerName()) {charWidth = 40;}
+}

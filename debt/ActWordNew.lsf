@@ -1,0 +1,15 @@
+MODULE ActWordNew;
+
+REQUIRE ActWord, Time, Utils, ActWordValue;
+
+NAMESPACE Act;
+
+AFTER createActTemplate (Act ag, Template t) DO {
+    value(TemplateEntry d) <- TEXT (
+        lower(extractMonthName(toDate(ag))) + toChar(extractYear(toDate(ag)),'9999') + ' года'
+    ) WHERE key(d) = 'NAME_ACT_MONTH' AND template (d) == t;
+    IF ActWordValue.signerId() THEN { // смена подписанта 
+        value(TemplateEntry d) <- OVERRIDE shortName(ActWordValue.signerId()), '' WHERE key(d) = 'SHORT_NAME_AUTHORISED_PERSON_COMPANY' AND template (d) == t;
+        value(TemplateEntry d) <- OVERRIDE namePosition(ActWordValue.signerId()), '' WHERE key(d) = 'POSITION_AUTHORISED_PERSON_COMPANY' AND template (d) == t;
+    }
+}
