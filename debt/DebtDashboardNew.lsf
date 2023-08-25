@@ -138,3 +138,8 @@ EXTEND FORM requiredTemplateEntries
 DESIGN requiredTemplateEntries {
     PROPERTY (signerName()) {charWidth = 40;}
 }
+
+overPayment 'П' (Debt o, DATE d2) = IF paid(o,d2) > sum(o) THEN '+';
+EXTEND FORM debtDashboard 
+    PROPERTIES READONLY BACKGROUND IF paid(db,dd) > sum(db) THEN RGB(255, 204, 255) overPayment(db,dd) AFTER inactive(db)
+; 
