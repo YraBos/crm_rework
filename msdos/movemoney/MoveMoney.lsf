@@ -25,8 +25,11 @@ nameCustomer 'Клиент' (MoveMoney o) = name(customer(o));
 nameLegalEntity 'Организация'(MoveMoney o) = name(legalEntity(o));
 nameCurrency 'Валюта' (MoveMoney o) = shortName(currency(o)) CHARWIDTH 3;
 codeOperation 'Код' (MoveMoney o) = code(operation(o)) CHARWIDTH 3;  
-nameOperation 'Операция' (MoveMoney o) = name(operation(o));
+nameOperation 'Операция' (MoveMoney o) = STRING[20](left(name(operation(o)),20));
 signOperation 'Вид' (MoveMoney o) = sign(operation(o)) CHARWIDTH 3;
+codeSource 'Ист.' (MoveMoney o) = 
+    IF payment(o) THEN 'БУХ' ELSE IF expense(o) THEN 'БУХ' ELSE IF msdfinance(o) THEN 'КАС' ELSE IF balance(o) THEN 'ОСТ' ELSE '';   
+
 
 FORM viewPayments 'Платежи'
     OBJECTS o = Payment LAST
@@ -175,7 +178,8 @@ fltNameCustomer 'Клиент' = name(fltCustomer());
 FORM viewMoveMoney 'Движение финансов'
     OBJECTS m = MoveMoney
     PROPERTIES(m) READONLY BACKGROUND IF NOT shortName(currency(m)) = 'BYN' THEN RGB (225, 255, 225) 
-                    date, codeOperation, signOperation, nameCurrency, suma, sumaUSD, nameCustomer, nameLegalEntity, note
+                    date, codeOperation, nameOperation, codeSource, signOperation, nameCurrency, 
+                    suma, sumaUSD, nameCustomer, nameLegalEntity, note
     PROPERTIES onImportData(), onOpenSource(m), onOpenHelp()
     PROPERTIES() fltYYMM,fltNameCodeOperation, fltSign, fltNameCurrency, fltNameCustomer, fltNameSource
     FILTERS IF fltYYMM() AND fltNumberSource()!='5' THEN yymm(m) = fltYYMM() ELSE TRUE
