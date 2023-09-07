@@ -4,10 +4,14 @@ REQUIRE Utils;
 
 // Настройки экспорта в 1С
 CLASS set1C 'Настройки для экспорта 1С' {
-    p1 'v8:Организация', p2 'v8:СчетРеализации', p3 'v8:Автор', p4 'КаталогЭкспорта',
-    p5 'v8:Субконто1', p6 'v8:Субконто2', p7 'v8:Валюта=BYN', p8 'v8:ВидДокументаЭСЧФ', 
-    p9 'v8:ХозОперация', p10 'v8:СтавкаНДС'
+    p1 'v8:Организация', p2 'v8:СчетРеализации', p3 'v8:Автор', 
+    p4 'v8:Валюта=BYN', p5 'v8:ВидДокументаЭСЧФ', p6 'v8:ХозОперация', p7 'v8:СтавкаНДС',
+    p8 'v8:Posted',
+    a10 'v8:Субконто1=АСР', a11 'v8:Субконто2=АСР',
+    a20 'v8:Субконто1=АКЛ', a21 'v8:Субконто2=АКЛ',
+    a30 'v8:Субконто1=АКТ', a31 'v8:Субконто2=АКТ'
 }
+
 value 'Значение' = DATA STRING (set1C);
 
 FORM editSet1C 'Настройки экспорта'
@@ -42,11 +46,13 @@ constOrganization 'Люксофт' = OVERRIDE value(GROUP MAX (set1C s) IF stati
 constHozOper 'Хоз. операция' = OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:ХозОперация'), emptyRef();
 constCurrency 'Валюта' = OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Валюта=BYN'), emptyRef();
 constAccountSale 'Счет реализации' =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:СчетРеализации'), emptyRef();
-constSubConto1 'Субконто1'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто1'), emptyRef();
-constSubConto2 'Субконто2'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто2'), emptyRef();
 constTypeDoc 'ВидДокументаЭСЧФ'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:ВидДокументаЭСЧФ'), emptyRef();
 constAuthor 'Автор документа'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Автор'), emptyRef();
 constVat 'Ставка НДС' = OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:СтавкаНДС'), emptyRef();
+constPosted 'Проведено' = IF value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Posted') THEN TTRUE ELSE TFALSE; 
+
+//constSubConto1 'Субконто1'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто1=АСР'), emptyRef();
+//constSubConto2 'Субконто2'  =  OVERRIDE value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто2=АСР'), emptyRef();
 
 
 // =================== АВТОМАТИЧЕСКОЕ ЗАПОЛНЕНИЕ СВОЙСТВ ===================
@@ -72,11 +78,14 @@ END
 @ImportRef(HozOper,'v8:ХозОперация');
 @ImportRef(Currency,'v8:Валюта');
 @ImportRef(AccountSale,'v8:СчетРеализации');
-@ImportRef(SubConto1,'v8:Субконто1');
-@ImportRef(SubConto2,'v8:Субконто2');
 @ImportRef(TypeDoc,'v8:ВидДокументаЭСЧФ');
 @ImportRef(Author,'v8:Автор');
 @ImportRef(Vat,'v8:СтавкаНДС');
+
+// Примечание по субконто:
+// Виды деятельности (субконто 1) всегда разные и зависят от типа акта (АСР, АКЛ, АКТ), вносятся вручную в настройках
+// Виды вариантов реализации (субконто 2) - общий для всех видов деятельности
+@ImportRef(Subconto2,'v8:Субконто2');
 
 onReplace 'Заполнение значения' (STRING caption,value) {
     LOCAL o = set1C ();
@@ -85,37 +94,34 @@ onReplace 'Заполнение значения' (STRING caption,value) {
 }
 
 onAutoFill 'Заполнить автоматически' () {
-    ASK 'Операция заполнит параметры типа < v8:* > автоматически\n' + 
+    ASK 'Операция заполнит параметры типа < v8:* > автоматически\n' +
         'на основания файла < demoakt.xml > - импорт из 1С\n' +
         'см. < Документы.ОказанныеУслуги >. Продолжить ?' DO {
-        LOCAL path = STRING ();
-        LOCAL xmlset = XMLFILE ();
-        path() <- value(GROUP MAX (set1C o) IF staticCaption(o) = 'КаталогЭкспорта');
-        IF NOT path() THEN {
-            MESSAGE 'Каталог экспорта не определен\nОперация прервана';
-            RETURN;
+        INPUT xmlFile = NAMEDFILE DO {
+            IF NOT (upper(name(xmlFile)) = 'DEMOAKT' AND upper(extension(xmlFile)) = 'XML') THEN {
+                MESSAGE 'Не ожидаемое имя файла < DEMOAKT.XML >\nОперация прервана';
+                RETURN;
+            }
+            IMPORT importSet XML FROM xmlFile;
+            FOR ref(INTEGER i) ORDER i DO {
+                IF i > 0 THEN BREAK; // нам не надо сканировать весь файл
+                onReplace('v8:Организация', propOrganization(i));
+                onReplace('v8:ХозОперация', propHozOper(i));
+                onReplace('v8:Валюта=BYN', propCurrency(i));
+                onReplace('v8:СчетРеализации', propAccountSale(i));
+                onReplace('v8:ВидДокументаЭСЧФ', propTypeDoc(i));
+                onReplace('v8:Автор', propAuthor(i));
+                onReplace('v8:СтавкаНДС', propVat(i));
+                onReplace('v8:Субконто1=АСР',emptyRef()); // надо заполнить вручную
+                onReplace('v8:Субконто2=АСР',propSubconto2(i));
+                onReplace('v8:Субконто1=АКЛ',emptyRef()); // надо заполнить вручную
+                onReplace('v8:Субконто2=АКЛ',propSubconto2(i));
+                onReplace('v8:Субконто1=АКТ',emptyRef()); // надо заполнить вручную
+                onReplace('v8:Субконто2=АКТ',propSubconto2(i));
+            }
+            APPLY;
         }
-        fileExists(path() + 'demoakt.xml');
-        IF NOT fileExists() THEN {
-            MESSAGE 'Не найден файл < demoakt.xml >\nОперация прервана';
-            RETURN;
-        }
-        READ path() + 'demoakt.xml' TO xmlset;
-        IMPORT importSet XML FROM xmlset();
-        FOR ref(INTEGER i) ORDER i DO {
-            IF i > 0 THEN BREAK;
-            onReplace('v8:Организация',propOrganization(i));
-            onReplace('v8:ХозОперация',propHozOper(i));
-            onReplace('v8:Валюта=BYN',propCurrency(i));
-            onReplace('v8:СчетРеализации',propAccountSale(i));
-            onReplace('v8:Субконто1',propSubConto1(i));
-            onReplace('v8:Субконто2',propSubConto2(i));
-            onReplace('v8:ВидДокументаЭСЧФ',propTypeDoc(i));
-            onReplace('v8:Автор',propAuthor(i));
-            onReplace('v8:СтавкаНДС',propVat(i));
-        }
-        APPLY;
-    } 
+    }
 }
 
 EXTEND FORM viewSet1C PROPERTIES onAutoFill() TOOLBAR;

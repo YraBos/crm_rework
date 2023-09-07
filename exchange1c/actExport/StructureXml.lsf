@@ -21,6 +21,16 @@ propContract 'Договор с контрагентом' (Document o) =
 // пока не надо, оставляем пустую ссылку
 propContrAgentAccount 'Основной счет контрагента' (Document o) = IF o THEN emptyRef();
 
+propSubConto1 'Субконто 1' (Document o) = OVERRIDE (
+    IF nameType(o) = 'АСР' THEN value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто1=АСР') ELSE
+    IF nameType(o) = 'АКЛ' THEN value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто1=АКЛ') ELSE
+    IF nameType(o) = 'АКТ' THEN value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто1=АКТ')), emptyRef();
+
+propSubConto2 'Субконто 2' (Document o) = OVERRIDE (
+    IF nameType(o) = 'АСР' THEN value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто2=АСР') ELSE
+    IF nameType(o) = 'АКЛ' THEN value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто2=АКЛ') ELSE
+    IF nameType(o) = 'АКТ' THEN value(GROUP MAX (set1C s) IF staticCaption(s) = 'v8:Субконто2=АКТ')), emptyRef();
+
 // Ссылки связанные с контрагентами (плательщики)
 META AddContrAgent(name,groupExtid,atrExtid)
     GROUP group##name EXTID groupExtid;
@@ -33,6 +43,11 @@ META AddRefConst(name,groupExtid,atrExtid)
     EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d =atrExtid EXTID 'xsi:type' ATTR IN group##name, const##name() IN group##name EXTID 'value';
 END
 
+// Ссылки связанные с константами субконто
+META AddRefConstSubconto(name,groupExtid,atrExtid)
+    GROUP group##name EXTID groupExtid;
+    EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d =atrExtid EXTID 'xsi:type' ATTR IN group##name, prop##name(d) IN group##name EXTID 'value';
+END
 
 // Ссылки на незначимые свойства (name = ValueXXX), нужные для соблюдения струкутры
 META AddRefEmptyType(name,groupExtid,atrExtid)
@@ -53,7 +68,7 @@ FORM v_1CV8DtUD FORMEXTID 'V8Exch=http://www.1c.ru/V8/1CV8DtUD/:_1CV8DtUD'
     OBJECTS d = Document EXTID 'v8:DocumentObject.ОказаниеУслуг' IN data
     PROPERTIES DRAW d 
         guid(d) EXTID 'v8:Ref', =TFALSE EXTID 'v8:DeletionMark',  =toDate1C(date(d)) EXTID 'v8:Date',
-        =number(d) EXTID 'v8:Number', =TFALSE EXTID 'v8:Posted'
+        =number(d) EXTID 'v8:Number', =constPosted() EXTID 'v8:Posted'
     FILTERS in(d)
 ;
 
@@ -79,8 +94,10 @@ EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d
     =toDate1C(date(d)) EXTID 'v8:ДатаКурса';
 
 @AddRefConst(AccountSale,'v8:СчетРеализации','v8:ChartOfAccountsRef.Основной');
-@AddRefConst(SubConto1,'v8:Субконто1','v8:CatalogRef.ВидыДеятельности');
-@AddRefConst(SubConto2,'v8:Субконто2','v8:CatalogRef.ВидыВариантовРеализации');
+
+@AddRefConstSubconto(SubConto1,'v8:Субконто1','v8:CatalogRef.ВидыДеятельности');
+@AddRefConstSubconto(SubConto2,'v8:Субконто2','v8:CatalogRef.ВидыВариантовРеализации');
+
 
 EXTEND FORM v_1CV8DtUD PROPERTIES DRAW d 
     =round2(sum(d)) EXTID 'v8:СуммаБезНДС';
