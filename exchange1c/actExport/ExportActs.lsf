@@ -28,7 +28,7 @@ onExportActs 'Экспорт 1С' () {
         guid(d) <- generatedUUID(); // локальное свойство, чтобы не делать apply
     }
     predefinedData() <- ''; // чтобы сформировал тег PredefinedData, а то будет ошибка структуры
-    EXPORT v_1CV8DtUD XML TO xmlFile;
+    EXPORT v_1CV8DtUD XML CHARSET 'UTF-8-BOM' TO xmlFile;
     in(Document d) <- NULL;
     open(xmlFile());
     CANCEL; // отменяем сохранение данных в TempClient и TempContract - временные данные из 1С, иначе будет светиться Сохранить / Отменить на форме
