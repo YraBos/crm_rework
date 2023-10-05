@@ -29,23 +29,18 @@ ocs (Contract o) = GROUP MAX (ContractSubject cs) IF contract(cs) = o AND chkVal
 contractDiscountSize (Contract o) =   OVERRIDE trim(toChar(discountSize(ocs(o)),'9999999,99')),'';
 contractDiscountSum (Contract o) =    OVERRIDE trim(toChar(discountSum(ocs(o)),'9999999,99')),'';
 
-// Соглашение: значение свойств для свойств шаблона
-oas (Contract o) = GROUP MAX (AgreementSubject as)  IF contractAgreement(as) = o;
-agreementDiscountSize (Contract o) =  OVERRIDE trim(toChar(discountSize(oas(o)),'9999999,99')),'';
-agreementDiscountPrice (Contract o) = OVERRIDE trim(toChar(discountPrice(oas(o)),'9999999,99')),'';
-agreementDiscountSum (Contract o) =   OVERRIDE trim(toChar(discountSum(oas(o)),'9999999,99')),'';
-
-
 overPrintContractWord (Contract ct, Template t) + {
     value(TemplateEntry d) <- contractDiscountSize(ct)  WHERE key(d) = 'CONTRACT_DISCOUNT_SIZE' AND template (d) == t;
     value(TemplateEntry d) <- contractDiscountSum(ct)   WHERE key(d) = 'CONTRACT_DISCOUNT_SUM'  AND template (d) == t;
 }
 
 overPrintAgreementWord (Agreement ag, Template t) + {
-    value(TemplateEntry d) <- agreementDiscountSize(contract(ag))  WHERE key(d) = 'AGREEMENT_DISCOUNT_SIZE'  AND template (d) == t;
-    value(TemplateEntry d) <- agreementDiscountPrice(contract(ag)) WHERE key(d) = 'AGREEMENT_DISCOUNT_PRICE' AND template (d) == t;
-    value(TemplateEntry d) <- agreementDiscountSum(contract(ag))   WHERE key(d) = 'AGREEMENT_DISCOUNT_SUM'   AND template (d) == t;
-}
+    LOCAL ob = AgreementSubject ();
+    ob() <- GROUP MAX (AgreementSubject o) IF agreement(o) = ag;
+    value(TemplateEntry d) <- OVERRIDE trim(toChar(discountSize(ob()),'999999999.99')),''  WHERE key(d) = 'AGREEMENT_DISCOUNT_SIZE'  AND template (d) == t;
+    value(TemplateEntry d) <- OVERRIDE trim(toChar(discountPrice(ob()),'999999999.99')),''  WHERE key(d) = 'AGREEMENT_DISCOUNT_PRICE'  AND template (d) == t;
+    value(TemplateEntry d) <- OVERRIDE trim(toChar(discountSum(ob()),'999999999.99')),''  WHERE key(d) = 'AGREEMENT_DISCOUNT_SUM'  AND template (d) == t;
+}    
 
 createTemplateEntries(Template t, DocType d) + {
     IF d IS DocType THEN {
