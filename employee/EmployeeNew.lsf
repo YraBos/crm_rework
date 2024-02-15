@@ -57,13 +57,16 @@ DESIGN employees {
 
 
 killDebt 'Закрытие задолженностей' = DATA BOOLEAN (Employee);
+personalAccount 'Лицевой счет' = DATA STRING[28] (Employee);
 
 // форма редактирования
 EXTEND FORM employee
     PROPERTIES(o)   dateBirthday, showMsgBirthdayStarted, dayDelta, onGetQualification, 
-                    normDocAdmin, normDocCoordination, employmentDate, killDebt
+                    normDocAdmin, normDocCoordination, employmentDate, killDebt, personalAccount
     PROPERTIES(o) READONLY lstQualification, seniority
 ; 
+
+EXTEND FORM employees PROPERTIES (o) READONLY personalAccount;
 
 DESIGN employee {
     OBJECTS {
@@ -79,6 +82,7 @@ DESIGN employee {
             horizontal = TRUE;
             MOVE PROPERTY (employmentDate(o));
             MOVE PROPERTY (seniority(o));
+            MOVE PROPERTY (personalAccount(o));
         }    
         dop {
             NEW cntdop {
