@@ -82,7 +82,7 @@ DESIGN employee {
             horizontal = TRUE;
             MOVE PROPERTY (employmentDate(o));
             MOVE PROPERTY (seniority(o));
-            MOVE PROPERTY (personalAccount(o));
+            MOVE PROPERTY (personalAccount(o)) {charWidth=35;};
         }    
         dop {
             NEW cntdop {
