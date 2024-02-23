@@ -42,7 +42,8 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         MoveMoneyOpreration,
         MoveMoneyBalance,
         ExportActs,                  // RM23738
-        ContractIssueNew             // RM24722   
+        ContractIssueNew,            // RM24722  
+        SaleErpConstructor
 ;
 
 

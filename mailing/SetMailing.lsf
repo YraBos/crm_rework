@@ -1,0 +1,101 @@
+MODULE SetMailing;
+
+REQUIRE Dashboard, Email;
+
+CLASS SetMailing 'Настройки';
+
+account 'ID' = DATA Account (SetMailing) NONULL;
+attribute 'Признак обработки' = DATA STRING[30] (SetMailing) NONULL; 
+subject 'Тема для контроля' = DATA STRING[50] (SetMailing);
+htmlStart 'Начало HTML' = DATA TEXT (SetMailing);
+htmlInsert 'Вставка HTML' = DATA TEXT (SetMailing);
+htmlEnd 'Окончание HTML' = DATA TEXT (SetMailing);
+answer1 'Ответить, E-mail1' = DATA STRING (SetMailing);
+answer2 'Ответить, E-mail2' = DATA STRING (SetMailing);
+
+accountName 'Имя аккаунта' (SetMailing s) = name(account(s));
+
+FORM editSetMailing 'Редактирование'
+    OBJECTS s = SetMailing PANEL 
+    PROPERTIES(s) accountName, attribute, subject, answer1, answer2, htmlStart, htmlInsert, htmlEnd
+    EDIT SetMailing OBJECT s
+;
+
+DESIGN editSetMailing {
+    OBJECTS {
+        NEW panel {
+            fill = 1;
+            horizontal = FALSE ;
+            MOVE PROPERTY (accountName(s)) {charWidth=50;}
+            MOVE PROPERTY (attribute(s));
+            MOVE PROPERTY (subject(s));
+            MOVE PROPERTY (answer1(s));
+            MOVE PROPERTY (answer2(s));
+            NEW template {
+                fill = 1;
+                MOVE PROPERTY (htmlStart(s)) {charHeight=10;};
+                MOVE PROPERTY (htmlInsert(s)) {charHeight=10;};
+                MOVE PROPERTY (htmlEnd(s)) {charHeight=10;};
+            }
+        }
+    }
+}
+
+FORM viewSetMailing 'Параметры обработки'
+    OBJECTS s = SetMailing
+    PROPERTIES(s) READONLY accountName, attribute, subject, answer1, answer2
+    PROPERTIES(s) NEWSESSION NEW, EDIT, DELETE 
+;
+
+CLASS ErpModule 'Модули ERP';
+
+npp  '№ пп' = DATA INTEGER (ErpModule) NONULL CHARWIDTH 10;
+name 'Название модуля' = DATA STRING (ErpModule) NONULL;
+label 'Метка' = DATA STRING[20] (ErpModule);
+
+unique 'Проверка уникальности' = GROUP AGGR ErpModule o BY name(o);
+
+FORM editErpModule 'Модули ERP'
+    OBJECTS e = ErpModule PANEL 
+    PROPERTIES (e) npp
+    PROPERTIES (e) name  ON CHANGE { INPUT s = STRING DO name(e) <- STRING(trim(s)); }
+    PROPERTIES (e) label ON CHANGE { INPUT s = STRING DO label(e) <- upper(trim(s)); } 
+    EDIT ErpModule OBJECT e
+    EVENTS ON INIT {
+        IF NOT npp(e) THEN npp(e) <- (GROUP SUM 1 IF npp(ErpModule o)) (+) 1;
+    }
+;
+
+DESIGN editErpModule { 
+    OBJECTS { 
+        NEW cnt { 
+            fill = 1;
+            MOVE PROPERTY (npp(e));
+            MOVE PROPERTY (label(e));
+            MOVE PROPERTY (name(e));
+        } 
+    } 
+}
+
+FORM viewErpModule 'Модули ERP'
+    OBJECTS e = ErpModule
+    PROPERTIES (e) READONLY npp, label, name
+    PROPERTIES (e) NEWSESSION NEW, EDIT, DELETE
+;
+
+DESIGN viewErpModule {
+    PROPERTY (npp(e)) {charWidth=10;}
+    PROPERTY (name(e)) {charWidth=200;}
+}
+
+
+NAVIGATOR {
+    dashboard {
+        NEW FOLDER message 'Рассылки' WINDOW toolbar {
+            NEW FOLDER setMessage 'Настройки' {
+                NEW FORM viewSetMailing FIRST;
+                NEW FORM viewErpModule;
+            }
+        }
+    }
+}

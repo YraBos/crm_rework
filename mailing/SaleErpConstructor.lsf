@@ -1,0 +1,156 @@
+MODULE SaleErpConstructor;
+
+REQUIRE SetMailing, Utils, Email;
+
+CLASS SaleErpConstructor 'Продажа форм для ERP';
+
+email 'ID' = DATA Email (SaleErpConstructor);
+cnt 'Признак' = DATA INTEGER (SaleErpConstructor) CHARWIDTH 6;
+datePost 'Отправлено'  = DATA DATETIME (SaleErpConstructor);
+mailPost 'Почта'  = DATA STRING[50] (SaleErpConstructor);
+bodyPost 'Отправленное сообщение' = DATA TEXT  (SaleErpConstructor);
+namePost 'Имя' = DATA STRING (SaleErpConstructor);
+
+dateAccept 'Принято' (SaleErpConstructor s) = dateTimeSent(email(s));
+bodyAccept 'Принятое сообщение' (SaleErpConstructor s) = message(email(s));
+saleErpConstructor 'ID' (Email e) = GROUP MAX SaleErpConstructor s IF email(s) = e;
+
+in   'Включить модуль в ответ' = DATA LOCAL BOOLEAN (ErpModule);
+set1 'Параметры настройки' = DATA LOCAL SetMailing ();
+set2 'Параметры настройки' = DATA LOCAL SetMailing ();
+
+FORM viewSaleErpConstructor 'Журнал ERP Constructor'
+    OBJECTS s1 = SaleErpConstructor LAST
+    PROPERTIES (s1) READONLY dateAccept, cnt, namePost, mailPost, datePost
+    OBJECTS s2 = SaleErpConstructor
+    PROPERTIES (s2) READONLY bodyAccept BACKGROUND RGB(230, 242, 242), bodyPost 
+    FILTERS s1 = s2
+    ORDERS dateAccept(s1)
+;
+
+qtxt 'Вопрос' = DATA LOCAL STRING ();
+atxt 'Ответ'  = DATA LOCAL STRING ();
+
+parseTag 'Парсировщик тега' (SaleErpConstructor s, TEXT text) {
+    qtxt() <- NULL; atxt() <- NULL;
+    IF NOT(isSubstring(text,'<br>') AND isSubstring(text,'</p>')) THEN RETURN;
+    qtxt() <- trim(getWord(text,'\r\n',2)); 
+    atxt() <- trim(getWord(text,'\r\n',3));
+} 
+
+createAnswer 'Создание ответа' (SaleErpConstructor s) {
+    LOCAL body = TEXT ();
+    LOCAL em = ErpModule ();
+    in(ErpModule e) <- IF label(e) = 'ВСЕГДА' THEN TRUE ELSE NULL;
+    FOR iterate(INTEGER i,0,wordCount(bodyAccept(s),'<p>')) ORDER i DO {
+        parseTag(s, getWord(bodyAccept(s),'<p>',i));
+        IF qtxt() AND atxt() THEN {
+            CASE
+                WHEN isSubstring(qtxt(),'Как я могу к Вам обращаться?') THEN namePost(s) <- atxt();
+                WHEN isSubstring(qtxt(),'Спасибо, что ответили') THEN mailPost(s) <- STRING[50](atxt());
+                WHEN atxt() = 'Рекомендовать WMS' THEN {
+                    em() <- GROUP MAX ErpModule e IF label(e) = 'WMS';
+                    IF em() THEN in(em()) <- TRUE;
+                }
+            ELSE {
+                em() <-GROUP MAX ErpModule o IF trim(name(o)) = atxt();
+                IF em() THEN in(em()) <- TRUE; // если модуль найден
+            }
+        }
+    }
+    IF namePost(s) AND mailPost(s) THEN {
+        body() <- replace(htmlStart(set1()),'@@@',namePost(s)) + '\n' + 
+            (GROUP CONCAT replace(htmlInsert(set1()),'@@@',name(ErpModule em)) IF in(em),'\n' ORDER npp(em)) + '\n' + htmlEnd(set1());
+        EMAIL FROM accountName(set1()) SUBJECT 'lsFusion ERP: Ваша конфигурация' TO mailPost(s) BODY body();
+        bodyPost(s) <- 'Список модулей в ответе:\n\n' + GROUP CONCAT name(ErpModule em) IF in(em),'\n' ORDER npp(em);
+    }
+}
+
+createAnswer2 'Создание ответа' (SaleErpConstructor s) {
+    LOCAL body = TEXT (); body() <- '';
+    FOR iterate(INTEGER i,0,wordCount(bodyAccept(s),'<p>')) ORDER i DO {
+        parseTag(s, getWord(bodyAccept(s), '<p>', i));
+        IF qtxt() AND atxt() THEN {
+            CASE
+                WHEN isSubstring(qtxt(), 'Имя') THEN { 
+                    namePost(s) <- atxt(); 
+                    body() <- body() + 'Имя: ' + atxt() + '\n'; 
+                }
+                WHEN isSubstring(qtxt(), 'Организация') THEN body() <- body() + 'Организация: ' + atxt() + '\n';
+                WHEN isSubstring(qtxt(), 'Должность') THEN body() <- body() + 'Должность: ' + atxt() + '\n';
+                WHEN isSubstring(qtxt(), 'E-mail') THEN {
+                    mailPost(s) <- STRING[50](atxt());
+                    body() <- body() + 'E-mail: ' + atxt() + '\n';
+                }
+                WHEN isSubstring(qtxt(), 'Телефон') THEN body() <- body() + 'Телефон: ' + atxt() + '\n';
+                WHEN isSubstring(qtxt(), 'Примечание') THEN body() <- body() + 'Примечание: ' + atxt() + '\n';
+        }
+    }
+    IF body() THEN {
+        bodyPost(s) <- body();
+        CASE
+            WHEN answer1(set2()) AND NOT answer2(set2()) THEN
+                EMAIL FROM accountName(set2()) SUBJECT 'lsFusion ERP: Новый контакт' TO answer1(set2()) BODY body();
+            WHEN NOT answer1(set2()) AND answer1(set2()) THEN
+                EMAIL FROM accountName(set2()) SUBJECT 'lsFusion ERP: Новый контакт' TO answer2(set2()) BODY body();
+            WHEN answer1(set2()) AND answer2(set2()) THEN
+                EMAIL FROM accountName(set2()) SUBJECT 'lsFusion ERP: Новый контакт' TO answer1(set2()) CC answer2(set2()) BODY body();
+    } 
+}
+
+// главный метод приема и обработки сообщений
+onAccept 'Прием сообщений' () {
+    set1() <- GROUP MAX SetMailing s IF attribute(s) = 'erp-constructor';
+    set2() <- GROUP MAX SetMailing s IF attribute(s) = 'erp-constructor2';
+    IF NOT (set1() AND set2()) THEN RETURN;
+    receiveEmailAction(account(set1()));  // прием почты по заданному аккаунту
+    FOR subject(Email e) AND account(e) = account(set1()) AND subject(e) = subject(set1())
+        AND NOT saleErpConstructor(e) DO NEW s = SaleErpConstructor {
+        email(s) <- e;
+        createAnswer(s);
+        cnt(s) <- 1; 
+    }
+    FOR subject(Email e) AND account(e) = account(set2()) AND subject(e) = subject(set2())
+        AND NOT saleErpConstructor(e) DO NEW s = SaleErpConstructor {
+        email(s) <- e;
+        cnt(s) <- 2;
+        createAnswer2(s);
+    }
+    APPLY;
+}
+
+// прием вручную
+onManualReception 'Прием сообщений' () {
+    onAccept();
+    SEEK LAST viewSaleErpConstructor.s1;
+}
+
+
+EXTEND FORM viewSaleErpConstructor
+    PROPERTIES onManualReception() 
+; 
+
+
+DESIGN viewSaleErpConstructor { 
+    OBJECTS {
+        NEW panel {
+            horizontal = TRUE;
+            fill = 1;
+            MOVE BOX(s1);
+            NEW message {
+                horizontal = FALSE;
+                fill = 1;
+                MOVE BOX(s2);
+            }
+        }
+    } 
+    TOOLBARRIGHT (s1) {
+        MOVE PROPERTY (onManualReception());
+    }
+}
+
+NAVIGATOR {
+    message {
+        NEW FORM viewSaleErpConstructor;
+    }
+}
