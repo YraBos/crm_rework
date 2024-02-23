@@ -1,6 +1,6 @@
 MODULE SetMailing;
 
-REQUIRE Dashboard, Email;
+REQUIRE Dashboard, Email, MasterData;
 
 CLASS SetMailing 'Настройки';
 
@@ -90,12 +90,10 @@ DESIGN viewErpModule {
 
 
 NAVIGATOR {
-    dashboard {
-        NEW FOLDER message 'Рассылки' WINDOW toolbar {
-            NEW FOLDER setMessage 'Настройки' {
-                NEW FORM viewSetMailing FIRST;
-                NEW FORM viewErpModule;
-            }
-        }
+    NEW FOLDER message 'Рассылки' WINDOW toolbar BEFORE masterData {
+       NEW FOLDER setMessage 'Настройки' {
+           NEW FORM viewSetMailing FIRST;
+           NEW FORM viewErpModule;
+       }
     }
 }
