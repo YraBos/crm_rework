@@ -1,0 +1,76 @@
+MODULE DebtSvodVedom;
+
+REQUIRE DebtDashboardNew;
+
+FORM prnParams 'Параметры отчета'
+    OBJECTS interval = (d1 = DATE, d2 = DATE) PANEL
+    PROPERTIES d1 'Дата c:  ' = VALUE (d1)
+    PROPERTIES d2 'по: ' = VALUE (d2)
+    EVENTS ON INIT {
+        SEEK prnParams.d1 = firstDayOfMonth(currentDate());
+        SEEK prnParams.d2 = lastDayOfMonth(currentDate());
+    }
+;
+
+DESIGN prnParams { BOX(interval) {caption=NULL;height=30;} }
+
+dateFrom 'Дата с' = DATA LOCAL DATE ();
+dateTo 'Дата по' = DATA LOCAL DATE ();
+
+currencySupport 'Валютный сопровождение' (Debt o) = 
+                IF isSubstring(clientTypeDebt(o),'KD') OR isSubstring(clientTypeDebt(o),'RK') THEN 'да' ELSE 'нет';
+currencyLicense 'Валютный лицензия' (Debt o) = 
+                IF isSubstring(clientTypeDebt(o),'VL') THEN 'да' ELSE 'нет';
+currencyRework 'Валютный доработки' (Debt o) = 
+                IF isSubstring(clientTypeDebt(o),'TV') THEN 'да' ELSE 'нет';
+
+// курс на 1-е число месяца создания акта (на debt.currency не ориентируемся)
+currencyByn 'Валюта BYN' = DATA LOCAL Currency ();
+rate 'Курс' (Debt o) = NUMERIC[12,4](round(1 / (OVERRIDE rateOn(defaultTypeExchange(), currencyByn(), firstDayOfMonth(DebtDashboardNew.dateAct(o))), 1),4));
+
+sumByn 'Сумма' (Debt o) = NUMERIC[12,2](CASE
+    WHEN shortNameCurrency(o) = 'BYN' THEN sum(o)
+    WHEN shortNameCurrency(o) = 'USD' THEN round(sum(o) * rate(o),2)
+    ELSE NULL);
+
+sumUsd 'Сумма, USD' (Debt o) = NUMERIC[12,2](CASE
+    WHEN shortNameCurrency(o) = 'BYN' AND sumCurrency(o) THEN sumCurrency(o)
+    WHEN shortNameCurrency(o) = 'BYN' AND NOT sumCurrency(o) THEN round(sum(o) / rate(o),2)
+    WHEN shortNameCurrency(o) = 'USD' THEN sum(o)
+    ELSE NULL);                                           
+
+last (Debt o1) = GROUP MAX Debt o2 
+    IF nameLegalEntity(o2) = nameLegalEntity(o1) AND contract(o2) = contract(o1) AND
+        DebtDashboardNew.dateAct(o2) >= dateFrom() AND DebtDashboardNew.dateAct(o2) <= dateTo() AND
+        nameType(act(o2)) = 'АСР' AND NOT agreement(o2) AND
+        date(o2) = sumMonth(date(o1),-1); // прошлый месяц
+
+sumBynLast 'Сумма,-1' (Debt o) = sumByn(last(o));
+sumUsdLast 'Сумма USD,-1' (Debt o) = sumUsd(last(o));
+
+differenceByn 'Разница' (Debt o) = OVERRIDE sumByn(o) (-) sumBynLast(o),0;
+differenceUsd 'Разница, USD' (Debt o) = OVERRIDE sumUsd(o) (-) sumUsdLast(o),0;
+
+FORM reportActDebs 'Статистический отчет'
+    OBJECTS d = Debt
+    PROPERTIES (d) READONLY nameCustomer, nameLegalEntity, numberContract,
+                            DebtDashboardNew.dateAct, DebtDashboardNew.numberAct, 
+                            sumByn,differenceByn,sumUsd,differenceUsd,
+                            shortNameCurrency, rate,   
+                            currencySupport, currencyLicense, currencyRework
+    FILTERS DebtDashboardNew.dateAct(d) >= dateFrom() AND DebtDashboardNew.dateAct(d) <= dateTo() 
+    FILTERS nameType(act(d)) = 'АСР' AND NOT agreement(d)
+    ORDERS nameCustomer(d), nameLegalEntity(d), dateAct(d) 
+;
+
+onReport 'Отчет' () {
+    DIALOG prnParams OBJECTS d1 INPUT, d2 INPUT DO {
+        dateFrom() <- d1; dateTo() <- d2;
+        currencyByn() <- GROUP MAX Currency c IF shortName(c)='BYN';
+//         SHOW reportActDebs DOCKED ; // отладка
+        PRINT reportActDebs XLS;
+    }
+}
+
+EXTEND FORM debtDashboard PROPERTIES () DRAW d TOOLBAR onReport;
+
