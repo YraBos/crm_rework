@@ -51,13 +51,17 @@ sumUsdLast 'Сумма USD,-1' (Debt o) = sumUsd(last(o));
 differenceByn 'Разница' (Debt o) = OVERRIDE sumByn(o) (-) sumBynLast(o),0;
 differenceUsd 'Разница, USD' (Debt o) = OVERRIDE sumUsd(o) (-) sumUsdLast(o),0;
 
+noteContract 'Примечание' (Debt o) = note(contract(o));
+nameGroupContract 'Группа договоров' (Debt o) = nameGroup(contract(o));
+
 FORM reportActDebs 'Статистический отчет'
     OBJECTS d = Debt
     PROPERTIES (d) READONLY nameCustomer, nameLegalEntity, numberContract,
                             DebtDashboardNew.dateAct, DebtDashboardNew.numberAct, 
                             sumByn,differenceByn,sumUsd,differenceUsd,
                             shortNameCurrency, rate,   
-                            currencySupport, currencyLicense, currencyRework
+                            currencySupport, currencyLicense, currencyRework,
+                            noteContract, nameGroupContract
     FILTERS DebtDashboardNew.dateAct(d) >= dateFrom() AND DebtDashboardNew.dateAct(d) <= dateTo() 
     FILTERS nameType(act(d)) = 'АСР' AND NOT agreement(d)
     ORDERS nameCustomer(d), nameLegalEntity(d), dateAct(d) 

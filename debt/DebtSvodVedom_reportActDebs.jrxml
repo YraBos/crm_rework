@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- Created with Jaspersoft Studio version 6.12.2.final using JasperReports Library version 6.12.2-75c5e90a222ab406e416cbf590a5397028a52de3  -->
-<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="DebtSvodVedom.reportActDebs" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="80ed6949-123b-4aaa-bf4c-1b819a541ab2">
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd" name="DebtSvodVedom.reportActDebs" pageWidth="1100" pageHeight="595" orientation="Landscape" columnWidth="1060" leftMargin="20" rightMargin="20" topMargin="30" bottomMargin="30" uuid="80ed6949-123b-4aaa-bf4c-1b819a541ab2">
 	<property name="net.sf.jasperreports.export.xls.print.page.width" value="842"/>
 	<property name="net.sf.jasperreports.export.xls.print.page.height" value="595"/>
+	<property name="com.jaspersoft.studio.unit." value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageHeight" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.pageWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.topMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.bottomMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.leftMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.rightMargin" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnWidth" value="pixel"/>
+	<property name="com.jaspersoft.studio.unit.columnSpacing" value="pixel"/>
 	<style name="DefaultStyle" isDefault="true" vTextAlign="Middle" fontName="lsf.TimesNewRoman" fontSize="10">
 		<box>
 			<pen lineWidth="0.5" lineStyle="Solid" lineColor="#000000"/>
@@ -36,8 +45,11 @@
 	<field name="currencySupport(d)" class="java.lang.String"/>
 	<field name="currencyLicense(d)" class="java.lang.String"/>
 	<field name="currencyRework(d)" class="java.lang.String"/>
+	<field name="noteContract(d)" class="java.lang.String"/>
+	<field name="nameGroupContract(d)" class="java.lang.String"/>
 	<pageHeader>
 		<band height="18">
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
 			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="0" y="0" width="140" height="18" uuid="5fe06cd5-0c38-48f1-b8b7-ecc7fdfc3d8d"/>
 				<textElement textAlignment="Center"/>
@@ -110,10 +122,25 @@
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA["Валютный доработки"]]></textFieldExpression>
 			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="902" y="0" width="158" height="18" uuid="801959ee-213a-40d4-a4d1-4de3db382ff4">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Примечание к договору"]]></textFieldExpression>
+			</textField>
+			<textField>
+				<reportElement stretchType="RelativeToBandHeight" x="802" y="0" width="100" height="18" uuid="4e6e892e-f5dc-4647-ae88-b86b8621e013">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textElement textAlignment="Center"/>
+				<textFieldExpression><![CDATA["Группа договоров"]]></textFieldExpression>
+			</textField>
 		</band>
 	</pageHeader>
 	<detail>
 		<band height="18">
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
 			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="0" y="0" width="140" height="18" uuid="0d3ea48b-83fb-4a9f-8813-40249c80d84f"/>
 				<textElement textAlignment="Left"/>
@@ -185,6 +212,18 @@
 				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="771" y="0" width="31" height="18" uuid="35a968f3-8c8e-4d6c-9b71-d4b39c2a8dc6"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$F{currencyRework(d)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToBandHeight" x="902" y="0" width="158" height="18" uuid="fc3da259-3124-499e-85c6-2d4f7102e490">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{noteContract(d)}]]></textFieldExpression>
+			</textField>
+			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+				<reportElement positionType="Float" stretchType="RelativeToBandHeight" x="802" y="0" width="100" height="18" uuid="220b5c46-5bb3-46de-83f4-5756152fabf9">
+					<property name="com.jaspersoft.studio.unit.height" value="px"/>
+				</reportElement>
+				<textFieldExpression><![CDATA[$F{nameGroupContract(d)}]]></textFieldExpression>
 			</textField>
 		</band>
 	</detail>
