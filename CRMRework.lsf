@@ -44,7 +44,9 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         ExportActs,                  // RM23738
         ContractIssueNew,            // RM24722  
         SaleErpConstructor,
-        DebtSvodVedom                // RM26746
+        DebtSvodVedom,               // RM26746
+        HiddenDashboard             // RM26887 - сокрытие документов и событий  
+ //       VacationPlan                 // RM25197 - журнал отпусков
 ;
 
 

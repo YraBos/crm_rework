@@ -52,6 +52,12 @@ createAnswer 'Создание ответа' (SaleErpConstructor s) {
                     em() <- GROUP MAX ErpModule e IF label(e) = 'WMS';
                     IF em() THEN in(em()) <- TRUE;
                 }
+                WHEN isSubstring(atxt(),'#') THEN {
+                    FOR iterate(INTEGER i2,1,10) AND getWord(atxt(), '#', i2) DO {
+                        em() <-GROUP MAX ErpModule o IF trim(name(o)) = trim(getWord(atxt(), '#', i2));
+                        IF em() THEN in(em()) <- TRUE; // если модуль найден
+                    }    
+                }
             ELSE {
                 em() <-GROUP MAX ErpModule o IF trim(name(o)) = atxt();
                 IF em() THEN in(em()) <- TRUE; // если модуль найден

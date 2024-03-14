@@ -1,0 +1,34 @@
+MODULE HiddenDashboard;
+
+REQUIRE CustomerAttachment, Event, CustomerDashboard, DebtDashboardNew; 
+
+hidden 'x' = DATA BOOLEAN (Attachment);
+hidden 'x' = DATA BOOLEAN (Event);
+hwhere = IF lastName(currentUser()) = 'Донсков' OR lastName(currentUser()) = 'Кирковский' THEN TRUE;
+
+
+EXTEND FORM dashboardCustomer
+    PROPERTIES(at) hidden FIRST SHOWIF hwhere()
+    FILTERS IF NOT hidden(at) THEN TRUE ELSE hwhere()
+    PROPERTIES(ev) hidden FIRST SHOWIF hwhere()
+    FILTERS IF NOT hidden(ev) THEN TRUE ELSE hwhere() 
+;
+
+EXTEND FORM events
+    PROPERTIES (o) hidden FIRST SHOWIF hwhere()
+    FILTERS IF NOT hidden(o) THEN TRUE ELSE hwhere()
+;    
+
+EXTEND FORM dialogEvents
+    PROPERTIES (o) hidden FIRST SHOWIF hwhere()
+    FILTERS IF NOT hidden(o) THEN TRUE ELSE hwhere()
+;
+
+EXTEND FORM debtDashboard
+    PROPERTIES (ev) hidden FIRST SHOWIF hwhere()
+    FILTERS IF NOT hidden(ev) THEN TRUE ELSE hwhere()
+;
+
+// для отладки:
+//on () {MESSAGE 'Пользователь: ' + lastName(currentUser()) + '\nРезультат: ' + IF hwhere() THEN 'true' ELSE 'null';};
+//EXTEND FORM dashboardCustomer PROPERTIES on();
