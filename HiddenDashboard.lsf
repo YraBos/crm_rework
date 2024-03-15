@@ -1,6 +1,6 @@
 MODULE HiddenDashboard;
 
-REQUIRE CustomerAttachment, Event, CustomerDashboard, DebtDashboardNew; 
+REQUIRE CustomerAttachment, Event, CustomerDashboard, DebtDashboardNew, EventDashboardNew; 
 
 hidden 'x' = DATA BOOLEAN (Attachment);
 hidden 'x' = DATA BOOLEAN (Event);
@@ -27,6 +27,11 @@ EXTEND FORM dialogEvents
 EXTEND FORM debtDashboard
     PROPERTIES (ev) hidden FIRST SHOWIF hwhere()
     FILTERS IF NOT hidden(ev) THEN TRUE ELSE hwhere()
+;
+
+EXTEND FORM eventDashboard
+    PROPERTIES (o) hidden FIRST SHOWIF hwhere()
+    FILTERS IF NOT hidden(o) THEN TRUE ELSE hwhere()
 ;
 
 // для отладки:
