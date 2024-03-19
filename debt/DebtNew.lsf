@@ -38,6 +38,9 @@ paid2 'Оплачено' (INTEGER y, MonthCurrency mc) =
     GROUP SUM sum(Payment p) 
     IF NOT skipReceipt(legalEntity(p)) AND extractMonth(date(p)) = month(mc) AND currency(p) = currency(mc) BY extractYear(date(p));
 
+//paid2currency 'Оплачено' (INTEGER y, MonthCurrency mc) =
+//    GROUP SUM sumCurrency(Payment p)
+//        IF NOT skipReceipt(legalEntity(p)) AND extractMonth(date(p)) = month(mc) AND currency(p) = currency(mc) BY extractYear(date(p));
 
 FORM debtsPlan2 'План платежей в разрезе валют'
 
@@ -50,7 +53,7 @@ FORM debtsPlan2 'План платежей в разрезе валют'
     PROPERTIES READONLY number(mc), nameMonth(mc), nameCurrency(mc), sumDebt2(y,mc), sumDebt2(y,t,mc)
         COLUMNS  (t) HEADER name(t), paid2(y,mc)
     ORDERS number(mc)
-    FILTERS  sumDebt2(y, t), sumDebt2(y,mc)
+    FILTERS  sumDebt2(y, t) //, sumDebt2(y,mc)
 
     OBJECTS d = Debt
     PROPERTIES (d) READONLY date, numberContract, nameContract, nameContractType, nameCustomer, nameLegalEntity, shortNameCurrency, sumCurrency, sum, dateCurrency, note
@@ -84,3 +87,4 @@ NAVIGATOR {
         NEW debtsPlan2 AFTER debtsPlan;
     }
 }
+
