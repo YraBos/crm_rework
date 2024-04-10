@@ -146,3 +146,14 @@ EXTEND FORM debtDashboard
     PROPERTIES READONLY BACKGROUND IF paid(db,dd) > sum(db) THEN RGB(255, 204, 255) overPayment(db,dd) AFTER inactive(db)
 ; 
 
+inACR 'АСР' = DATA BOOLEAN (Subject); // Включать в акты АСР
+
+EXTEND FORM contract 
+    PROPERTIES (s)  inACR SHOWIF nameType(o) = 'Сопровождение'
+    PROPERTIES (as) inACR SHOWIF nameType(o) = 'Сопровождение'
+;
+
+EXTEND FORM agreement
+    PROPERTIES (s) inACR SHOWIF nameType(contractAgreement(s)) = 'Сопровождение' 
+;    
+

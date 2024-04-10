@@ -1,8 +1,10 @@
 MODULE ActWordNew;
 
-REQUIRE ActWord, Time, Utils, ActWordValue;
+REQUIRE ActWord, Time, Utils, ActWordValue, DebtDashboardNew;
 
 NAMESPACE Act;
+
+//tQuantity(Act a) = GROUP CONCAT toChar(quantity(Subject s),'999.99');
 
 AFTER createActTemplate (Act ag, Template t) DO {
     value(TemplateEntry d) <- TEXT (
@@ -12,4 +14,42 @@ AFTER createActTemplate (Act ag, Template t) DO {
         value(TemplateEntry d) <- OVERRIDE shortName(ActWordValue.signerId()), '' WHERE key(d) = 'SHORT_NAME_AUTHORISED_PERSON_COMPANY' AND template (d) == t;
         value(TemplateEntry d) <- OVERRIDE namePosition(ActWordValue.signerId()), '' WHERE key(d) = 'POSITION_AUTHORISED_PERSON_COMPANY' AND template (d) == t;
     }
+    IF nameType(ag) = 'АСР' THEN {
+        LOCAL storeQuantity,storePrice,storeSum = STRING ();
+        LOCAL storeQuantityTotal, storeSumTotal = NUMERIC[14,2] ();
+        LOCAL debt = Debt();
+        FOR (ContractSubject s IS ContractSubject) AND contract(s) = contract(ag) AND inACR(s) AND date(s) >= fromDate(ag) AND date(s) <= toDate(ag) ORDER s DO {
+            storeQuantity()         <- (IF storeQuantity() THEN storeQuantity() + '\n\n' ELSE '') + toChar(quantity(s),'99999999,99') + ' ';
+            storePrice()            <- (IF storePrice() THEN storePrice() + '\n\n' ELSE '') + toChar(price(s),'99999999.99') + ' ';
+            storeSum()              <- (IF storeSum() THEN storeSum() + '\n\n' ELSE '') + toChar(sum(s),'99999999.99') + ' ';
+            storeQuantityTotal()    <- storeQuantityTotal() (+) quantity(s);
+            storeSumTotal()         <- storeSumTotal() (+) sum(s); 
+        }
+        FOR (AgreementSubject s IS AgreementSubject) AND contractAgreement(s) = contract(ag) AND inACR(s) AND date(s) >= fromDate(ag) AND date(s) <= toDate(ag) ORDER s DO {
+            storeQuantity()         <- (IF storeQuantity() THEN storeQuantity() + '\n\n' ELSE '') + toChar(quantity(s),'99999999,99') + ' ';
+            storePrice()            <- (IF storePrice() THEN storePrice() + '\n\n' ELSE '') + toChar(price(s),'99999999.99') + ' ';
+            storeSum()              <- (IF storeSum() THEN storeSum() + '\n\n' ELSE '') + toChar(sum(s),'99999999.99') + ' ';
+            storeQuantityTotal()    <- storeQuantityTotal() (+) quantity(s);
+            storeSumTotal()         <- storeSumTotal() (+) sum(s);
+        }
+        value(TemplateEntry d) <- OVERRIDE storeQuantity(),'' WHERE key(d) = 'STORE_QUANTITY' AND template(d) == t;
+        value(TemplateEntry d) <- OVERRIDE storePrice(),'' WHERE key(d) = 'STORE_PRICE' AND template(d) == t;
+        value(TemplateEntry d) <- OVERRIDE storeSum(),'' WHERE key(d) = 'STORE_SUM' AND template(d) == t;
+        value(TemplateEntry d) <- toChar((OVERRIDE storeQuantityTotal(),0),'99999999.99') WHERE key(d) = 'STORE_TOTAL_QUANTITY' AND template(d) == t;
+        value(TemplateEntry d) <- toChar((OVERRIDE storeSumTotal(),0),'99999999.99') WHERE key(d) = 'STORE_TOTAL_SUM' AND template(d) == t;
+        
+        debt() <- GROUP MAX Debt d IF act(d) = ag;
+        IF inCurrency(debt()) THEN {
+            LOCAL currency = Currency();
+            LOCAL rate = NUMERIC[10,4]();
+            currency() <- GROUP MAX Currency c IF isISubstring(name(c),'США');
+            value(TemplateEntry d) <- trim(toChar((OVERRIDE sumCurrency(debt()),0),'99999999.99')) WHERE key(d) = 'SUM_DOCUMENT_CURRENCY' AND template(d) == t;
+            TRY { 
+                value(TemplateEntry d) <- numSpelledCurrency(sumCurrency(debt()), '00d', currency()) WHERE key(d) = 'SUM_DOCUMENT_CURRENCY_WORDS' AND template (d) == t; 
+            }
+            value(TemplateEntry d) <- toDateDDMMYY(firstDayOfMonth(date(ag))) WHERE key(d) = 'RATE_DATE' AND template(d) == t;
+            rate() <- round4(1 / OVERRIDE rateOn(defaultTypeExchange(),defaultCurrency(),firstDayOfMonth(date(ag))),1);
+            value(TemplateEntry d) <- trim(toChar(rate(),'999.9999')) WHERE key(d) = 'RATE_CURRENCY' AND template(d) == t;
+        }
+    }    
 }
