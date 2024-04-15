@@ -43,7 +43,7 @@ AFTER createActTemplate (Act ag, Template t) DO {
         IF inCurrency(debt()) THEN {
             LOCAL currency = Currency();
             LOCAL rate = NUMERIC[10,4]();
-            currency() <- GROUP MAX Currency c IF isISubstring(name(c),'США');
+            currency() <- GROUP MAX Currency c IF shortName(c) = 'USD';
             value(TemplateEntry d) <- trim(toChar((OVERRIDE sumCurrency(debt()),0),'99999999.99')) WHERE key(d) = 'SUM_DOCUMENT_CURRENCY' AND template(d) == t;
             TRY { 
                 value(TemplateEntry d) <- numSpelledCurrency(sumCurrency(debt()), '00d', currency()) WHERE key(d) = 'SUM_CURRENCY_WORDS' AND template (d) == t; 
@@ -59,3 +59,4 @@ AFTER createActTemplate (Act ag, Template t) DO {
         value(TemplateEntry d) <- rtrim(rtrim(TEXT(procLisence()),'0'),'.') + '%' WHERE key(d) = 'PROC_LISENCE' AND template(d) == t;
     }    
 }
+
