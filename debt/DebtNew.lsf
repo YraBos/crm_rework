@@ -25,8 +25,7 @@ onFill () {
     }
 }
 
-xxFlag 'Показать с типом платежа ХХ' = DATA LOCAL BOOLEAN ();
-xxFilter (Payment o) = IF NOT(xxFlag()) THEN NOT nameType(o) = 'ХХ' ELSE TRUE; 
+ 
 
 sumDebt2 'Сумма задолженности' (INTEGER y, MonthCurrency mc) = 
     GROUP SUM sum(Debt d) IF extractMonth(date(d)) = month(mc) AND currency(d) = currency(mc) BY extractYear(date(d));
@@ -39,12 +38,12 @@ sumDebt2 'Сумма задолженности' (INTEGER y, ContractType t) =
 
 paid2 'Оплачено' (INTEGER y, MonthCurrency mc) = 
     GROUP SUM sum(Payment p) 
-    IF NOT skipReceipt(legalEntity(p)) AND extractMonth(date(p)) = month(mc) AND currency(p) = currency(mc) AND xxFilter(p) BY extractYear(date(p));
+    IF NOT skipReceipt(legalEntity(p)) AND extractMonth(date(p)) = month(mc) AND currency(p) = currency(mc) BY extractYear(date(p));
 
 FORM debtsPlan2 'План платежей в разрезе валют'
 
     OBJECTS y = INTEGER PANEL 
-    PROPERTIES y 'Год' = VALUE (y), xxFlag()
+    PROPERTIES y 'Год' = VALUE (y)
 
     OBJECTS t = ContractType
     OBJECTS mc = MonthCurrency 
@@ -63,7 +62,6 @@ FORM debtsPlan2 'План платежей в разрезе валют'
     PROPERTIES (p) READONLY id, nameLegalEntity, nameCustomer, nameCompany, number, date, monthNumber, nameType, sum, shortNameCurrency, sumCurrency, note
     ORDERS date(p)
     FILTERS extractMonth(date(p)) == month(mc), extractYear(date(p)) == y, currency(d) = currency(mc)
-    FILTERS xxFilter(p)
 
     EVENTS ON INIT {
         SEEK debtsPlan2.y = extractYear(currentDate());
@@ -79,9 +77,6 @@ DESIGN debtsPlan2 {
             MOVE BOX (d);
             MOVE BOX (p) { caption = 'Платежи'; }
         }
-    }
-    GROUP(,y) {
-        MOVE PROPERTY (xxFlag());
     }
 }
 
