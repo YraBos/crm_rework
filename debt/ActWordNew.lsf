@@ -52,7 +52,6 @@ AFTER createActTemplate (Act ag, Template t) DO {
             rate() <- round4(1 / OVERRIDE rateOn(defaultTypeExchange(),defaultCurrency(),firstDayOfMonth(date(ag))),1);
             value(TemplateEntry d) <- trim(toChar(rate(),'999.9999')) WHERE key(d) = 'RATE_CURRENCY' AND template(d) == t;
         }
-
         // Процент от лицензии или что то типа такого со словом процент
         procLisence() <- 100 * price(GROUP MAX ContractSubject s IF chkData(s, ag) AND isISubstring(nameType(s),'Процент')) ;
         IF NOT procLisence() THEN procLisence() <- 100 * price(GROUP MAX AgreementSubject s IF chkData(s, ag) AND isISubstring(nameType(s),'Процент'));
