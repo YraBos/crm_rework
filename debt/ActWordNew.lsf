@@ -4,8 +4,8 @@ REQUIRE ActWord, Time, Utils, ActWordValue, DebtDashboardNew;
 
 NAMESPACE Act;
 
-chkData (ContractSubject s,Act a) = IF contract(s) = contract(a) AND inACR(s) AND date(s) >= fromDate(a) AND date(s) <= toDate(a) THEN TRUE;
-chkData (AgreementSubject s,Act a) = IF contractAgreement(s) = contract(a) AND inACR(s) AND date(s) >= fromDate(a) AND date(s) <= toDate(a) THEN TRUE;
+chkData (ContractSubject s,Act a) = IF contract(s) = contract(a) AND inACR(s) THEN TRUE;
+chkData (AgreementSubject s,Act a) = IF contractAgreement(s) = contract(a) AND inACR(s) THEN TRUE;
 
 AFTER createActTemplate (Act ag, Template t) DO {
     value(TemplateEntry d) <- TEXT (
@@ -16,6 +16,7 @@ AFTER createActTemplate (Act ag, Template t) DO {
         value(TemplateEntry d) <- OVERRIDE namePosition(ActWordValue.signerId()), '' WHERE key(d) = 'POSITION_AUTHORISED_PERSON_COMPANY' AND template (d) == t;
     }
     IF nameType(ag) = 'АСР' THEN {
+        // Предмет договора: все свойства рассчитываются относительно галки АСР
         LOCAL storeQuantity,storePrice,storeSum = STRING ();
         LOCAL storeQuantityTotal, storeSumTotal, procLisence = NUMERIC[14,2] ();
         LOCAL debt = Debt();
