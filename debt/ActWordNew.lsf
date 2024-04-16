@@ -6,6 +6,7 @@ NAMESPACE Act;
 
 chkData (ContractSubject s,Act a) = IF contract(s) = contract(a) AND inACR(s) THEN TRUE;
 chkData (AgreementSubject s,Act a) = IF contractAgreement(s) = contract(a) AND inACR(s) THEN TRUE;
+num2str (NUMERIC[14,3] n1) = IF n1 THEN rtrim(rtrim(TEXT(n1),'0'),'.') ELSE '';
 
 AFTER createActTemplate (Act ag, Template t) DO {
     value(TemplateEntry d) <- TEXT (
@@ -37,7 +38,7 @@ AFTER createActTemplate (Act ag, Template t) DO {
         value(TemplateEntry d) <- OVERRIDE storeQuantity(),'' WHERE key(d) = 'STORE_QUANTITY' AND template(d) == t;
         value(TemplateEntry d) <- OVERRIDE storePrice(),'' WHERE key(d) = 'STORE_PRICE' AND template(d) == t;
         value(TemplateEntry d) <- OVERRIDE storeSum(),'' WHERE key(d) = 'STORE_SUM' AND template(d) == t;
-        value(TemplateEntry d) <- toChar((OVERRIDE storeQuantityTotal(),0),'99999999.99') WHERE key(d) = 'STORE_TOTAL_QUANTITY' AND template(d) == t;
+        value(TemplateEntry d) <- num2str(storeQuantityTotal()) WHERE key(d) = 'STORE_TOTAL_QUANTITY' AND template(d) == t;
         value(TemplateEntry d) <- toChar((OVERRIDE storeSumTotal(),0),'99999999.99') WHERE key(d) = 'STORE_TOTAL_SUM' AND template(d) == t;
         
         debt() <- GROUP MAX Debt d IF act(d) = ag;
@@ -46,9 +47,7 @@ AFTER createActTemplate (Act ag, Template t) DO {
             LOCAL rate = NUMERIC[10,4]();
             currency() <- GROUP MAX Currency c IF shortName(c) = 'USD';
             value(TemplateEntry d) <- trim(toChar((OVERRIDE sumCurrency(debt()),0),'99999999.99')) WHERE key(d) = 'SUM_DOCUMENT_CURRENCY' AND template(d) == t;
-            TRY { 
-                value(TemplateEntry d) <- numSpelledCurrency((OVERRIDE NUMERIC[14,2](sumCurrency(debt())),0), '00d', currency()) WHERE key(d) = 'SUM_CURRENCY_WORDS' AND template (d) == t; 
-            }
+            value(TemplateEntry d) <- numSpelledCurrency((OVERRIDE sumCurrency(debt()),0), '00d', currency()) WHERE key(d) = 'SUM_USD_WORDS' AND template (d) == t;
             value(TemplateEntry d) <- toDateDDMMYY(firstDayOfMonth(date(ag))) WHERE key(d) = 'RATE_DATE' AND template(d) == t;
             rate() <- round4(1 / OVERRIDE rateOn(defaultTypeExchange(),defaultCurrency(),firstDayOfMonth(date(ag))),1);
             value(TemplateEntry d) <- trim(toChar(rate(),'999.9999')) WHERE key(d) = 'RATE_CURRENCY' AND template(d) == t;
@@ -56,7 +55,7 @@ AFTER createActTemplate (Act ag, Template t) DO {
         // Процент от лицензии или что то типа такого со словом процент
         procLisence() <- 100 * price(GROUP MAX ContractSubject s IF chkData(s, ag) AND isISubstring(nameType(s),'Процент')) ;
         IF NOT procLisence() THEN procLisence() <- 100 * price(GROUP MAX AgreementSubject s IF chkData(s, ag) AND isISubstring(nameType(s),'Процент'));
-        value(TemplateEntry d) <- rtrim(rtrim(TEXT(procLisence()),'0'),'.') + '%' WHERE key(d) = 'PROC_LISENCE' AND template(d) == t;
+        value(TemplateEntry d) <- num2str(procLisence()) + '%' WHERE key(d) = 'PROC_LISENCE' AND template(d) == t;
     }    
 }
 
