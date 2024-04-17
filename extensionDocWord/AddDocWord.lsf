@@ -1,6 +1,6 @@
 MODULE AddDocWord;
 
-REQUIRE Contract, ContractSubject, ContractWord, AgreementWord,  Utils;
+REQUIRE Contract, ContractSubject, ContractWord, AgreementWord, Utils;
 
 discountSize    'Размер скидки'    = DATA NUMERIC[10,2] (ContractSubject) CHARWIDTH 10;
 discountSum     'Итого со скидкой' (ContractSubject o) =  sum(o) - discountSize(o);
@@ -57,3 +57,7 @@ createTemplateEntries(Template t, DocType d) + {
         NEW te = TemplateEntry { template(te) <- t; key(te) <- 'AGREEEMENT_DISCOUNT_SUM';   description(te) <- 'Сумма со скидкой';}
     }
 }
+
+EXTEND FORM documentTemplates
+    PROPERTIES copy(tg) DRAW tg TOOLBAR 
+;

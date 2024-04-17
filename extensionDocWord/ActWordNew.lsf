@@ -59,3 +59,6 @@ AFTER createActTemplate (Act ag, Template t) DO {
     }    
 }
 
+EXTEND FORM documentTemplates
+    PROPERTIES copy(tc) DRAW tc TOOLBAR FIRST 
+;
