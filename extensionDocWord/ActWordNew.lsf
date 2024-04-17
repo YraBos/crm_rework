@@ -7,6 +7,7 @@ NAMESPACE Act;
 chkData (ContractSubject s,Act a) = IF contract(s) = contract(a) AND inACR(s) THEN TRUE;
 chkData (AgreementSubject s,Act a) = IF contractAgreement(s) = contract(a) AND inACR(s) THEN TRUE;
 num2str (NUMERIC[14,3] n1) = IF n1 THEN rtrim(rtrim(TEXT(n1),'0'),'.') ELSE '';
+usdWords(NUMERIC[14,2] n1) = upperFirstChar(numSpelled(n1, 'M', 'доллар,доллара,долларов', 'F', 'цент,цента,центов', '00d'));
 
 AFTER createActTemplate (Act ag, Template t) DO {
     value(TemplateEntry d) <- TEXT (
@@ -43,11 +44,9 @@ AFTER createActTemplate (Act ag, Template t) DO {
         
         debt() <- GROUP MAX Debt d IF act(d) = ag;
         IF inCurrency(debt()) THEN {
-            LOCAL currency = Currency();
             LOCAL rate = NUMERIC[10,4]();
-            currency() <- GROUP MAX Currency c IF shortName(c) = 'USD';
             value(TemplateEntry d) <- trim(toChar((OVERRIDE sumCurrency(debt()),0),'99999999.99')) WHERE key(d) = 'SUM_DOCUMENT_CURRENCY' AND template(d) == t;
-            value(TemplateEntry d) <- numSpelledCurrency((OVERRIDE sumCurrency(debt()),0), '00d', currency()) WHERE key(d) = 'SUM_USD_WORDS' AND template (d) == t;
+            value(TemplateEntry d) <- usdWords((OVERRIDE sumCurrency(debt()),0)) WHERE key(d) = 'SUM_USD_WORDS' AND template (d) == t;
             value(TemplateEntry d) <- toDateDDMMYY(firstDayOfMonth(date(ag))) WHERE key(d) = 'RATE_DATE' AND template(d) == t;
             rate() <- round4(1 / OVERRIDE rateOn(defaultTypeExchange(),defaultCurrency(),firstDayOfMonth(date(ag))),1);
             value(TemplateEntry d) <- trim(toChar(rate(),'999.9999')) WHERE key(d) = 'RATE_CURRENCY' AND template(d) == t;
