@@ -7,7 +7,7 @@ NAMESPACE Act;
 chkData (ContractSubject s,Act a) = IF contract(s) = contract(a) AND inACR(s) THEN TRUE;
 chkData (AgreementSubject s,Act a) = IF contractAgreement(s) = contract(a) AND inACR(s) THEN TRUE;
 num2str (NUMERIC[14,3] n1) = IF n1 THEN rtrim(rtrim(TEXT(n1),'0'),'.') ELSE '';
-usdWords(NUMERIC[14,2] n1) = upperFirstChar(numSpelled(n1, 'M', 'доллар,доллара,долларов', 'F', 'цент,цента,центов', '00d'));
+usdWords(NUMERIC[14,2] n1) = upperFirstChar(numSpelled(n1, 'M', 'доллар США,доллара США,долларов США', 'F', 'цент,цента,центов', '00d'));
 
 AFTER createActTemplate (Act ag, Template t) DO {
     value(TemplateEntry d) <- TEXT (
