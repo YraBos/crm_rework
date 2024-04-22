@@ -13,7 +13,7 @@ nameCurrency 'Валюта' = DATA STRING (MonthCurrency) CHARWIDTH 3;
 // данные не сохраняются и пересоздаются при входе (init формы) 
 onFill () {
     FOR (Month m IS Month) DO {
-        FOR (Currency c IS Currency) DO {
+        FOR (Currency c IS Currency) AND NOT shortName(c) = 'EUR' DO {
             NEW mc = MonthCurrency {
                 month(mc) <- m;
                 number(mc) <- number(m);
@@ -24,7 +24,6 @@ onFill () {
         }         
     }
 }
-
  
 
 sumDebt2 'Сумма задолженности' (INTEGER y, MonthCurrency mc) = 
