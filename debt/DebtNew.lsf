@@ -61,6 +61,7 @@ FORM debtsPlan2 'План платежей в разрезе валют'
     PROPERTIES (p) READONLY id, nameLegalEntity, nameCustomer, nameCompany, number, date, monthNumber, nameType, sum, shortNameCurrency, sumCurrency, note
     ORDERS date(p)
     FILTERS extractMonth(date(p)) == month(mc), extractYear(date(p)) == y, currency(d) = currency(mc)
+    FILTERS currency(p) = currency(mc) AND (nameType(p) = 'СЛ' OR nameType(p) = 'ПЛ' OR nameType(p) = 'СР')
 
     EVENTS ON INIT {
         SEEK debtsPlan2.y = extractYear(currentDate());
