@@ -32,6 +32,7 @@ contractDiscountSum (Contract o) =    OVERRIDE trim(toChar(discountSum(ocs(o)),'
 overPrintContractWord (Contract ct, Template t) + {
     value(TemplateEntry d) <- contractDiscountSize(ct)  WHERE key(d) = 'CONTRACT_DISCOUNT_SIZE' AND template (d) == t;
     value(TemplateEntry d) <- contractDiscountSum(ct)   WHERE key(d) = 'CONTRACT_DISCOUNT_SUM'  AND template (d) == t;
+    value(TemplateEntry d) <- TEXT (toDateDDMMYYYY(date(ct))) WHERE key(d) = 'DATE_2DOCUMENT' AND template (d) == t;
 }
 
 overPrintAgreementWord (Agreement ag, Template t) + {
