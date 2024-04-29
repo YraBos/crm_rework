@@ -8,7 +8,7 @@ edc 'ЭДО' = DATA BOOLEAN (Contract);
 
 EXTEND FORM contract PROPERTIES (o) edc;
 
-DESIGN contract {
+DESIGN contract {  
     number {
         MOVE PROPERTY (edc(o));
     }

@@ -123,7 +123,7 @@ onFullCreateDebts 'Создать задолженности' () {
     APPLY; 
 }
 
-EXTEND FORM contractDashboard
+EXTEND FORM contractDashboard 
     PROPERTIES(o) READONLY nameActTemplate, edc  
     PROPERTIES() onFullCreateDebts
 ; 
