@@ -281,3 +281,31 @@ DESIGN customerTimeDashboard {
     PROPERTY (openRedmineTimeEntry(t)) {background = #D7FFD7;}
     PROPERTY (openRedmineIssue(is))  {background = #D7FFD7;}
 }
+
+
+inReport 'Отм' = DATA LOCAL BOOLEAN (Project);
+EXTEND FORM dialogProjects
+    PROPERTIES (o) inReport FIRST 
+;
+
+chkProject (TimeEntry o) = 
+    IF nameFilterProject(customer(o)) THEN (IF GROUP MAX Project p IF name(p) = nameProject(o) AND inReport(p) THEN TRUE) ELSE TRUE;
+
+printCustomerReportExt2 'Отдельный отчет' (Customer c, DATE df, DATE dt) {
+    filterAgreement()       <- NULL;
+    filterContract()        <- NULL;
+    inReport(TimeEntry t)   <- NULL;
+    FOR (TimeEntry o IS TimeEntry) AND date(o) >= df AND date(o) <= dt AND chkFilters(o) AND chkProject(o)
+        DO inReport(o) <- TRUE;
+    PRINT customerReportExt OBJECTS c = c, df = df, dt = dt;
+}
+
+EXTEND FORM customerTimeDashboard
+    PROPERTIES printCustomerReportExt2(c, df, dt)  // отчет 
+;
+
+DESIGN customerTimeDashboard {
+    reportExt {
+        MOVE PROPERTY (printCustomerReportExt2(c, df, dt)); 
+    }
+}
