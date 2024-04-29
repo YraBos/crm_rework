@@ -1,6 +1,6 @@
 MODULE ContractDashboardNew;
 
-REQUIRE ContractDashboard, Debt, DebtDashboard, Time, Utils;
+REQUIRE ContractDashboard, Debt, DebtDashboard, ContractNew, Time, Utils;
 
 dateStart 'Начать с даты' = DATA DATE ();
 qMonth 'Кол-во месяцев' = DATA INTEGER ();
@@ -124,7 +124,7 @@ onFullCreateDebts 'Создать задолженности' () {
 }
 
 EXTEND FORM contractDashboard
-    PROPERTIES(o) READONLY nameActTemplate  
+    PROPERTIES(o) READONLY nameActTemplate, edc  
     PROPERTIES() onFullCreateDebts
 ; 
 
