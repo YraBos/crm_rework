@@ -282,26 +282,78 @@ DESIGN customerTimeDashboard {
     PROPERTY (openRedmineIssue(is))  {background = #D7FFD7;}
 }
 
+// ======================================================================
+// Отчет по проектам
 
-inReport 'Отм' = DATA LOCAL BOOLEAN (Project);
-EXTEND FORM dialogProjects
-    PROPERTIES (o) inReport FIRST 
+inCheck 'Отм' = DATA LOCAL BOOLEAN (Project);
+EXTEND FORM dialogProjects PROPERTIES (o) inCheck FIRST;
+
+chkValue (Project p,Customer c,DATE d1,d2) = GROUP MAX TimeEntry t IF customer(t) = c AND project(t) = p AND date(t) >=d1 AND date(t) <=d2;
+chkProject(TimeEntry t,Customer c) = GROUP MAX Project p IF inCheck(p) AND project(t) = p AND customer(p) = c; 
+checkingValue (Customer c,TimeEntry t,DATE d1,d2) =
+    date(t) >= d1 AND date(t) <= d2 AND (customer(t) == c OR customer(project(t)) == c OR customer(issue(t)) == c) AND
+    (IF filterProject(c) THEN project(t) = chkProject(t,c) ELSE TRUE) AND
+    (agreement(issue(t)) == filterAgreement() OR NOT filterAgreement()) AND
+    (contract(issue(t)) == filterContract() OR NOT filterContract()) AND
+    ((withoutAgreements() AND NOT agreement(issue(t))) OR NOT withoutAgreements() OR filterAgreement() OR filterContract()) AND
+    chkFilters(t);
+
+hoursFilterProjectExt2 'Трудозатраты' (Customer c, DATE  df, DATE dt) = GROUP SUM hoursResult(TimeEntry t) IF checkingValue(c,t,df,dt);
+hoursProject 'Часы по проекту' (Project p,Customer c, DATE  df, DATE dt) = 
+    GROUP SUM hoursResult(TimeEntry t) IF project(t) = p AND checkingValue(c,t,df,dt);
+
+
+FORM customerReportExt2 'Отчет по проектам'
+    OBJECTS cd = (c = Customer, df = DATE, dt = DATE) PANEL SUBREPORT
+    PROPERTIES 'Клиент' = name(c) SELECTOR, 'Дата с' = VALUE (df), 'Дата по' =  VALUE (dt), 
+                hoursFilterProjectExt2(c, df, dt), withoutAgreements(),
+                nameFilterProject(c), nameFilterAgreement(), nameFilterContract(), noIssueNumber()
+    
+    OBJECTS p = Project
+    PROPERTIES (p) READONLY name
+    PROPERTIES READONLY hoursProject(p,c,df,dt)
+    FILTERS chkValue(p,c,df,dt) // только существующие проекты, по которым есть часы
+    FILTERS IF filterProject(c) THEN inCheck(p) ELSE TRUE // если выбраны отдельные проекты
+    ORDERS name(p)
+    
+    OBJECTS i = Issue
+    PROPERTIES (i) READONLY number, dateTimeCreated, estimatedHours, nameAuthor, nameAssignedTo, nameTracker, nameStatus, name
+    PROPERTIES hours(i, df, dt) AFTER estimatedHours(i)
+    ORDERS number(i)
+    FILTERS customer(i) == c, timeEntries(i, df, dt),
+        (withoutAgreements() AND NOT agreement(i)) OR NOT withoutAgreements() OR filterAgreement() OR filterContract(),
+        agreement(i) == filterAgreement() OR NOT filterAgreement(),
+        contract(i) == filterContract() OR NOT filterContract()
+    FILTERS project(i) = p
+
+    OBJECTS t = TimeEntry
+    PROPERTIES (t) READONLY nameEmployee, date, hours, nameActivity, commentsString, hoursResult
+    ORDERS date(t)
+    FILTERS issue(t) == i, date(t) >= df AND date(t) <= dt AND inReport(t) AND hoursResult(t) > 0.00
+
+    OBJECTS te = TimeEntry
+    PROPERTIES (te) READONLY nameEmployee, date, hours, nameActivity, commentsString, hoursResult
+    ORDERS date(te)
+    FILTERS (customer(te) == c OR customer(project(te)) == c) AND NOT issue(te), date(te) >= df AND date(te) <= dt,
+        te IS TimeEntry AND NOT filterAgreement() AND
+        NOT filterContract() AND inReport(te) AND hoursResult(te) > 0.00
+    FILTERS project(te) = p
 ;
 
-chkProject (TimeEntry o) = 
-    IF nameFilterProject(customer(o)) THEN (IF GROUP MAX Project p IF name(p) = nameProject(o) AND inReport(p) THEN TRUE) ELSE TRUE;
 
-printCustomerReportExt2 'Отдельный отчет' (Customer c, DATE df, DATE dt) {
+printCustomerReportExt2 'Отчет по проектам' (Customer c, DATE df, DATE dt) {
     filterAgreement()       <- NULL;
     filterContract()        <- NULL;
     inReport(TimeEntry t)   <- NULL;
-    FOR (TimeEntry o IS TimeEntry) AND date(o) >= df AND date(o) <= dt AND chkFilters(o) AND chkProject(o)
-        DO inReport(o) <- TRUE;
-    PRINT customerReportExt OBJECTS c = c, df = df, dt = dt;
+    FOR (TimeEntry t IS TimeEntry) AND checkingValue(c,t,df,dt) DO inReport(t) <- TRUE; 
+    PRINT customerReportExt2 OBJECTS c = c, df = df, dt = dt XLS;
 }
 
+
+
 EXTEND FORM customerTimeDashboard
-    PROPERTIES printCustomerReportExt2(c, df, dt)  // отчет 
+    PROPERTIES printCustomerReportExt2(c, df, dt)  // отчет
+//    PROPERTIES(t) EDIT // отладка 
 ;
 
 DESIGN customerTimeDashboard {
