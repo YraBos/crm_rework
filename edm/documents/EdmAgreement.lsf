@@ -1,0 +1,12 @@
+MODULE EdmAgreement;
+
+REQUIRE Agreement, EdmDocument;
+
+NAMESPACE Agreement;
+
+EXTEND FORM agreements PROPERTIES (o) READONLY edm;
+
+EXTEND FORM agreement PROPERTIES (o) edm;
+DESIGN agreement {processing {MOVE PROPERTY (edm(o)); } }
+
+

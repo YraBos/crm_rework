@@ -1,0 +1,8 @@
+MODULE EdmDocument;
+
+REQUIRE Doc;
+
+NAMESPACE Doc;
+
+// Признак электронного документа оборота
+edm 'ЭДО' = DATA BOOLEAN (Document);

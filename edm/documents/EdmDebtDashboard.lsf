@@ -1,0 +1,19 @@
+MODULE EdmDebtDashboard;
+
+REQUIRE DebtDashboard, EdmAct, EdmContract;
+
+NAMESPACE Contract;
+
+lf = DATA LOCAL BOOLEAN ();
+
+AFTER createActs () DO   {
+    FOR (Act a IS Act) AND date(a) = currentDate() AND edm(contract(a)) DO {
+        lf() <- TRUE;
+        edm(a) <- TRUE; 
+    }
+    IF lf() THEN APPLY; 
+}
+
+actEdm 'ЭДО' (Debt d) = edm(act(d));
+
+EXTEND FORM debtDashboard PROPERTIES (d) READONLY actEdm;

@@ -54,13 +54,3 @@ DESIGN docDashboard {
     }
 }
 
-createDocZip 'Выгрузить акты в zip' (Document o1) {
-    zipping(STRING[100] f) <- NULL;
-    FOR (Document o IS Document) IF in(o) DO {
-        zipping(STRING[100] f) <- file(o) WHERE f == fileName(o) + '.doc';
-    }
-    makeZipFile();
-    open(zipped(),'archive');
-}
-
-EXTEND FORM docDashboard PROPERTIES(d) TOOLBAR createDocZip;

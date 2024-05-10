@@ -1,0 +1,33 @@
+MODULE EdmDocDashboard;
+
+REQUIRE DocDashboard, EdmDocument;
+
+EXTEND FORM docDashboard PROPERTIES (d) READONLY edm;
+
+CLASS EnumUploadZip 'Выгрузка в zip' {
+    all '1. Все отмеченные', noEdm '2. Все отмеченные без ЭДО'
+} 
+
+FORM enumUploadZip 'Выгрузка документов в zip' 
+    OBJECTS o = EnumUploadZip 
+    PROPERTIES (o) READONLY staticCaption 
+    ORDERS staticCaption(o)
+;
+
+DESIGN enumUploadZip {PROPERTY (staticCaption(o)) {caption = 'Выбор операции';} }
+
+createDocZip 'Выгрузить в zip' (Document o1) {
+    DIALOG enumUploadZip OBJECTS o INPUT DO {
+        zipping(STRING[100] f) <- NULL;
+        IF o = EnumUploadZip.all THEN {
+            FOR (Document d IS Document) AND in(d) DO zipping(STRING[100] f) <- file(d) WHERE f == fileName(d) + '.doc';
+        } ELSE {
+            FOR (Document d IS Document) AND in(d) AND NOT edm(d) DO zipping(STRING[100] f) <- file(d) WHERE f == fileName(d) + '.doc';
+        }
+        makeZipFile();
+        open(zipped(),'archive');
+    }
+}
+
+EXTEND FORM docDashboard PROPERTIES(d) TOOLBAR createDocZip;
+

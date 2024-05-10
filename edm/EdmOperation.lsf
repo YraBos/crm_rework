@@ -1,0 +1,80 @@
+MODULE EdmOperation;
+
+REQUIRE EdmStructure, EdmDocDashboard, Employee, Utils;
+
+CLASS EdmSettings 'Настройка электронных документов';
+employee 'ID сотрудника' = DATA Employee (EdmSettings) NONULL; 
+url 'Адрес URL' = DATA STRING[50] (EdmSettings) NONULL;
+token 'Токен' = DATA STRING[69] (EdmSettings) NONULL;
+
+nameEmployee 'Сотрудник' (EdmSettings o) = name(employee(o));
+
+FORM editEdmSettings 'Редактирование настроек'
+    OBJECTS e = EdmSettings PANEL
+    PROPERTIES (e) READONLY nameEmployee
+    PROPERTIES (e) url, token
+    EDIT EdmSettings OBJECT e 
+    EVENTS ON INIT {
+        IF NOT employee(e) THEN employee(e) <- currentUser();
+    }
+;
+
+DESIGN editEdmSettings {
+    OBJECTS {
+        NEW main {
+            horizontal = FALSE;
+            fill = 1;
+            MOVE PROPERTY (nameEmployee(e));
+            MOVE PROPERTY (url(e));
+            MOVE PROPERTY (token(e));
+        }
+    }
+}
+
+EXTEND FORM docDashboard
+    OBJECTS edm = EdmSettings
+    PROPERTIES (edm) READONLY nameEmployee, url, token
+    PROPERTIES (edm) NEWSESSION NEW, EDIT, DELETE 
+;
+
+// =================================================================================
+onGetPrifile 'Проверить профиль' (EdmSettings e) {
+    IF NOT employee(e) THEN { MESSAGE 'Нет настроенных профилей'; RETURN; }
+    LOCAL headers = STRING(STRING);
+    headers('Authorization') <- token(e);
+    errMessage() <- NULL; result() <- NULL;
+    TRY {
+        EXTERNAL HTTP GET url(e) + '/api/v2/profile/' HEADERS headers TO result; 
+        IF NOT statusHttp() = 200 THEN errMessage() <- 'Ошибка выполнения запроса\nСтатус: ' + toChar(statusHttp(),'999');  
+    } CATCH {
+        errMessage() <- 'Ошибка выполнения запроса\nИсключение:' + messageCaughtException();
+    }
+    IF errMessage() THEN {
+        IF result() THEN {
+            IMPORT error JSON FROM result();
+            errMessage() <- errMessage() + '\n' + repeat('-',40) + '\n' + GROUP CONCAT errors(INTEGER r), '\n' ORDER r;
+        }
+        MESSAGE errMessage();
+        RETURN; 
+    }
+    IMPORT profile JSON FROM result();
+    MESSAGE 'Компания: ' + company_name() + '\n' + 'ФИО: ' + personal_name() + '\n' + 'E-mail: ' + email();
+}
+
+EXTEND FORM docDashboard PROPERTIES(edm) TOOLBAR onGetPrifile;
+
+// =================================================================================
+EXTEND FORM docDashboard
+    OBJECTS doc = Document LAST 
+    PROPERTIES (doc) READONLY nameDocType, date, nameLegalEntity, inCurrency, shortNameCurrency, sum, dateSigningCustomer, edm
+    FILTERS docType(doc) = filterDocType() OR NOT filterDocType(), company(doc) == filterLegalEntity() OR NOT filterLegalEntity()
+    FILTERS edm(doc)
+;
+
+
+DESIGN docDashboard {
+    tab {
+        MOVE BOX(doc) {caption = 'Документы (ЭДО)';}
+        MOVE BOX(edm) {caption = 'Настройки (ЭДО)';}
+    }
+}

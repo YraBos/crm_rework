@@ -1,0 +1,42 @@
+MODULE EdmStructure;
+
+errMessage 'Текст ошибки' = DATA LOCAL STRING ();
+result = DATA LOCAL FILE ();
+
+GROUP data;
+GROUP cert : data;
+GROUP meta;
+GROUP errors : meta;
+
+date_created = DATA LOCAL STRING();
+public_key = DATA LOCAL STRING();
+personal_id = DATA LOCAL STRING();
+date_of_issue = DATA LOCAL ZDATETIME();
+key_id = DATA LOCAL STRING();
+date_of_expiry = DATA LOCAL ZDATETIME();
+company_name = DATA LOCAL STRING();
+distinguished_name = DATA LOCAL STRING();
+short_company_name = DATA LOCAL STRING();
+serial_number = DATA LOCAL STRING();
+personal_name = DATA LOCAL STRING();
+position = DATA LOCAL STRING();
+tax_id = DATA LOCAL STRING();
+email = DATA LOCAL STRING();
+
+FORM profile 'Получить профиль'
+    PROPERTIES() IN data date_created, email
+    PROPERTIES() IN cert public_key, personal_id, date_of_issue, key_id, date_of_expiry,
+                    company_name, distinguished_name, short_company_name, serial_number, personal_name, position, tax_id
+;
+
+data = DATA LOCAL STRING();
+errors = DATA LOCAL STRING(INTEGER);
+metaErrors = DATA LOCAL INTEGER(INTEGER);
+errtext 'Строка массив ошибок' = GROUP CONCAT errors(INTEGER r), '\n' ORDER r;
+
+FORM error 'Сообщение об ошибках'
+    PROPERTIES() data
+    OBJECTS errors = INTEGER IN meta
+    PROPERTIES(errors) errors EXTID 'value'
+    FILTERS imported(errors)
+;

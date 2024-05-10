@@ -41,12 +41,13 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         MoveMoney,                  // RM24191 Движение денежных средств 
         MoveMoneyOpreration,
         MoveMoneyBalance,
-        ExportActs,                  // RM23738
+  //      ExportActs,                  // RM23738
         ContractIssueNew,            // RM24722  
         SaleErpConstructor,
         DebtSvodVedom,               // RM26746 - Статистический отчет
-        HiddenDashboard              // RM26887 - сокрытие документов и событий  
- //       VacationPlan                 // RM25197 - журнал отпусков
+        HiddenDashboard,             // RM26887 - сокрытие документов и событий  
+ //       VacationPlan               // RM25197 - журнал отпусков
+        EdmDocument, EdmContract, EdmAct, EdmDebtDashboard, EdmAgreement, EdmDocDashboard, EdmOperation
 ;
 
 

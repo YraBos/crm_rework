@@ -1,0 +1,18 @@
+MODULE EdmContract;
+
+REQUIRE Contract, ContractDashboard, EdmDocument;
+
+NAMESPACE Contract;
+
+EXTEND FORM contract PROPERTIES (o) edm;
+
+DESIGN contract {
+    processing {
+        MOVE PROPERTY (edm(o));
+    }
+}
+
+EXTEND FORM contractDashboard PROPERTIES(o) READONLY edm;
+EXTEND FORM contracts PROPERTIES(o) READONLY edm;
+
+

@@ -1,0 +1,13 @@
+MODULE EdmAct;
+
+REQUIRE Act, DebtDashboard, EdmDocument;
+
+NAMESPACE Act;
+
+EXTEND FORM act PROPERTIES (o) edm;
+DESIGN act { processing {MOVE PROPERTY (edm(o)); } }
+
+EXTEND FORM acts PROPERTIES (o) READONLY edm;
+
+EXTEND FORM dialogActs PROPERTIES (o) READONLY edm;
+
