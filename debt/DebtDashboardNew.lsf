@@ -157,3 +157,15 @@ EXTEND FORM agreement
     PROPERTIES (s) inACR SHOWIF nameType(contractAgreement(s)) = 'Сопровождение' 
 ;    
 
+debtCustomer 'Клиент' (Debt o) = name(customer(o));
+FORM inactive 'Неактивные задолженности'
+    OBJECTS d = Debt
+    PROPERTIES(d) READONLY inactive, debtCustomer, date, sum, numberContract
+    PROPERTIES(d) onChangeInactive SHOWIF killDebt(currentUser())  
+    FILTERS inactive(d)
+;
+
+showInactive 'Неактивные задолженности' () { SHOW inactive; }
+
+EXTEND FORM debtDashboard
+    PROPERTIES showInactive() TOOLBAR;
