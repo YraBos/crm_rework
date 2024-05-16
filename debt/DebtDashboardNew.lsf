@@ -163,6 +163,7 @@ FORM inactive 'Неактивные задолженности'
     PROPERTIES(d) READONLY inactive, debtCustomer, date, sum, numberContract
     PROPERTIES(d) onChangeInactive SHOWIF killDebt(currentUser())  
     FILTERS inactive(d)
+    ORDERS debtCustomer(d),numberContract(d),date(d)
 ;
 
 showInactive 'Неактивные задолженности' () { SHOW inactive; }
