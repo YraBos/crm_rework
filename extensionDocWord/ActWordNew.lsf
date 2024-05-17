@@ -41,7 +41,7 @@ overPrintActWord (Act ag, Template t) + {
         value(TemplateEntry d) <- OVERRIDE storeQuantity(),'' WHERE key(d) = 'STORE_TABLE_QUANTITY' AND template(d) == t;
         value(TemplateEntry d) <- OVERRIDE storePrice(),'' WHERE key(d) = 'STORE_PRICE' AND template(d) == t;
         value(TemplateEntry d) <- OVERRIDE storeSum(),'' WHERE key(d) = 'STORE_SUM' AND template(d) == t;
-        value(TemplateEntry d) <- num2str(storeQuantityTotal()) WHERE key(d) = 'STORE_TOTAL_QUANTITY' AND template(d) == t;
+        value(TemplateEntry d) <- toChar((OVERRIDE storeQuantityTotal(),0),'99999999.99') WHERE key(d) = 'STORE_TOTAL_QUANTITY' AND template(d) == t;
         value(TemplateEntry d) <- toChar((OVERRIDE storeSumTotal(),0),'99999999.99') WHERE key(d) = 'STORE_TOTAL_SUM' AND template(d) == t;
         
         // СПРАВОЧНО в валюте
