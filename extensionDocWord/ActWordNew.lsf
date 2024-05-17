@@ -9,7 +9,8 @@ chkData (AgreementSubject s,Act a) = IF contractAgreement(s) = contract(a) AND i
 num2str (NUMERIC[14,3] n1) = IF n1 THEN rtrim(rtrim(TEXT(n1),'0'),'.') ELSE '';
 usdWords(NUMERIC[14,2] n1) = upperFirstChar(numSpelled(n1, 'M', 'доллар США,доллара США,долларов США', 'F', 'цент,цента,центов', '00d'));
 
-AFTER createActTemplate (Act ag, Template t) DO {
+//AFTER createActTemplate (Act ag, Template t) DO {
+overPrintActWord (Act ag, Template t) + {
     value(TemplateEntry d) <- TEXT (
         lower(extractMonthName(toDate(ag))) + toChar(extractYear(toDate(ag)),'9999') + ' года'
     ) WHERE key(d) = 'NAME_ACT_MONTH' AND template (d) == t;
