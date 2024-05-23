@@ -1,5 +1,7 @@
 MODULE EdmStructure;
 
+REQUIRE EdmDocDashboard;
+
 errMessage 'Текст ошибки' = DATA LOCAL STRING ();
 result = DATA LOCAL FILE ();
 
@@ -39,4 +41,14 @@ FORM error 'Сообщение об ошибках'
     OBJECTS errors = INTEGER IN meta
     PROPERTIES(errors) errors EXTID 'value'
     FILTERS imported(errors)
+;
+
+doc_filename = DATA LOCAL STRING(INTEGER);
+recipients = DATA LOCAL STRING(INTEGER);
+actionsRecipients = DATA LOCAL INTEGER(INTEGER);
+signature_der_data = DATA LOCAL STRING(INTEGER);
+action = DATA LOCAL STRING(INTEGER);
+doc_base64 = DATA LOCAL STRING(INTEGER);
+
+FORM sendDoc 'Отправка документов'
 ;

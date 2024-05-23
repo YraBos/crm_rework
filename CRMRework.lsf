@@ -47,7 +47,7 @@ REQUIRE FixedAssets,                // Журнал учета основных 
         DebtSvodVedom,               // RM26746 - Статистический отчет
         HiddenDashboard,             // RM26887 - сокрытие документов и событий  
  //       VacationPlan               // RM25197 - журнал отпусков
-        EdmDocument, EdmContract, EdmAct, EdmDebtDashboard, EdmAgreement, EdmDocDashboard, EdmOperation
+        EdmDocument, EdmContract, EdmAct, EdmDebtDashboard, EdmAgreement, EdmDocDashboard, EdmOperation, UploadDocZip
 ;
 
 

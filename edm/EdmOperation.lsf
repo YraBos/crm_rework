@@ -64,17 +64,28 @@ onGetPrifile 'Проверить профиль' (EdmSettings e) {
 EXTEND FORM docDashboard PROPERTIES(edm) TOOLBAR onGetPrifile;
 
 // =================================================================================
+onSend 'Отправить' () { MESSAGE 'Не поддерживается'; }
+onCancel 'Аннулировать' () { MESSAGE 'Не поддерживается'; }
+onChecked 'Проверить' () { MESSAGE 'Не поддерживается'; }
+
+
 EXTEND FORM docDashboard
-    OBJECTS doc = Document LAST 
-    PROPERTIES (doc) READONLY nameDocType, date, nameLegalEntity, inCurrency, shortNameCurrency, sum, dateSigningCustomer, edm
+    OBJECTS doc = Document LAST
+    PROPERTIES (doc) in
+    PROPERTIES (doc) READONLY nameDocType, number, date, nameLegalEntity, inCurrency, shortNameCurrency, sum, dateSigningCustomer, edmStatus
+    PROPERTIES () onSend, onCancel, onChecked
     FILTERS docType(doc) = filterDocType() OR NOT filterDocType(), company(doc) == filterLegalEntity() OR NOT filterLegalEntity()
     FILTERS edm(doc)
 ;
-
 
 DESIGN docDashboard {
     tab {
         MOVE BOX(doc) {caption = 'Документы (ЭДО)';}
         MOVE BOX(edm) {caption = 'Настройки (ЭДО)';}
+    }
+    TOOLBARRIGHT (doc) {
+        MOVE PROPERTY (onSend());
+        MOVE PROPERTY (onCancel());
+        MOVE PROPERTY (onChecked());
     }
 }
