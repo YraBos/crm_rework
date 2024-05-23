@@ -50,5 +50,26 @@ signature_der_data = DATA LOCAL STRING(INTEGER);
 action = DATA LOCAL STRING(INTEGER);
 doc_base64 = DATA LOCAL STRING(INTEGER);
 
+//stringData (BonusLedgerMothercare l) = encode(data(l), 'base64');
+//encodeBase64(resultString());
+//envelopeContent() <- encodedBase64();
+//Или если нужно прямо в  или json вставить то можно просто переменную типа RAWFILE добавить на форму которая будет экспортироваться
+
+//FORM generated
+//
+//    OBJECTS actions = INTEGER
+//    PROPERTIES(actions) doc_filename, signature_der_data, action, doc_base64
+//    FILTERS imported(actions)
+//
+//    OBJECTS recipients = INTEGER
+//    PROPERTIES(recipients) recipients EXTID 'value'
+//    FILTERS imported(recipients)
+//    FILTERS actionsRecipients(recipients) == actions;
+
+
+action = DATA LOCAL STRING ();
+
 FORM sendDoc 'Отправка документов'
+    OBJECTS d = Document
+    PROPERTIES() action EXTID 'action'
 ;

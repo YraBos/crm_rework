@@ -64,7 +64,9 @@ onGetPrifile 'Проверить профиль' (EdmSettings e) {
 EXTEND FORM docDashboard PROPERTIES(edm) TOOLBAR onGetPrifile;
 
 // =================================================================================
-onSend 'Отправить' () { MESSAGE 'Не поддерживается'; }
+onSend 'Отправить' () {  
+    action() <- 'send';
+}
 onCancel 'Аннулировать' () { MESSAGE 'Не поддерживается'; }
 onChecked 'Проверить' () { MESSAGE 'Не поддерживается'; }
 
