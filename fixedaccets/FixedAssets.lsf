@@ -200,7 +200,8 @@ nameFilterStorage       'Место хранения' () = name(filterStorage())
 // журнал ОС, поля как в ст. картотеке для АВ
 FORM viewFixedAssets 'Журнал основных средств'  
     OBJECTS dc = DirClassifier       // GRID классификатор
-    PROPERTIES(dc) READONLY name 
+    PROPERTIES(dc) READONLY name
+    ORDERS name(dc)
     
     OBJECTS fa = FixedAssets       // GRID журнал ОС  
     GRID PROPERTIES(fa) READONLY  
@@ -212,6 +213,7 @@ FORM viewFixedAssets 'Журнал основных средств'
     PROPERTIES(fa) loadFoto
     PROPERTIES(fa) delFoto  SHOWIF image(fa)
     FILTERS IF NOT trim(name(dc)) = '!ВСЕ' THEN name(listClassifier(fa)) = name(dc) ELSE TRUE   // Упр. жур. ОС от классификатора 
+    ORDERS inputDate(fa)
 
     // типа информационого табло
     OBJECTS ft1 = FixedAssets
@@ -225,7 +227,6 @@ FORM viewFixedAssets 'Журнал основных средств'
     FILTERS IF filterFactYearDisposal() > 0 THEN extractYear(dateFactDisposal(fa)) = filterFactYearDisposal() ELSE TRUE
     FILTERS IF filterStorage() THEN storage(fa)  = nameFilterStorage() ELSE TRUE
     
-    ORDERS name(dc), inputDate(fa)
 ;
 
 DESIGN viewFixedAssets {

@@ -4,11 +4,12 @@ MODULE EquipmentDashboardNew;
 REQUIRE EquipmentDashboard, EquipmentDataImport, EquipmentReports, Time, RevisionHelp, EquipmentReportQRcode;
 
 
-fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] (); 
+fltNumber 'Фильтр по номеру' = DATA LOCAL STRING[50] ();
+fltNumberChange 'Фильтр по замененам' = DATA LOCAL STRING[50] ();
+
 // вычисление ID equipment от значения ключа оборудования
 exprEquipment '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF upper(number(n1)) = upper(num);
-// сброс выражения фильтра
-clsExprEquipment 'X' () {fltNumber() <- NULL;}
+exprEquipmentChange '' (ISTRING[250] num) = GROUP MAX equipment(EquipmentSerial n1) IF upper(numberChange(n1)) = upper(num);
 
 // генерация лицензий по фильтру на форме
 inMark 'Отм.' = DATA LOCAL BOOLEAN (Equipment);
@@ -35,9 +36,11 @@ EXTEND FORM equipmentDashboard
     PROPERTIES(n) READONLY dateChange, numberChange, note
     PROPERTIES onMenuDataImoort(e,t), onMenuReports(e,t), onGenLic(e), onPrintQR(e), onOpenHelp()
 //    PROPERTIES onLoadLic(e) // только для отладки
-    PROPERTIES fltNumber(), clsExprEquipment()
+    PROPERTIES fltNumber(), fltNumberChange()
     FILTERS IF fltNumber() THEN e = exprEquipment(fltNumber()) ELSE TRUE
     FILTERS IF fltNumber() THEN upper(number(n)) = upper(fltNumber()) ELSE TRUE
+    FILTERS IF fltNumberChange() THEN e = exprEquipmentChange(fltNumberChange()) ELSE TRUE
+    FILTERS IF fltNumberChange() THEN upper(numberChange(n)) = upper(fltNumberChange()) ELSE TRUE
     PROPERTIES (es) READONLY nameClientEquipment, note
 ;
 
@@ -52,7 +55,7 @@ DESIGN equipmentDashboard {
                 MOVE PROPERTY (nameFilterCustomer());
                 MOVE PROPERTY (nameFilterContract(t));
                 MOVE PROPERTY (fltNumber());
-                MOVE PROPERTY (clsExprEquipment());
+                MOVE PROPERTY (fltNumberChange());
             }
             NEW head2 {
                 horizontal = TRUE ;
