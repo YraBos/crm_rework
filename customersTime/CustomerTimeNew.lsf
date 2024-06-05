@@ -314,6 +314,7 @@ FORM customerReportExt2 'Отчет по проектам'
     PROPERTIES READONLY hoursProject(p,c,df,dt)
     FILTERS chkValue(p,c,df,dt) // только существующие проекты, по которым есть часы
     FILTERS IF filterProject(c) THEN inCheck(p) ELSE TRUE // если выбраны отдельные проекты
+    FILTERS hoursProject(p,c,df,dt) 
     ORDERS name(p)
     
     OBJECTS i = Issue
