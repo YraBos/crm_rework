@@ -6,4 +6,3 @@ NAMESPACE Doc;
 
 // Признак электронного документа оборота
 edm 'ЭДО' = DATA BOOLEAN (Document);
-edmStatus 'Статус ЭДО' = DATA STRING (Document);

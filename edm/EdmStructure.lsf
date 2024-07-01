@@ -1,6 +1,6 @@
 MODULE EdmStructure;
 
-REQUIRE EdmDocDashboard;
+REQUIRE UploadDocZip;
 
 errMessage 'Текст ошибки' = DATA LOCAL STRING ();
 result = DATA LOCAL FILE ();
@@ -31,45 +31,55 @@ FORM profile 'Получить профиль'
                     company_name, distinguished_name, short_company_name, serial_number, personal_name, position, tax_id
 ;
 
+GROUP count : meta;
+
+data = DATA LOCAL STRING(INTEGER);
+all = DATA LOCAL NUMERIC();
+success = DATA LOCAL NUMERIC();
+error = DATA LOCAL NUMERIC();
+actions_errors = DATA LOCAL STRING(INTEGER);
+errorsActions_errors = DATA LOCAL INTEGER(INTEGER);
+common_errors = DATA LOCAL STRING(INTEGER);
+errorsCommon_errors = DATA LOCAL INTEGER(INTEGER);
+
 data = DATA LOCAL STRING();
 errors = DATA LOCAL STRING(INTEGER);
 metaErrors = DATA LOCAL INTEGER(INTEGER);
-errtext 'Строка массив ошибок' = GROUP CONCAT errors(INTEGER r), '\n' ORDER r;
 
-FORM error 'Сообщение об ошибках'
-    PROPERTIES() data
+FORM error
+    OBJECTS data = INTEGER
+    PROPERTIES(data) data EXTID 'value'
+    FILTERS imported(data)
+    PROPERTIES() IN count all, success, error
+    
+    OBJECTS actions_errors = INTEGER IN errors
+    PROPERTIES(actions_errors) actions_errors EXTID 'value'
+    FILTERS imported(actions_errors)
+    
+    OBJECTS common_errors = INTEGER IN errors
+    PROPERTIES(common_errors) common_errors EXTID 'value'
+    FILTERS imported(common_errors)
+
     OBJECTS errors = INTEGER IN meta
     PROPERTIES(errors) errors EXTID 'value'
-    FILTERS imported(errors)
+    FILTERS imported(errors);
 ;
 
-doc_filename = DATA LOCAL STRING(INTEGER);
-recipients = DATA LOCAL STRING(INTEGER);
-actionsRecipients = DATA LOCAL INTEGER(INTEGER);
-signature_der_data = DATA LOCAL STRING(INTEGER);
-action = DATA LOCAL STRING(INTEGER);
-doc_base64 = DATA LOCAL STRING(INTEGER);
 
-//stringData (BonusLedgerMothercare l) = encode(data(l), 'base64');
-//encodeBase64(resultString());
-//envelopeContent() <- encodedBase64();
-//Или если нужно прямо в  или json вставить то можно просто переменную типа RAWFILE добавить на форму которая будет экспортироваться
-
-//FORM generated
+////signBase64 'Цифровая подпись' 
 //
-//    OBJECTS actions = INTEGER
-//    PROPERTIES(actions) doc_filename, signature_der_data, action, doc_base64
-//    FILTERS imported(actions)
 //
-//    OBJECTS recipients = INTEGER
-//    PROPERTIES(recipients) recipients EXTID 'value'
-//    FILTERS imported(recipients)
-//    FILTERS actionsRecipients(recipients) == actions;
-
-
-action = DATA LOCAL STRING ();
-
-FORM sendDoc 'Отправка документов'
-    OBJECTS d = Document
-    PROPERTIES() action EXTID 'action'
-;
+//action = DATA LOCAL STRING ();
+//actionName (Document o) = IF o THEN action(); 
+//docbase64 'Перекодированный документ' (Document o) = encode(file(o), 'base64');
+//signature (Document o) = IF o THEN '';
+//emailEdo (LegalEntity o) = email(customer(o));
+//
+//FORM sendDoc 'Отправка документов'
+//    OBJECTS d = Document EXTID 'actions'
+//    PROPERTIES(d) actionName EXTID 'action', docbase64 EXTID 'doc_base64', fnameDoc EXTID 'doc_filename', 
+//                signature EXTID 'signature_der_data'
+//    OBJECTS e = LegalEntity EXTID 'recipients'
+//    PROPERTIES(e) emailEdo EXTID 'value'
+//    FILTERS in(d), legalEntity(d) = e
+//;

@@ -6,13 +6,14 @@ CLASS EdmSettings 'Настройка электронных документо�
 employee 'ID сотрудника' = DATA Employee (EdmSettings) NONULL; 
 url 'Адрес URL' = DATA STRING[50] (EdmSettings) NONULL;
 token 'Токен' = DATA STRING[69] (EdmSettings) NONULL;
+logPath 'Лог файл' = DATA STRING[50] (EdmSettings);
 
 nameEmployee 'Сотрудник' (EdmSettings o) = name(employee(o));
 
 FORM editEdmSettings 'Редактирование настроек'
     OBJECTS e = EdmSettings PANEL
     PROPERTIES (e) READONLY nameEmployee
-    PROPERTIES (e) url, token
+    PROPERTIES (e) url, token, logPath
     EDIT EdmSettings OBJECT e 
     EVENTS ON INIT {
         IF NOT employee(e) THEN employee(e) <- currentUser();
@@ -27,55 +28,118 @@ DESIGN editEdmSettings {
             MOVE PROPERTY (nameEmployee(e));
             MOVE PROPERTY (url(e));
             MOVE PROPERTY (token(e));
+            MOVE PROPERTY (logPath(e));
         }
     }
 }
 
 EXTEND FORM docDashboard
     OBJECTS edm = EdmSettings
-    PROPERTIES (edm) READONLY nameEmployee, url, token
+    PROPERTIES (edm) READONLY nameEmployee, url, token, logPath
     PROPERTIES (edm) NEWSESSION NEW, EDIT, DELETE 
 ;
 
-// =================================================================================
-onGetPrifile 'Проверить профиль' (EdmSettings e) {
-    IF NOT employee(e) THEN { MESSAGE 'Нет настроенных профилей'; RETURN; }
-    LOCAL headers = STRING(STRING);
-    headers('Authorization') <- token(e);
+dateTimeLog() =  [FORMULA TEXT 'to_char(now(),($1))']('DD-MM-YYYY HH24:MI:SS');
+
+onSaveLog 'Запись лога' (EdmSettings e, STRING oname,ctxt) {
+    IF NOT logPath(e) THEN RETURN;
+    LOCAL ctext = TEXT();
+    ctext() <- dateTimeLog() + ', ' + oname + '\n' + ctxt + '\n' + repeat('=',70)  +'\n';
+    appendToFile(logPath(e),ctext());
+    // WRITE CLIENT TEXTFILE(ctext()) TO logPath(e) APPEND; // справедливо для десктоп
+}
+
+onSend 'Отправка на портал' (EdmSettings e,STRING oname, method, url, body) {
     errMessage() <- NULL; result() <- NULL;
+    IF NOT employee(e) THEN { errMessage() <- 'Нет настроенных профилей'; RETURN; }
+    LOCAL headers = STRING(STRING);
+    LOCAL sa, sc, se = STRING();
+    headers('Authorization') <- token(e);
+    headers('Content-Type') <- 'application/json; charset=UTF-8';
     TRY {
-        EXTERNAL HTTP GET url(e) + '/api/v2/profile/' HEADERS headers TO result; 
-        IF NOT statusHttp() = 200 THEN errMessage() <- 'Ошибка выполнения запроса\nСтатус: ' + toChar(statusHttp(),'999');  
+        IF method = 'GET' THEN {
+            EXTERNAL HTTP GET url(e) + url HEADERS headers TO result;     
+        } ELSE {
+            EXTERNAL HTTP POST url(e) + url BODYURL body HEADERS headers TO result;
+        }
+        IF NOT statusHttp() = 200 THEN errMessage() <- 
+            'Ошибка выполнения запроса ' + method + '\n' + 'URL: ' + url + ', Статус: ' +  toChar(statusHttp(),'999');
     } CATCH {
-        errMessage() <- 'Ошибка выполнения запроса\nИсключение:' + messageCaughtException();
+        errMessage() <- 'Ошибка выполнения запроса ' + method + '\n' + 'URL: ' + url; //+ ':\n' + messageCaughtException();
+        IF statusHttp() THEN errMessage() <- errMessage() + ', Статус: ' +  toChar(statusHttp(),'999');
+        errMessage() <- errMessage() + ', Ошибка типа Exception';
+        onSaveLog(e,'ERROR Exception: ' + oname,messageCaughtException());
     }
     IF errMessage() THEN {
         IF result() THEN {
             IMPORT error JSON FROM result();
-            errMessage() <- errMessage() + '\n' + repeat('-',40) + '\n' + GROUP CONCAT errors(INTEGER r), '\n' ORDER r;
+            sa() <- GROUP CONCAT actions_errors(INTEGER r), '\n' ORDER r;
+            sc() <- GROUP CONCAT common_errors(INTEGER r), '\n' ORDER r;
+            se() <- GROUP CONCAT errors(INTEGER r), '\n' ORDER r;
+            errMessage() <- errMessage() + (IF sa() THEN '\n' + sa() ELSE '') + (IF sc() THEN '\n' + sc() ELSE '') + (IF se() THEN '\n' + se() ELSE '');
         }
-        MESSAGE errMessage();
-        RETURN; 
+        onSaveLog(e, 'ERROR: ' + oname, errMessage());
     }
+}
+
+
+// =================================================================================
+checkProfile 'Проверить профиль' (EdmSettings e) {
+    onSend(e,'Проверка профиля','GET','/api/v2/profile/',NULL);
+    IF errMessage() THEN { MESSAGE errMessage(); RETURN; }
     IMPORT profile JSON FROM result();
     MESSAGE 'Компания: ' + company_name() + '\n' + 'ФИО: ' + personal_name() + '\n' + 'E-mail: ' + email();
 }
 
-EXTEND FORM docDashboard PROPERTIES(edm) TOOLBAR onGetPrifile;
+EXTEND FORM docDashboard PROPERTIES(edm) TOOLBAR checkProfile;
 
-// =================================================================================
-onSend 'Отправить' () {  
-    action() <- 'send';
+
+onPrepare 'Подготовить к отправке' () {
+    IF NOT GROUP SUM 1 IF in(Document d) AND edm(d) THEN { MESSAGE 'Нет отмеченных записей'; RETURN; }
+    createZipDocEdm();
+} 
+
+onChecked 'Проверить статус' () { MESSAGE 'Не поддерживается'; }
+
+numberContract 'Номер договора' (Document d) = number(contract(d));
+
+CLASS SelectDate 'Выбор типа даты' {send '1. Дата отправки', sign '2. Дата подписания клиентом', receiv '3. Дата получения'}
+
+FORM editDate 'Изменение даты'
+    OBJECTS sd = SelectDate PANEL
+    PROPERTIES (sd) staticCaption SELECTOR 
+    ORDERS staticCaption(sd)
+    
+    OBJECTS date = DATE PANEL
+    PROPERTIES date 'Выбор даты' = VALUE(date)
+    EVENTS ON INIT {SEEK editDate.sd = SelectDate.send;}
+;
+
+DESIGN editDate {
+    PROPERTY (staticCaption(sd)) {caption = NULL; noSort=FALSE;}
+    PROPERTY (date) {charWidth = 14;}
 }
-onCancel 'Аннулировать' () { MESSAGE 'Не поддерживается'; }
-onChecked 'Проверить' () { MESSAGE 'Не поддерживается'; }
 
+onChangeDate 'Изменить дату' () {
+    IF NOT GROUP SUM 1 IF in(Document d) AND edm(d) THEN { MESSAGE 'Нет отмеченных записей'; RETURN; }
+    DIALOG editDate OBJECTS date INPUT, sd INPUT DO NEWSESSION {
+        FOR (Document d IS Document) AND in(d) AND edm(d) DO {
+            CASE
+                WHEN sd = SelectDate.send THEN dateSending(d) <- date;
+                WHEN sd = SelectDate.sign THEN dateSigningCustomer(d) <- date;
+                WHEN sd = SelectDate.receiv THEN dateReceiving(d) <- date;
+        } 
+        APPLY; 
+    }
+}
 
 EXTEND FORM docDashboard
     OBJECTS doc = Document LAST
     PROPERTIES (doc) in
-    PROPERTIES (doc) READONLY nameDocType, number, date, nameLegalEntity, inCurrency, shortNameCurrency, sum, dateSigningCustomer, edmStatus
-    PROPERTIES () onSend, onCancel, onChecked
+    PROPERTIES (doc) READONLY nameDocType, number, date, numberContract, 
+                    nameLegalEntity, inCurrency, shortNameCurrency, sum
+    PROPERTIES (doc) READONLY dateSending, dateSigningCustomer, dateReceiving
+    PROPERTIES onPrepare(), onChangeDate()//, onChecked()
     FILTERS docType(doc) = filterDocType() OR NOT filterDocType(), company(doc) == filterLegalEntity() OR NOT filterLegalEntity()
     FILTERS edm(doc)
 ;
@@ -86,8 +150,8 @@ DESIGN docDashboard {
         MOVE BOX(edm) {caption = 'Настройки (ЭДО)';}
     }
     TOOLBARRIGHT (doc) {
-        MOVE PROPERTY (onSend());
-        MOVE PROPERTY (onCancel());
-        MOVE PROPERTY (onChecked());
+        MOVE PROPERTY (onPrepare());
+        MOVE PROPERTY (onChangeDate());
+//        MOVE PROPERTY (onChecked());
     }
 }

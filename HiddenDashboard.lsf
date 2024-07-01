@@ -4,7 +4,8 @@ REQUIRE CustomerAttachment, Event, CustomerDashboard, DebtDashboardNew, EventDas
 
 hidden 'x' = DATA BOOLEAN (Attachment);
 hidden 'x' = DATA BOOLEAN (Event);
-hwhere = IF lastName(currentUser()) = 'Донсков' OR lastName(currentUser()) = 'Кирковский' THEN TRUE;
+hwhere = IF lastName(currentUser()) = 'Донсков' OR 
+    lastName(currentUser()) = 'Кирковский' OR lastName(currentUser()) = 'Ляхнович' THEN TRUE;
 
 
 EXTEND FORM dashboardCustomer
