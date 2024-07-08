@@ -1,0 +1,62 @@
+MODULE CustomerExtension;
+
+REQUIRE CustomerNew, RateService;
+
+CLASS CustomerEmployee 'Сотрудники связанные с клиентами (Работа с клиентами)';
+customer 'ID customer' = DATA Customer (CustomerEmployee) NONULL AUTOSET ;
+employee 'ID employee' = DATA Employee (CustomerEmployee) NONULL;
+nameEmployee 'ФИО' (CustomerEmployee o) = name(employee(o));
+nameCustomer 'Клиент' (CustomerEmployee o) = name(customer(o)); 
+
+uniquid = GROUP AGGR CustomerEmployee o BY customer(o), employee(o);
+
+FORM viewCustomerEmploe 'Клиенты и Сотрудники'
+    OBJECTS ce = CustomerEmployee 
+    PROPERTIES(ce) READONLY nameCustomer, nameEmployee
+    ORDERS nameCustomer(ce), nameEmployee(ce)
+;
+
+showCustomerEmployee 'Клиенты и Сотрудники' () { SHOW viewCustomerEmploe; }
+
+FORM editCustomerEmployee
+    OBJECTS e = CustomerEmployee PANEL 
+    PROPERTIES (e) READONLY nameCustomer
+    PROPERTIES (e) nameEmployee
+    EDIT CustomerEmployee OBJECT e
+;
+
+DESIGN editCustomerEmployee {
+    OBJECTS {
+        NEW pane {
+            horizontal = FALSE;
+            MOVE PROPERTY (nameCustomer(e));
+            MOVE PROPERTY (nameEmployee(e));
+        }
+    }
+}
+
+EXTEND FORM customers
+    OBJECTS e = CustomerEmployee
+    PROPERTIES (e) READONLY nameEmployee
+    PROPERTIES (e) NEWSESSION NEW, EDIT, DELETE 
+    PROPERTIES () showCustomerEmployee TOOLBAR 
+    FILTERS customer(e) = o
+;
+
+DESIGN customers {
+    OBJECTS {
+        NEW pane2grid {
+            horizontal = TRUE;
+            fill = 0.25;
+            MOVE BOX (ce);
+            MOVE BOX (e);
+        }
+    }
+    TOOLBARRIGHT (e) {
+        MOVE PROPERTY (showCustomerEmployee());
+    }
+}
+
+//OBJECTS o = CustomerEmployee
+//PROPERTIES(o) nameEmployee, nameCustomer
+//PROPERTIES(o) DELETE

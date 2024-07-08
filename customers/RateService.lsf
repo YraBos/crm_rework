@@ -173,7 +173,7 @@ EXTEND FORM customers
 
 DESIGN customers {
     BOX(ce) {
-        flex = 0.1;
+//        flex = 0.1;
     }
     cnt10 {
         NEW cnt3 {

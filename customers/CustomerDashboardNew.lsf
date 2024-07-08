@@ -1,6 +1,6 @@
 MODULE CustomerDashboardNew;
 
-REQUIRE CustomerDashboard, Document, EmployeeNew, Utils, Time;
+REQUIRE CustomerDashboard, Document, EmployeeNew, Utils, Time, CustomerExtension;
 
 inSData 'Созданы с:' = DATA LOCAL DATE ();
 inEData 'по:' = DATA LOCAL DATE();
@@ -146,16 +146,17 @@ EXTEND FORM dashboardCustomer
 ;
 
 
-//// RM28078 
-//// Если сотрудник (внедренец) закреплен за организацией, то ему доступны только его организации
-//// Если за сотрудником нет закрепленных организаций, то выводятся все организации
-//chk (Customer c) = IF in(c,currentUser()) THEN c; // работает
-//flagCount 'Флаг использования фильтра' = DATA LOCAL INTEGER ();
-//
-//EXTEND FORM dashboardCustomer
-//    FILTERS IF flagCount() THEN c = chk(c) ELSE TRUE
-//    EVENTS ON INIT {
-//        flagCount() <- GROUP SUM 1 IF in(Customer o,currentUser());
-//    }
-//;
+// RM28078 
+// Если сотрудник (внедренец) закреплен за организацией, то ему доступны только его организации
+// Если за сотрудником нет закрепленных организаций, то выводятся все организации
+
+chk (Customer c) = IF GROUP MAX CustomerEmployee o IF customer(o) = c AND employee(o) = currentUser() THEN c;
+flagCount 'Флаг использования фильтра' = DATA LOCAL INTEGER ();
+
+EXTEND FORM dashboardCustomer
+    FILTERS IF flagCount() THEN c = chk(c) ELSE TRUE
+    EVENTS ON INIT {
+        flagCount() <- GROUP SUM 1 IF employee(CustomerEmployee o) = currentUser();
+    }
+;
 
