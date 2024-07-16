@@ -1,6 +1,6 @@
 MODULE UploadDocZip;
 
-REQUIRE EdmDocument, EdmDebtDashboard, EdmDocDashboard, LegalEntityBy;
+REQUIRE EdmDocument, EdmDebtDashboard, EdmDocDashboard, LegalEntityBy, Utils;
 
 CLASS EnumUploadZip 'Выгрузка в zip' {
     all '1. Все отмеченные', noEdm '2. Все отмеченные без признака ЭДО'
@@ -14,13 +14,13 @@ FORM enumUploadZip 'Выгрузка документов в zip'
 
 DESIGN enumUploadZip {PROPERTY (staticCaption(o)) {caption = 'Выбор операции';} }
 
-zname 'Название организации для выгрузки в zip' (Document d,BOOLEAN unp) =
-    nameLegalEntity(d) + IF unp THEN '_' + OVERRIDE UNP(legalEntity(d)),'' ELSE '';
+zname 'Название организации для выгрузки в zip' (Document d) = nameLegalEntity(d) + '_' + OVERRIDE UNP(legalEntity(d)),'';
+docNumber 'Номер договора' (Document d) = '_Договор ' + replace(number(contract(d)),'/','-');
 
-fnameDoc 'Имя документа' (Document d,BOOLEAN unp) =
-    IF nameDocType(d) = 'Договор' THEN zname(d,unp) + '_Договор ' + number(contract(d)) + ' от ' + toDateDDMMYY(date(d)) ELSE
-    IF nameDocType(d) = 'Соглашение' THEN zname(d,unp) + '_Договор ' + number(contract(d)) + ' Соглашение ' + number(d) + ' от ' + toDateDDMMYY(date(d)) ELSE
-    IF nameDocType(d) = 'Акт выполненных работ' THEN zname(d,unp) + '_Договор ' + number(contract(d)) + ' Акт ' + number(d) + ' от ' + toDateDDMMYY(date(d))  
+fnameDoc 'Имя документа' (Document d) =
+    IF nameDocType(d) = 'Договор' THEN zname(d) + docNumber(d) + ' от ' + toDateDDMMYY(date(d)) ELSE
+    IF nameDocType(d) = 'Соглашение' THEN zname(d) + docNumber(d) + ' Соглашение ' + number(d) + ' от ' + toDateDDMMYY(date(d)) ELSE
+    IF nameDocType(d) = 'Акт выполненных работ' THEN zname(d) + docNumber(d) + ' Акт ' + number(d) + ' от ' + toDateDDMMYY(date(d))  
     ELSE number(d) + ' от ' + toDateDDMMYY(date(d)) + '.doc';    
 
 createZipDoc 'Выгрузить в zip' () {
@@ -28,9 +28,9 @@ createZipDoc 'Выгрузить в zip' () {
     DIALOG enumUploadZip OBJECTS o INPUT DO {
         zipping(STRING[100] f) <- NULL;
         IF o = EnumUploadZip.all THEN {
-            FOR (Document d IS Document) AND in(d) DO { zipping(STRING[100] f) <- file(d) WHERE f == fnameDoc(d,NULL) + '.doc'; }
+            FOR (Document d IS Document) AND in(d) DO { zipping(STRING[100] f) <- file(d) WHERE f == fnameDoc(d) + '.doc'; }
         } ELSE {
-            FOR (Document d IS Document) AND in(d)  AND NOT edm(d) DO { zipping(STRING[100] f) <- file(d) WHERE f == fnameDoc(d,NULL) + '.doc'; }
+            FOR (Document d IS Document) AND in(d)  AND NOT edm(d) DO { zipping(STRING[100] f) <- file(d) WHERE f == fnameDoc(d) + '.doc'; }
         }
         makeZipFile();
         open(zipped(),'archive');
@@ -41,7 +41,7 @@ createZipDoc 'Выгрузить в zip' () {
 createZipDocEdm 'Выгрузить в zip с признаком ЭДО' () {
     IF NOT GROUP SUM 1 IF in(Document d) THEN { MESSAGE 'Нет отмеченных записей'; RETURN; }
     zipping(STRING[100] f) <- NULL;
-    FOR (Document d IS Document) AND in(d) AND edm(d) DO { zipping(STRING[100] f) <- file(d) WHERE f == fnameDoc(d,TRUE) + '.doc'; }
+    FOR (Document d IS Document) AND in(d) AND edm(d) DO { zipping(STRING[100] f) <- file(d) WHERE f == fnameDoc(d) + '.doc'; }
     makeZipFile();
     open(zipped(),'archive_edm');
 }
@@ -52,9 +52,9 @@ createZipAct 'Выгрузить в zip' () {
     DIALOG enumUploadZip OBJECTS o INPUT DO {
         zipping(STRING[100] f) <- NULL;
         IF o = EnumUploadZip.all THEN {
-            FOR (Debt d IS Debt) AND in(d) DO { zipping(STRING[100] f) <- file(act(d)) WHERE f == fnameDoc(act(d),NULL) + '.doc'; }
+            FOR (Debt d IS Debt) AND in(d) DO { zipping(STRING[100] f) <- file(act(d)) WHERE f == fnameDoc(act(d)) + '.doc'; }
         } ELSE {
-            FOR (Debt d IS Debt) AND in(d)  AND NOT actEdm(d) DO { zipping(STRING[100] f) <- file(act(d)) WHERE f == fnameDoc(act(d),NULL) + '.doc'; }
+            FOR (Debt d IS Debt) AND in(d)  AND NOT actEdm(d) DO { zipping(STRING[100] f) <- file(act(d)) WHERE f == fnameDoc(act(d)) + '.doc'; }
         }
         makeZipFile();
         open(zipped(),'archive');
