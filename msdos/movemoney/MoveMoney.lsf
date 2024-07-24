@@ -176,24 +176,25 @@ fltNameCurrency 'Валюта' = shortName(fltCurrency());
 fltNameCustomer 'Клиент' = name(fltCustomer());
 
 FORM viewMoveMoney 'Движение финансов'
-    OBJECTS m = MoveMoney
+    OBJECTS m = MoveMoney LAST 
     PROPERTIES(m) READONLY BACKGROUND IF NOT shortName(currency(m)) = 'BYN' THEN RGB (225, 255, 225) 
                     date, codeOperation, nameOperation, codeSource, signOperation, nameCurrency, 
                     suma, sumaUSD, nameCustomer, nameLegalEntity, note
     PROPERTIES onImportData(), onOpenSource(m), onOpenHelp()
-    PROPERTIES() fltYYMM,fltNameCodeOperation, fltSign, fltNameCurrency, fltNameCustomer, fltNameSource
-    FILTERS IF fltYYMM() AND fltNumberSource()!='5' THEN yymm(m) = fltYYMM() ELSE TRUE
+    PROPERTIES() fltSign, fltNameCodeOperation, fltNameCurrency, fltNameCustomer
+//    PROPERTIES() fltYYMM,fltNameCodeOperation, fltSign, fltNameCurrency, fltNameCustomer, fltNameSource
+//    FILTERS IF fltYYMM() AND fltNumberSource()!='5' THEN yymm(m) = fltYYMM() ELSE TRUE
     FILTERS IF fltCodeOperation() THEN codeOperation(m) = fltNameCodeOperation() ELSE TRUE
     FILTERS IF fltSign() THEN signOperation(m) = fltSign() ELSE TRUE
-    FILTERS IF fltNumberSource() = '2' THEN (IF msdfinance(m) THEN TRUE ELSE NULL) ELSE TRUE
-    FILTERS IF fltNumberSource() = '3' THEN (IF payment(m) THEN TRUE ELSE NULL) ELSE TRUE
-    FILTERS IF fltNumberSource() = '4' THEN (IF expense(m) THEN TRUE ELSE NULL) ELSE TRUE
-    FILTERS IF fltNumberSource() = '5' THEN (IF balance(m) THEN TRUE ELSE NULL) ELSE TRUE
+//    FILTERS IF fltNumberSource() = '2' THEN (IF msdfinance(m) THEN TRUE ELSE NULL) ELSE TRUE
+//    FILTERS IF fltNumberSource() = '3' THEN (IF payment(m) THEN TRUE ELSE NULL) ELSE TRUE
+//    FILTERS IF fltNumberSource() = '4' THEN (IF expense(m) THEN TRUE ELSE NULL) ELSE TRUE
+//    FILTERS IF fltNumberSource() = '5' THEN (IF balance(m) THEN TRUE ELSE NULL) ELSE TRUE
     FILTERS IF fltCurrency() THEN nameCurrency(m) = fltNameCurrency() ELSE TRUE
     FILTERS IF fltCustomer() THEN nameCustomer(m) = fltNameCustomer() ELSE TRUE
     EVENTS ON INIT { 
-        fltYYMM() <-  toDateYYMM(currentDate());
-        fltSource() <- GROUP MAX (Sources s) IF left(staticCaption(s),1) = '1';
+//        fltYYMM() <-  toDateYYMM(currentDate());
+//        fltSource() <- GROUP MAX (Sources s) IF left(staticCaption(s),1) = '1';
     }
 ;
 
@@ -202,12 +203,12 @@ DESIGN viewMoveMoney {
         NEW cntFilter {
             horizontal = TRUE;
             caption = 'фильтры';
-            MOVE PROPERTY (fltYYMM()) {charWidth = 6;}
+//            MOVE PROPERTY (fltYYMM()) {charWidth = 6;}
             MOVE PROPERTY (fltNameCodeOperation()) {charWidth = 6;}
             MOVE PROPERTY (fltSign()) {charWidth = 4;}
             MOVE PROPERTY (fltNameCurrency()) {charWidth = 6;}
             MOVE PROPERTY (fltNameCustomer()) {charWidth = 20;}
-            MOVE PROPERTY (fltNameSource()) {charWidth = 12;};
+//            MOVE PROPERTY (fltNameSource()) {charWidth = 12;};
         }
     }
     TOOLBARRIGHT (m) {
