@@ -110,9 +110,9 @@ FORM editDate 'Изменение даты'
     PROPERTIES (sd) staticCaption SELECTOR 
     ORDERS staticCaption(sd)
     
-    OBJECTS date = DATE PANEL
+    OBJECTS date = DATE PANEL NULL 
     PROPERTIES date 'Выбор даты' = VALUE(date)
-    EVENTS ON INIT {SEEK editDate.sd = SelectDate.send;}
+    EVENTS ON INIT {SEEK editDate.sd = SelectDate.send; }
 ;
 
 DESIGN editDate {
