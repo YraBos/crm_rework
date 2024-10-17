@@ -4,15 +4,9 @@ REQUIRE DebtDashboard, EdmAct, EdmContract;
 
 NAMESPACE Contract;
 
-lf = DATA LOCAL BOOLEAN ();
-
-AFTER createActs () DO   {
-    FOR (Act a IS Act) AND date(a) = currentDate() AND edm(contract(a)) DO {
-        lf() <- TRUE;
-        edm(a) <- TRUE; 
-    }
-    IF lf() THEN APPLY; 
-}
+additional(Act a) + {
+    IF edm(contract(a)) THEN edm(a) <- TRUE; 
+};
 
 actEdm 'ЭДО' (Debt d) = edm(act(d));
 
