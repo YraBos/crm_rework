@@ -10,4 +10,4 @@ additional(Act a) + {
 
 actEdm 'ЭДО' (Debt d) = edm(act(d));
 
-EXTEND FORM debtDashboard PROPERTIES (d) READONLY actEdm;
+EXTEND FORM debtDashboard PROPERTIES (d) READONLY actEdm; 
