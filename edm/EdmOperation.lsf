@@ -142,6 +142,9 @@ EXTEND FORM docDashboard
     PROPERTIES onPrepare(), onChangeDate()//, onChecked()
     FILTERS docType(doc) = filterDocType() OR NOT filterDocType(), company(doc) == filterLegalEntity() OR NOT filterLegalEntity()
     FILTERS edm(doc)
+    FILTERGROUP  typedoc 
+        FILTER 'Акты' nameDocType(doc) = 'Акт выполненных работ' DEFAULT 
+        FILTER 'Договора' nameDocType(doc) = 'Договор'
 ;
 
 DESIGN docDashboard {
