@@ -5,6 +5,6 @@ REQUIRE DocDashboard, EdmDocument;
 EXTEND FORM docDashboard 
     PROPERTIES (d) READONLY edm
     EXTEND FILTERGROUP d 
-        FILTER 'Отправка e-mail' nameSendingWay(d) = 'e-mail' AND dateSending(d)
+        FILTER 'Отправка e-mail' nameSendingWay(d) = 'e-mail' AND dateSending(d) AND NOT dateReceiving(d)
 ;
 
