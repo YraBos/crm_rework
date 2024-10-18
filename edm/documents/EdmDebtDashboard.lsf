@@ -5,7 +5,11 @@ REQUIRE DebtDashboard, EdmAct, EdmContract;
 NAMESPACE Contract;
 
 additional(Act a) + {
-    IF edm(contract(a)) THEN edm(a) <- TRUE; 
+    IF edm(contract(a)) THEN {
+        edm(a) <- TRUE;
+        dateSending(a) <- currentDate();
+        sendingWay(a) <- GROUP MAX SendingWay o IF name(o) = 'ЭДО';
+    } 
 };
 
 actEdm 'ЭДО' (Debt d) = edm(act(d));

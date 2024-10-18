@@ -2,5 +2,9 @@ MODULE EdmDocDashboard;
 
 REQUIRE DocDashboard, EdmDocument;
 
-EXTEND FORM docDashboard PROPERTIES (d) READONLY edm;
+EXTEND FORM docDashboard 
+    PROPERTIES (d) READONLY edm
+    EXTEND FILTERGROUP d 
+        FILTER 'Отправка e-mail' nameSendingWay(d) = 'e-mail' AND dateSending(d)
+;
 
