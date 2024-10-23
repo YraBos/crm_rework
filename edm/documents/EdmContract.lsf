@@ -4,11 +4,12 @@ REQUIRE Contract, ContractDashboard, EdmDocument;
 
 NAMESPACE Contract;
 
-EXTEND FORM contract PROPERTIES (o) edm;
+EXTEND FORM contract PROPERTIES (o) edm, edmLabelInName;
 
 DESIGN contract {
     processing {
         MOVE PROPERTY (edm(o));
+        MOVE PROPERTY (edmLabelInName(o)) {charWidth=50;};
     }
 }
 

@@ -6,3 +6,4 @@ NAMESPACE Doc;
 
 // Признак электронного документа оборота
 edm 'ЭДО' = DATA BOOLEAN (Document);
+edmLabelInName 'Метка для ЭДО' = DATA STRING[50] (Document);
