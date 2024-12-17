@@ -42,8 +42,8 @@ DESIGN ediMoveMoneyOpreration {
     }
 }
 
-NAVIGATOR {
-    dosmove {
-        NEW FORM viewMoveMoneyOpreration;
-    }
-}
+//NAVIGATOR {
+//    dosmove {
+//        NEW FORM viewMoveMoneyOpreration;
+//    }
+//}

@@ -118,8 +118,8 @@ DESIGN viewFinance {
     }
 }
 
-NAVIGATOR {
-   dosfin {
-       NEW FORM viewFinance FIRST;
-   }
-}
+//NAVIGATOR {
+//   dosfin {
+//       NEW FORM viewFinance FIRST;
+//   }
+//}

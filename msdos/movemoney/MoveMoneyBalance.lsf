@@ -48,9 +48,9 @@ FORM viewBalance 'Остатки'
 ;
 
 
-NAVIGATOR {
-    dosmove {
-        NEW FORM viewBalance;
-    }
-}
+//NAVIGATOR {
+//    dosmove {
+//        NEW FORM viewBalance;
+//    }
+//}
 

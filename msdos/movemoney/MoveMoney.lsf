@@ -219,9 +219,9 @@ DESIGN viewMoveMoney {
 
 
 
-NAVIGATOR {
-    dosmove {
-        NEW FORM viewMoveMoney FIRST ;
-    }
-}
+//NAVIGATOR {
+//    dosmove {
+//        NEW FORM viewMoveMoney FIRST ;
+//    }
+//}
 
