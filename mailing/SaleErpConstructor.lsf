@@ -22,7 +22,7 @@ set2 'Параметры настройки' = DATA LOCAL SetMailing ();
 FORM viewSaleErpConstructor 'Журнал ERP Constructor'
     OBJECTS s1 = SaleErpConstructor LAST
     PROPERTIES (s1) READONLY dateAccept, cnt, namePost, mailPost, datePost
-    OBJECTS s2 = SaleErpConstructor
+    OBJECTS s2 = SaleErpConstructor PANEL 
     PROPERTIES (s2) READONLY bodyAccept BACKGROUND RGB(230, 242, 242), bodyPost 
     FILTERS s1 = s2
     ORDERS dateAccept(s1)
@@ -131,9 +131,12 @@ onManualReception 'Прием сообщений' () {
     SEEK LAST viewSaleErpConstructor.s1;
 }
 
+onOpenHTML 'HTML' (SaleErpConstructor s1) {
+    open(TEXT (bodyAccept(s1)));
+}
 
 EXTEND FORM viewSaleErpConstructor
-    PROPERTIES onManualReception() 
+    PROPERTIES onManualReception(), onOpenHTML(s1); 
 ; 
 
 
@@ -146,12 +149,14 @@ DESIGN viewSaleErpConstructor {
             NEW message {
                 horizontal = FALSE;
                 fill = 1;
-                MOVE BOX(s2);
+                MOVE PROPERTY (bodyAccept(s2)) {caption='';fill=1;}
+                MOVE PROPERTY (bodyPost(s2)) {caption='';fill=2;}
             }
         }
     } 
     TOOLBARRIGHT (s1) {
         MOVE PROPERTY (onManualReception());
+        MOVE PROPERTY (onOpenHTML(s1));
     }
 }
 
