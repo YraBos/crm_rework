@@ -66,7 +66,7 @@ createAnswer 'Создание ответа' (SaleErpConstructor s) {
     }
     IF namePost(s) AND mailPost(s) THEN {
         body() <- replace(htmlStart(set1()),'@@@',namePost(s)) + '\n' + 
-            (GROUP CONCAT replace(htmlInsert(set1()),'@@@',name(ErpModule em)) IF in(em),'\n' ORDER npp(em)) + '\n' + htmlEnd(set1());
+            (GROUP CONCAT replace(replace(htmlInsert(set1()),'@@1',address(ErpModule em)),'@@2',name(em)) IF in(em),'\n' ORDER npp(em)) + '\n' + htmlEnd(set1());
         EMAIL FROM accountName(set1()) SUBJECT 'lsFusion ERP: Ваша конфигурация' TO mailPost(s) BODY body();
         bodyPost(s) <- 'Список модулей в ответе:\n\n' + GROUP CONCAT name(ErpModule em) IF in(em),'\n' ORDER npp(em);
     }

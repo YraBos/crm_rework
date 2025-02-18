@@ -52,6 +52,7 @@ CLASS ErpModule 'Модули ERP';
 npp  '№ пп' = DATA INTEGER (ErpModule) NONULL CHARWIDTH 10;
 name 'Название модуля' = DATA STRING (ErpModule) NONULL;
 label 'Метка' = DATA STRING[20] (ErpModule);
+address 'HTTP ссылка' = DATA STRING[100] (ErpModule);
 
 unique 'Проверка уникальности' = GROUP AGGR ErpModule o BY name(o);
 
@@ -59,7 +60,8 @@ FORM editErpModule 'Модули ERP'
     OBJECTS e = ErpModule PANEL 
     PROPERTIES (e) npp
     PROPERTIES (e) name  ON CHANGE { INPUT s = STRING DO name(e) <- STRING(trim(s)); }
-    PROPERTIES (e) label ON CHANGE { INPUT s = STRING DO label(e) <- upper(trim(s)); } 
+    PROPERTIES (e) label ON CHANGE { INPUT s = STRING DO label(e) <- STRING[20](upper(trim(s))); }
+    PROPERTIES (e) address ON CHANGE { INPUT s = STRING DO address(e) <- STRING[100](trim(s)); }
     EDIT ErpModule OBJECT e
     EVENTS ON INIT {
         IF NOT npp(e) THEN npp(e) <- (GROUP SUM 1 IF npp(ErpModule o)) (+) 1;
@@ -70,22 +72,25 @@ DESIGN editErpModule {
     OBJECTS { 
         NEW cnt { 
             fill = 1;
-            MOVE PROPERTY (npp(e));
+            MOVE PROPERTY (npp(e)) {charWidth=10;}
             MOVE PROPERTY (label(e));
-            MOVE PROPERTY (name(e));
+            MOVE PROPERTY (name(e)) {charWidth=200;}
+            MOVE PROPERTY (address(e)){charWidth=200;}
         } 
     } 
 }
 
 FORM viewErpModule 'Модули ERP'
     OBJECTS e = ErpModule
-    PROPERTIES (e) READONLY npp, label, name
+    PROPERTIES (e) READONLY npp, label, name, address
     PROPERTIES (e) NEWSESSION NEW, EDIT, DELETE
 ;
 
 DESIGN viewErpModule {
-    PROPERTY (npp(e)) {charWidth=10;}
-    PROPERTY (name(e)) {charWidth=200;}
+    PROPERTY (npp(e)) {charWidth=4;}
+    PROPERTY (label(e)) {charWidth=6;}
+    PROPERTY (name(e)) {charWidth=50;}
+    PROPERTY (address(e)){charWidth=50;}
 }
 
 
