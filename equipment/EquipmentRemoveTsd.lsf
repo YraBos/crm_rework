@@ -40,14 +40,14 @@ onRemoveTSD 'Перенос ТСД' (SubjectType t) {
             LOCAL noteNew, noteOld = STRING[200] ();
             noteNew() <- 'Перемещен из: ' + name(client2) + ', ' + toDateDDMMYY(currentDate()) + 'г.';
             noteOld() <- 'Перемещен в: ' + name(filterCustomer()) + ', ' + toDateDDMMYY(currentDate()) + 'г.';
-            IMPORT XLS FROM xfile TO sn = B;
+            IMPORT XLS NOHEADER FROM xfile TO sn = B;
             NEW e = Equipment {
                 createdUser(e) <- currentUser();
                 createdDate(e) <- currentDate();
                 createdTime(e) <- currentTime();
                 subjectType(e) <- t;
                 customer(e) <- filterCustomer();
-                FOR imported(INTEGER i) AND i > 0 ORDER i DO {
+                FOR imported(INTEGER i) AND sn(i) ORDER i DO {
                     old() <- GROUP MAX (EquipmentSerial o) IF trim(number(o)) == trim(sn(i)) AND customer(equipment(o)) = client2;
                     IF old() THEN {
                         NEW es = EquipmentSerial {
