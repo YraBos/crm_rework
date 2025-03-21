@@ -23,7 +23,7 @@ discountManager 'Скидка менеджера' (Issue i) = discount(getId(i))
 
 // !!! вызывается из ImportRmExt - заполняем ID для расширения
 onFillIssueExtension 'Заполнение расширения задач' () {
-    FOR (Issue i IS Issue) AND NOT getId(i) ORDER id(i) DO {
+    FOR (Issue i IS Issue) AND NOT getId(i) AND id(i) ORDER id(i) DO {
         NEW e = IssueExtension {
             id(e) <- id(i);
         }
