@@ -12,3 +12,5 @@ numberChange 'Замененный номер' = DATA ISTRING[250] (EquipmentSer
 numberNew 'Новый номер' = DATA ISTRING[250] (EquipmentSerialChange) NONULL  CHARWIDTH 15;
 date 'Дата замены' = DATA DATE (EquipmentSerialChange);
 note 'Примечание' = DATA STRING[200] (EquipmentSerialChange);
+
+
