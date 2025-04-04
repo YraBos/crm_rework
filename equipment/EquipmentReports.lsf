@@ -7,7 +7,8 @@ CLASS MenuReports 'Отчеты' {
     p2 ' 2. История замен s/n',
     p3 ' 3. Отчет по сверке работающих ТСД (простой)',
     p4 ' 4. Сверка лицензий ТСД',
-    p5 ' 5. Отчет: Список выданных ключей ТСД'
+    p5 ' 5. Отчет: Список выданных ключей ТСД',
+    p6 ' 6. Отчет по сверке работающих ТСД (вариант 2)'
 }
 
 FORM viewMenuReports 'Отчеты'
@@ -25,7 +26,7 @@ DESIGN viewMenuReports {
 number 'Номер'          = DATA STRING[250]  (TempClassReports);
 dLast 'Дата пос. исп.'  = DATA DATE         (TempClassReports);
 dCreate 'Дата выдачи'   = DATA DATE         (TempClassReports);
-found 'Найден'          = DATA STRING[20]   (TempClassReports);
+found 'Найден'          = DATA STRING[100]   (TempClassReports);
 
 FORM repTempEQUReport 'Сверка торговых объектов'
   PROPERTIES() title1, title2, title3, title4 PANEL  
@@ -74,6 +75,92 @@ onReviseTSD 'Сверка раб. ТСД (упр.)' (Equipment e) {
                 'Серийные номера (sn) из документа последовательно сверяются с sn в базе данных по клиенту.\n' +
                 'Если sn найден, то заполняется дата выдачи и значение колонки "выдан" - ok, иначе пишется: не найден';
     PRINT repTempEQUReport XLS; // XLS
+}
+
+// сверка серийных номеров по договору (вариант 2)
+FORM repTempEQUReport2 'Сверка торговых объектов-2'
+    PROPERTIES() title1, title2, title3, title4 PANEL
+    OBJECTS o1 = TempClassReports
+    PROPERTIES(o1) pi, number, dLast, dCreate, found, pn
+    ORDERS pi(o1)
+    FILTERS pi(o1)<100
+    REPORT 'EquipmentDashboardNew_repTempEQUReport2.jrxml'
+;
+
+oserialOther 'ID s/n других клиентов' (Customer c, STRING sn) =
+    GROUP MAX (EquipmentSerial s) IF number(s) = sn AND NOT customer(equipment(s)) = c;
+
+// последняя замена по серийному номеру
+lastChange = GROUP LAST EquipmentSerialChange e ORDER date(e), e BY numberNew(e);
+numberLastChange(ISTRING[250] s) = numberChange(lastChange(s));
+dateLastChange(ISTRING[250] s) = date(lastChange(s));
+
+onReviseTSD2 'Сверка раб. ТСД (вариант 2)' (Equipment e) {
+    newTempClassReports();
+    LOCAL ot = Attachment();
+    LOCAL es = EquipmentSerial();
+    LOCAL colC = STRING[250] (INTEGER);
+    LOCAL colE = DATE (INTEGER);
+    LOCAL colD = BOOLEAN (INTEGER);
+    LOCAL colJ = INTEGER (INTEGER);
+    LOCAL ctxt = STRING[250] ();
+    LOCAL cnt, cnt1, cnt2 = INTEGER(); cnt() <- 0; cnt1() <- 0; cnt2() <- 0;
+    
+    ot() <- GROUP MAX Attachment a IF customer(a) = customer(e) AND name(type(a)) = 'Список работающих ТСД';
+    
+    IF NOT ot() THEN {
+        MESSAGE 'Не найден документ:\nСписок работающих ТСД';
+        RETURN;
+    }
+    
+    IMPORT XLS NOHEADER FROM file(ot()) AS FILE TO colC = C, colE = E, colD = D, colJ = J;
+    
+    FOR imported(INTEGER i) AND i > 1 AND colC(i) AND oserial(filterCustomer(), colC(i)) ORDER i DO NEW ob = TempClassReports {
+        cnt()  <- cnt() + 1;
+        number(ob) <- colC(i);
+        dLast(ob) <- colE(i);
+        pi(ob) <- 120;          // не берём в отчет
+        cnt2() <- cnt2() + 1;
+        found(ob) <- 'ок';
+        dCreate(ob) <- createdDate(GROUP MAX (Equipment e1) IF e1 = equipment(oserial(filterCustomer(), colC(i))));
+        pn(ob) <- IF colD(i) THEN 'Заблокирован';
+        p2(ob) <- colJ(i);
+        
+        // проверка на наличив в заменах и если есть замена (ищем по <Новый номер> и берём последнюю запись по дате замены), берём <Заменённый номер> и дату замены
+        // в импортированных из XLS строках ищем <Заменённый номер> и если если <Дата в колонке E (последнее подкл.)> (для заменённого номера) БОЛЬШЕ даты замены, то берём в отчет 
+        IF lastChange(number(ob)) THEN {
+            FOR imported(INTEGER j) AND j > 1 AND colC(j) AND colC(j) = numberLastChange(number(ob)) AND colE(j) > dateLastChange(number(ob)) DO {
+                found(ob) <- 'ок, замена ' + numberLastChange(number(ob)) + ' от ' + toChar(dateLastChange(number(ob)),'DD.MM.YY');
+                pi(ob) <- 10; // берём в отчет
+            }
+        }
+    }
+    
+    FOR imported(INTEGER i) AND i > 1 AND colC(i) AND NOT oserial(filterCustomer(), colC(i)) ORDER i DO NEW ob = TempClassReports {
+        cnt()  <- cnt() + 1;
+        number(ob) <- colC(i);
+        dLast(ob) <- colE(i);
+        pi(ob) <- 1;
+        cnt1() <- cnt1() + 1;
+        found(ob) <- 'не найден';
+        pn(ob) <- IF colD(i) THEN 'Заблокирован';
+        p2(ob) <- colJ(i);
+        // проверка наличия у других клиентов
+        es() <- oserialOther(filterCustomer(), colC(i));
+        IF es() THEN {
+            found(ob) <- found(ob) + ', найден у ' + (OVERRIDE (nameCustomer(GROUP MAX (Equipment e1) IF e1 = equipment(es()))), '?');
+            dCreate(ob) <- createdDate(GROUP MAX (Equipment e1) IF e1 = equipment(es()));
+        }
+    }
+    
+    title1() <- 'Отчет по сверке работающих ТСД';
+    title2() <- 'по клиенту: ' + name(customer(e));
+    title3() <- 'Обработано всего: ' + trim(toChar(cnt(),'999999')) + ', ' +
+        'найдено в БД: ' + trim(toChar(cnt2(),'999999')) + ', не найдено: ' + trim(toChar(cnt1(),'999999'));
+    title4() <- 'Отчет формируется относительно содержимого документа "Список работающих ТСД". ' +
+        'Серийные номера (sn) из документа последовательно сверяются с sn в базе данных по клиенту.\n' +
+        'Если sn найден, то заполняется дата выдачи и значение колонки "выдан" - ok, иначе пишется: не найден';
+    PRINT repTempEQUReport2 XLS ; // XLS
 }
 
 onReviseS2 'Сверка лицензий ТСД' (Equipment e) {
@@ -128,7 +215,9 @@ onMenuReports 'Меню: Отчеты' (Equipment e,SubjectType t) {
     } ELSE IF ps() = ' 4.' THEN {
         onReviseS2(e);
     } ELSE IF ps() = ' 5.' THEN {
-        PRINT repOutSerials OBJECTS c = customer(e),t = t XLS; 
+        PRINT repOutSerials OBJECTS c = customer(e),t = t XLS;
+    } ELSE IF ps() = ' 6.' THEN {
+        onReviseTSD2(e);
     } ELSE {
         MESSAGE 'Неизвестный отчет'; RETURN;
     }
