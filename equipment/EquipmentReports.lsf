@@ -101,7 +101,8 @@ onReviseTSD2 'Сверка раб. ТСД (вариант 2)' (Equipment e) {
     LOCAL es = EquipmentSerial();
     LOCAL colC = STRING[250] (INTEGER);
     LOCAL colE = DATE (INTEGER);
-    LOCAL colD = BOOLEAN (INTEGER);
+    // поле colD Блокировка = TEXT , т.к. BOOLEAN некорректно принималось
+    LOCAL colD = TEXT (INTEGER);
     LOCAL colJ = INTEGER (INTEGER);
     LOCAL ctxt = STRING[250] ();
     LOCAL cnt, cnt1, cnt2 = INTEGER(); cnt() <- 0; cnt1() <- 0; cnt2() <- 0;
@@ -113,7 +114,7 @@ onReviseTSD2 'Сверка раб. ТСД (вариант 2)' (Equipment e) {
         RETURN;
     }
     
-    IMPORT XLS NOHEADER FROM file(ot()) AS FILE TO colC = C, colE = E, colD = D, colJ = J;
+    IMPORT XLS NOHEADER FROM file(ot()) TO colC = C, colE = E, colD = D, colJ = J;
     
     FOR imported(INTEGER i) AND i > 1 AND colC(i) AND oserial(filterCustomer(), colC(i)) ORDER i DO NEW ob = TempClassReports {
         cnt()  <- cnt() + 1;
