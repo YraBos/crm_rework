@@ -1,44 +1,57 @@
 MODULE EquipmentDasboardChange;
 
-REQUIRE EquipmentDashboardNew, EquipmentDataChange, Time;
+REQUIRE EquipmentDashboardNew, EquipmentDataChange, Time, Utils;
 
-FORM editEquipmentSerialChange 'Замена номера'
-    OBJECTS o = EquipmentSerialChange PANEL 
-    PROPERTIES (o) READONLY date, numberChange
-    PROPERTIES (o) note, numberNew
-    EDIT EquipmentSerialChange OBJECT o
-    EVENTS ON INIT {
-        LOCAL e = EquipmentSerial();
-        e() <- GROUP MAX (EquipmentSerial e) IF e = equipmentSerial(o);
-        numberChange(o) <- number(e());
-        date(o) <- currentDate();
-    }
-    EVENTS ON OK {
-        LOCAL e = EquipmentSerial();
-        e() <- GROUP MAX (EquipmentSerial e) IF e = equipmentSerial(o);
-        number(e()) <- numberNew(o);   
-        numberChange(e()) <- numberChange(o); 
-        dateChange(e()) <- date(o);
-        note(e()) <- note(o);   
-    }
+
+FORM changeSerial 'Замена номера'
+    OBJECTS date = DATE PANEL
+    PROPERTIES READONLY date 'Дата замены: ' = VALUE (date)
+    OBJECTS changeNumber = STRING PANEL
+    PROPERTIES READONLY changeNumber 'Заменяемый номер: ' = VALUE (changeNumber)
+    OBJECTS newNumber = STRING PANEL
+    PROPERTIES newNumber 'Новый номер: ' = VALUE (newNumber)
+    OBJECTS note = STRING PANEL
+    PROPERTIES note 'Примечание: ' = VALUE (note)
 ;
 
-DESIGN editEquipmentSerialChange {
+DESIGN changeSerial {
     OBJECTS {
         NEW cnt {
-            MOVE PROPERTY (date(o)) {background=#E6E6E6;}
-            MOVE PROPERTY (numberChange(o)) {caption = 'Заменяемый номер';background=#E6E6E6;}
-            MOVE PROPERTY (numberNew(o));
-            MOVE PROPERTY (note(o));
+            MOVE PROPERTY (date);
+            MOVE PROPERTY (changeNumber);
+            MOVE PROPERTY (newNumber);
+            MOVE PROPERTY (note);
         }
-    }
+    } 
 }
 
+onChange 'Замена' (EquipmentSerial eq) {
+    DIALOG changeSerial OBJECTS 
+        date=currentDate() INPUT, changeNumber = number(eq) INPUT, newNumber='' INPUT, note INPUT 
+        DO {
+            IF length(newNumber) < 1 THEN {
+                MESSAGE 'Ошибка ввода: Новый номер не внесен';
+                RETURN;
+            }
+            NEW o = EquipmentSerialChange {
+                equipmentSerial(o) <- eq;
+                date(o) <- date;
+                numberNew(o) <- ISTRING[250](newNumber);
+                numberChange(o) <- number(eq);
+                note(o) <- STRING[200](note);
+                numberChange(eq) <- number(eq);
+                dateChange(eq) <- date;
+                number(eq) <- ISTRING[250](newNumber);
+                APPLY; 
+            }
+    } 
+}
 
 EXTEND FORM equipmentDashboard
     OBJECTS esc = EquipmentSerialChange LAST
     PROPERTIES (esc) READONLY numberNew, date, numberChange,  note
-    PROPERTIES (esc) NEWSESSION NEW SHOWIF TRUE IF number(n) 
+    PROPERTIES (esc) DELETE
+    PROPERTIES onChange(n)   
     FILTERS equipmentSerial(esc) = n 
 ;
 
@@ -46,19 +59,13 @@ EXTEND FORM equipmentDashboard
 DESIGN equipmentDashboard {
     serials {
         MOVE BOX(n);
-        MOVE BOX(esc) {fill=0.5;};
+        MOVE BOX(esc) {
+            fill=0.5;
+        }
         MOVE BOX(l);
+        TOOLBARRIGHT(esc) {
+            MOVE PROPERTY (onChange(n));
+        }
     }
 }
 
-
-
-//EXTEND FORM equipmentDashboard
-//    PROPERTIES onPrintHistory(e)
-//;
-//
-//DESIGN equipmentDashboard {
-//    head2 {
-//        MOVE PROPERTY (onPrintHistory(e));
-//    }
-//}
