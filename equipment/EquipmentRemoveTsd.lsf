@@ -1,6 +1,6 @@
 MODULE EquipmentRemoveTsd;
 
-REQUIRE EquipmentDashboard, Time, Utils, EquipmentDataExt;
+REQUIRE EquipmentDashboard, Time, Utils, EquipmentDataExt, EquipmentDataChange;
 
 fromClientName 'Клиент источник' (Customer o) = name(o);
 toClientName 'Клиент получатель' (Customer o) = name(o);
@@ -98,5 +98,61 @@ onLoadSerialXls 'Загрузка SN из Xls' (SubjectType t) {
             CANCEL;
             MESSAGE 'Операция не выполнена\nДанные не импортированы';
         }
+    }
+}
+
+onChangeSerialXls 'Замена серийных номеров' (SubjectType t) {
+    INPUT xfile = EXCELFILE DO {
+        LOCAL sn1, sn2 = ISTRING[250](INTEGER);
+        LOCAL cnt1,cnt2 = INTEGER();
+        LOCAL es  = EquipmentSerial();
+        LOCAL cmsg, cmsg1,cmsg2,cmsg3 = TEXT();
+        LOCAL lnext = BOOLEAN(); 
+        cnt1() <- 0; cnt2() <- 0; 
+        IMPORT XLS FROM xfile TO sn1 = A, sn2 = B;
+        FOR imported(INTEGER i) ORDER i DO {
+            IF NOT sn1(i) OR NOT sn2(i) THEN CONTINUE; 
+            lnext() <- TRUE;
+            cnt1() <- cnt1() + 1;
+            // просили отследить все колонки, в которых могут быть ошибки символов
+            IF isNumLatin(sn1(i)) = 2 THEN {
+                cmsg1() <- IF NOT cmsg1() THEN sn1(i) ELSE cmsg1() + ', ' + sn1(i);
+                lnext() <- NULL;
+            }
+            IF isNumLatin(sn2(i)) = 2 THEN {
+                cmsg2() <- IF NOT cmsg2() THEN sn2(i) ELSE cmsg2() + ', ' + sn2(i);
+                lnext() <- NULL;
+            }
+            IF NOT lnext() THEN CONTINUE; 
+            es() <- GROUP MAX EquipmentSerial o IF number(o) = sn1(i) AND customer(equipment(o)) = filterCustomer();
+            IF es() THEN NEW esc = EquipmentSerialChange {
+               cnt2() <- cnt2() + 1;
+               // таблица замен - EquipmentSerialChange
+               equipmentSerial(esc) <- es();
+               numberChange(esc) <- number(es());
+               numberNew(esc) <- sn2(i);
+               date(esc) <- currentDate();
+               note(esc) <- 'Авто замена из XLS файла';
+               // серийные номера - EquipmentSerial
+               dateChange(es()) <- currentDate();
+               numberChange(es()) <- number(es());
+               number(es()) <- sn2(i);
+               note(es()) <- note(esc);
+            } ELSE {
+               cmsg3() <- IF NOT cmsg3() THEN sn1(i) ELSE cmsg3() + ', ' + sn1(i);
+            }
+        }
+        cmsg() <- CONCAT '',
+            'Обработано номеров: ' + trim(toChar(cnt1(),'99999')) + '\n',
+            'Заменено номеров: ' + trim(toChar(cnt2(),'99999')) + '\n',
+            'Для записи результатов нажмите "Сохранить" внизу формы\n',    
+            '-------------------------------\n',
+            'Обнаружены недопустимые символы в номерах по колонкам:\n',
+            'A: ' + (IF NOT cmsg1() THEN 'НЕТ' ELSE cmsg1()) + '\n',
+            'B: ' + (IF NOT cmsg2() THEN 'НЕТ' ELSE cmsg2()) + '\n',
+            'Не найденные номера по номеру или клиенту:\n',
+            (IF NOT cmsg3() THEN 'НЕТ' ELSE cmsg3());
+        MESSAGE cmsg();
+//        IF cnt2() > 0 AND ctn1() = cnt2() THEN APPLY; 
     }
 }

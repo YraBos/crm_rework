@@ -22,7 +22,8 @@ CLASS MenuDataImport 'Импорт данных' {
     p2 ' 2. Список работающих ТСД. Импорт в ДК из XLS файла', 
     p3 ' 3. Список всех подключений ТСД. Импорт в ДК из XLS файла',
     p4 ' 4. Перенос ТСД, EQSRV между клиентами на основании XLS файла',
-    p5 ' 5. Загрузка SN на основании XLS файла (колонка B2)'
+    p5 ' 5. Загрузка SN на основании XLS файла (колонка B2)',
+    p6 ' 6. Замена серийных номеров из XLS файла (колонки A1,B1)'
 }
 
 FORM viewMenuDataImport 'Импорт данных'
@@ -73,7 +74,11 @@ onMenuDataImoort 'Меню: Импорт данных' (Equipment e,SubjectType 
     ELSE IF ps() = ' 5.' THEN {
         onLoadSerialXls(t);
         RETURN;            
-    }            
+    }
+    ELSE IF ps() = ' 6.' THEN {
+        onChangeSerialXls(t);
+        RETURN;
+    }
     ELSE {
         MESSAGE 'Неизвестный тип импорта';
         RETURN;

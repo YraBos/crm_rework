@@ -12,3 +12,8 @@ numberChange 'Замененный номер' = DATA ISTRING[250] (EquipmentSer
 numberNew 'Новый номер' = DATA ISTRING[250] (EquipmentSerialChange) NONULL  CHARWIDTH 15;
 date 'Дата замены' = DATA DATE (EquipmentSerialChange);
 note 'Примечание' = DATA STRING[200] (EquipmentSerialChange);
+
+isNumLatin (TEXT p1) = FORMULA INTEGER PG 'CASE WHEN trim($1) ~ \'^[A-Za-z0-9]*$\' THEN 1 ELSE 2 END';
+CONSTRAINT isNumLatin(number(EquipmentSerial o)) > 1 
+    AND (nameSubjectTypeEquipment(o) = 'LST ТСД' OR nameSubjectTypeEquipment(o) = 'EQSSRV SENTO_VM')  
+    MESSAGE 'Серийный номер содержит недопустимые символы';
