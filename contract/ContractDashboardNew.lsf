@@ -9,6 +9,13 @@ oK 'Флаг удачного завершения' = DATA LOCAL BOOLEAN ();
 seekDebt 'ID 1-й созданной задолженности' = DATA LOCAL Debt(); // только для редактирования договоров
 inFilter '' = DATA LOCAL BOOLEAN (Contract);
 
+in 'Отм.' = DATA LOCAL BOOLEAN (Contract);
+
+EXTEND FORM contractDashboard
+    PROPERTIES(o) in FIRST
+    FILTERGROUP in FILTER 'Отмеченные' in(o)
+;
+
 FORM setProperties 'Создание задолженностей' 
     PROPERTIES() dateStart, qMonth, skipDebt
     EVENTS ON INIT {
@@ -120,7 +127,7 @@ onFullCreateDebts 'Создать задолженности' () {
         '\n----------------------------\n' + 
         'Необработанные договора по клиентам:\n' + emsg();
     MESSAGE cmsg();
-    APPLY; 
+    APPLY NESTED (in[Contract]); 
 }
 
 EXTEND FORM contractDashboard 
