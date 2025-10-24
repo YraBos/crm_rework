@@ -15,6 +15,6 @@ note 'Примечание' = DATA STRING[200] (EquipmentSerialChange);
 
 // Регулярное выражение: дефис, буквы латинского алфавита, цифры
 isNumLatin (TEXT p1) = FORMULA INTEGER PG 'CASE WHEN trim($1) ~ \'^[-A-Za-z0-9]*$\' THEN 1 ELSE 2 END';
-CONSTRAINT isNumLatin(number(EquipmentSerial o)) > 1 
-    AND (nameSubjectTypeEquipment(o) = 'LST ТСД' OR nameSubjectTypeEquipment(o) = 'EQSSRV SENTO_VM')  
-    MESSAGE 'Серийный номер содержит недопустимые символы'  PROPERTIES number(o);
+//CONSTRAINT isNumLatin(number(EquipmentSerial o)) > 1 
+//    AND (nameSubjectTypeEquipment(o) = 'LST ТСД' OR nameSubjectTypeEquipment(o) = 'EQSSRV SENTO_VM')  
+//    MESSAGE 'Серийный номер содержит недопустимые символы'  PROPERTIES number(o);
