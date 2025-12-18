@@ -124,7 +124,7 @@ onChangeSerialXls 'Замена серийных номеров' (SubjectType t)
                 lnext() <- NULL;
             }
             IF NOT lnext() THEN CONTINUE; 
-            es() <- GROUP MAX EquipmentSerial o IF number(o) = sn1(i) AND customer(equipment(o)) = filterCustomer();
+            es() <- GROUP MAX EquipmentSerial o IF number(o) = trim(sn1(i)) AND customer(equipment(o)) = filterCustomer();
             IF es() THEN NEW esc = EquipmentSerialChange {
                cnt2() <- cnt2() + 1;
                // таблица замен - EquipmentSerialChange
@@ -153,6 +153,6 @@ onChangeSerialXls 'Замена серийных номеров' (SubjectType t)
             'Не найденные номера по номеру или клиенту:\n',
             (IF NOT cmsg3() THEN 'НЕТ' ELSE cmsg3());
         MESSAGE cmsg();
-//        IF cnt2() > 0 AND ctn1() = cnt2() THEN APPLY; 
+        // по выходу из формы будет запрос на сохранение      
     }
 }
