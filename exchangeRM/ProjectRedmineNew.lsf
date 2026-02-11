@@ -18,7 +18,7 @@ importExternalNew 'Импорт из RM' () {
 EXTEND FORM migrationData PROPERTIES importExternalNew();
 
 EXTEND FORM issues 
-    PROPERTIES(o) AFTER nameProject(o) priorityName, separateContract 
+    PROPERTIES(o) AFTER nameProject(o) priorityName, separateContract, complexity, d_close
 ; 
 
 DESIGN issues {

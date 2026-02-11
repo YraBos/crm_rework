@@ -7,14 +7,16 @@ NAMESPACE Project;
 importRmExt 'Импорт отд. полей' (External e) {
     NEWSESSION {
         LOCAL id = INTEGER(INTEGER);             
-        LOCAL nid1, nid2 = INTEGER ();
+        LOCAL nid1, nid2, nid3 = INTEGER ();
         LOCAL ctype, cname = STRING(INTEGER);
         LOCAL file = FILE ();
         EXTERNAL SQL path(e) EXEC 'SELECT id, type, name FROM custom_fields ' TO file;
         IMPORT TABLE FROM file() TO id, ctype, cname;
         FOR imported(INTEGER i) AND id(i) AND ctype(i) = 'IssueCustomField' AND cname(i) = 'По отдельному договору' DO nid1() <- id(i); 
         FOR imported(INTEGER i) AND id(i) AND ctype(i) = 'TimeEntryCustomField' AND cname(i) = 'Не выставлять клиенту (часов)' DO nid2() <- id(i);
-        // по отдельному договору
+        FOR imported(INTEGER i) AND id(i) AND ctype(i) = 'IssueCustomField' AND cname(i) = 'Сложность' DO nid3() <- id(i);
+        
+        // по отдельному договору + приоритет
         IF nid1() THEN {
             LOCAL svalue = STRING[1](INTEGER);
             LOCAL sname = STRING[50](INTEGER);
@@ -31,6 +33,7 @@ importRmExt 'Импорт отд. полей' (External e) {
                 priorityName(s) <- STRING[15](sname(i));
             }   
         }
+        
         // не выставлять клиенту часов
         IF nid2() THEN {
             LOCAL dhours = STRING(INTEGER);
@@ -45,6 +48,28 @@ importRmExt 'Импорт отд. полей' (External e) {
                 IF dhours(i) THEN discountHours(t) <- NUMERIC[5,2](dhours(i)); ELSE discountHours(t) <- NULL;     
             }
         }
+        
+        // дата закрытия + сложность задачи
+        IF nid3() THEN {
+            LOCAL d_close = DATETIME (INTEGER);
+            LOCAL complexity = STRING[10] (INTEGER);
+            
+            EXTERNAL SQL path(e) EXEC
+                'SELECT t1.id, t1.closed_on, t2.value ' +
+                    'FROM issues AS t1 ' +
+                    'JOIN custom_values AS t2 ON t1.id = t2.customized_id ' +
+                    'WHERE t2.custom_field_id = $1'
+                PARAMS nid3()
+                TO file;
+            
+            IMPORT TABLE FROM file() TO id, d_close, complexity;
+            
+            FOR Issue s = issue(STRING[15](id(INTEGER i)), e) AND id(i) DO {
+                IF d_close(i) THEN d_close(s) <- DATE (d_close(i)) ; ELSE d_close(s) <- NULL ;
+                IF complexity(i) THEN complexity(s) <- INTEGER(complexity(i)) ; ELSE complexity(s) <- NULL ;
+            }
+        }
+        
         // заполнение расширений для задач - не сбрасываемые при обновлении изменения 
         onFillIssueExtension();
         APPLY;        
