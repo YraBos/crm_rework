@@ -23,7 +23,7 @@ importRmExt 'Импорт отд. полей' (External e) {
             EXTERNAL SQL path(e) EXEC
                 'SELECT issues.id,v.value,e.name ' +
                     'FROM issues ' +
-                    'LEFT JOIN custom_values v ON v.customized_type = \'Issue\' AND v.customized_id = issues.id AND v.custom_field_id=$1' + 
+                    'LEFT JOIN custom_values v ON v.customized_type = \'Issue\' AND v.customized_id = issues.id AND v.custom_field_id=$1 ' +
                     'LEFT JOIN enumerations  e ON issues.priority_id = e.id AND e.type = \'IssuePriority\' '
                     PARAMS nid1()
                     TO file;
