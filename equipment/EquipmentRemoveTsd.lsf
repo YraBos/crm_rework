@@ -7,6 +7,9 @@ toClientName 'Клиент получатель' (Customer o) = name(o);
 
 clientFrom 'ID от кого' = DATA LOCAL Customer();
 
+// ISO-отметка даты-времени для уникальной пометки перенесенных серийных номеров
+toDateTimeISO 'Дата и время переноса (ISO)' () = FORMULA TEXT PG 'to_char(now(), \'YYYYMMDD_HH24MISS\')';
+
 FORM removeTSD 'Перемещение ТСД'
     OBJECTS client1 = Customer PANEL 
         PROPERTIES READONLY toClientName(client1) 
@@ -38,8 +41,10 @@ onRemoveTSD 'Перенос ТСД' (SubjectType t) {
             LOCAL old = EquipmentSerial ();
             LOCAL cnt = INTEGER ();
             LOCAL noteNew, noteOld = STRING[200] ();
+            LOCAL markTs = TEXT ();
             noteNew() <- 'Перемещен из: ' + name(client2) + ', ' + toDateDDMMYY(currentDate()) + 'г.';
             noteOld() <- 'Перемещен в: ' + name(filterCustomer()) + ', ' + toDateDDMMYY(currentDate()) + 'г.';
+            markTs() <- toDateTimeISO();
             IMPORT XLS NOHEADER FROM xfile TO sn = B;
             NEW e = Equipment {
                 createdUser(e) <- currentUser();
@@ -56,7 +61,9 @@ onRemoveTSD 'Перенос ТСД' (SubjectType t) {
                             number(es) <- sn(i);
                             note(es) <- noteNew();
                         }
-                        number(old()) <- '*' + number(old());
+                        // уникальная пометка: *S/N_дата_время — исключает коллизию с прежними пометками '*'+номер
+                        // (GROUP AGGR BY number требует глобальной уникальности номера)
+                        number(old()) <- '*' + number(old()) + '_' + markTs();
                         note(old()) <- noteOld();
                     }
                 }
