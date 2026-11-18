@@ -178,8 +178,8 @@ onRevise3 '' (INTEGER ind, TempClassReports oRep, Customer c, STRING cRepName1, 
         p5(oRep) <- toDateDDMMYY(date(ox3()));
         LOCAL colC3 = STRING (INTEGER); 
         LOCAL colE3 = STRING (INTEGER);
-        IMPORT XLS NOHEADER FROM file(ox3()) AS FILE TO colC3 = C,colE3 = E;
-        FOR imported(INTEGER i) AND i > 1 AND colC3(i) ORDER i DO {
+        IMPORT XLS NOHEADER FROM file(ox3()) AS FILE TO colC3 = B,colE3 = D;
+        FOR imported(INTEGER i) AND i > 0 AND colC3(i) ORDER i DO {
             colC3(i) <- upper(trim(colC3(i))); 
             colE3(i) <- OVERRIDE colE3(i), ''; 
             p6(oRep) <- p6(oRep) + 1;
