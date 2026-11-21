@@ -88,7 +88,7 @@ FORM repTempEQUReport2 'Сверка торговых объектов-2'
 ;
 
 oserialOther 'ID s/n других клиентов' (Customer c, STRING sn) =
-    GROUP MAX (EquipmentSerial s) IF number(s) = sn AND NOT customer(equipment(s)) = c;
+    GROUP MAX (EquipmentSerial s) IF trim(number(s)) = trim(sn) AND NOT customer(equipment(s)) = c;
 
 // последняя замена по серийному номеру
 lastChange = GROUP LAST EquipmentSerialChange e ORDER date(e), e BY numberNew(e);
@@ -116,6 +116,10 @@ onReviseTSD2 'Сверка раб. ТСД (вариант 2)' (Equipment e) {
     
     IMPORT XLS NOHEADER FROM file(ot()) TO colC = B, colE = D, colD = C, colJ = J;
     
+    // цикл 1: строки файла, чей s/n НАЙДЕН в БД у текущего клиента (oserial)
+    // pi=120 - в отчет не выводится (учитывается только в счетчике "найдено в БД");
+    // заполняются дата выдачи из БД, блокировка и число подключений
+    // исключение - вложенный цикл по j: если замененный s/n подключался ПОСЛЕ даты замены, то pi=10 и строка выводится в отчет
     FOR imported(INTEGER i) AND i > 0 AND colC(i) AND oserial(filterCustomer(), colC(i)) ORDER i DO NEW ob = TempClassReports {
         cnt()  <- cnt() + 1;
         number(ob) <- colC(i);
@@ -137,6 +141,8 @@ onReviseTSD2 'Сверка раб. ТСД (вариант 2)' (Equipment e) {
         }
     }
     
+    // цикл 2: строки файла, чей s/n НЕ найден в БД у текущего клиента - pi=1, выводятся в отчет как "не найден"
+    // дополнительно (oserialOther): если номер числится у другого клиента, дописывается "найден у <клиент>" и его дата выдачи
     FOR imported(INTEGER i) AND i > 0 AND colC(i) AND NOT oserial(filterCustomer(), colC(i)) ORDER i DO NEW ob = TempClassReports {
         cnt()  <- cnt() + 1;
         number(ob) <- colC(i);
